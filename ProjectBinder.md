@@ -36,3 +36,5 @@ Sun 1st February, 16:00 - 16:45, Silmoon, Fatimah, Rohan, Hamza | Online meeting
 - Fatimah - Functional and Non-Functional Requirements, figure out communication with other teams
 - Rohan - UI/UX Designer
 - Hamza - Work with Fatimah and Alex, research and draft risks
+
+- Silmoon, Fatimah, Shakeel: Discussed briefly after the meeting
