@@ -27,4 +27,12 @@ Tue 27th January, 15:55 - 17:50, Silmoon, Shakeel | Online meeting
 - We went through more of the student brief together
 - Set up Outlook for file management, Jira for project management
 - Discussed requirements and new roles ideas
- 
+
+### Meeting 0.75
+Sun 1st February, 16:00 - 16:45, Silmoon, Fatimah, Rohan, Hamza | Online meeting
+
+- Reviewed updated roles (Business Analyst, QA Analyst, Risk Analyst, Data Architect, Requirement Engineer etc)
+- Jira is still a work in progress
+- Fatimah - Functional and Non-Functional Requirements, figure out communication with other teams
+- Rohan - UI/UX Designer
+- Hamza - Work with Fatimah and Alex, research and draft risks
