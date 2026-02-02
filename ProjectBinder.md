@@ -3,18 +3,18 @@
 ### Meeting 0: Introduction
 Mon 26th January, 17:50 - 18:45, Silmoon, Shakeel, Fatima, Chris | IRL meeting
 
-- We introduced eachother
+- We introduced each other
 - Went over the project details in a high level
 - Discussed timeline, project structure
 - Setup binders, named the team
 - Discussed software for project management
 - Discussed programming language choice
-- Set up meeting for thursday with rest of the team
+- Set up meeting for Thursday with rest of the team
 - Assigned initial roles (due to change)
   - Silmoon - Lead Project Manager / Programmer
   - Fatima - Deputy Manager / Designer
   - Shakeel - Deputy Manager / System Analyst / Programmer
-  - Chris - Deisgner / System Analyst
+  - Chris - Designer / System Analyst
   - Hamza - Tester
   - Rohan - Tester
   - Alexandra (not yet discussed)
