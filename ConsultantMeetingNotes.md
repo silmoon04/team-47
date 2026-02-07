@@ -34,7 +34,7 @@ Implement data storage will just be a matter of switching from our proxy to the 
 
 
 ### Meeting 2: First Client meeting 
-Wed 4th February, 12:00-13:00 | Fatimah, Silmoon, Alexandra, Chris, Hamza | In-Person
+Wed 4th February, 12:00-13:00 | Fatimah, Silmoon, Alexandra, Chris, Hamza, Rohan | In-Person
 - no age restrictions required for certain products
 - each account should only have one role, but this doesnt exclude a user from having multiple accounts (hypothetically)
 - some reports are more important than others - note this when doing priority table
