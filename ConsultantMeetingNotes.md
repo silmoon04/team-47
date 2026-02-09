@@ -51,3 +51,15 @@ Wed 4th February, 12:00-13:00 | Fatimah, Silmoon, Alexandra, Chris, Hamza, Rohan
 - admin SOLELY deals with user accounts
 - manager can do everything a pharmacist can do, plus more (ability to restore defaulted accounts etc)
 - pharmacist is essentially the "merchant" modelled in the scenario
+
+###Meeting 3: Second Consultant Meeting
+Mon 9th February, 14:30 - 15:00 | In-Person
+- reviewed what each of us have worked on so far
+- high level design: who is using our system, what are we using, we need to sort out interfaces by next week (at least a first draft)
+- risk register: security issues are completely eliminated for a first prototype
+- look at slide 19 of lecture 2 for marks breakdown
+- we can paste 8.2 of the brief into our initial statements
+- no marks for NFRs in the first deliverable
+- for flexible discount plans
+- look at dentalpro document for use case spec format
+- peer reviews covered next week
