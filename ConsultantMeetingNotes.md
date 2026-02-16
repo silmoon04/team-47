@@ -52,8 +52,8 @@ Wed 4th February, 12:00-13:00 | Fatimah, Silmoon, Alexandra, Chris, Hamza, Rohan
 - manager can do everything a pharmacist can do, plus more (ability to restore defaulted accounts etc)
 - pharmacist is essentially the "merchant" modelled in the scenario
 
-###Meeting 3: Second Consultant Meeting
-Mon 9th February, 14:30 - 15:00 | In-Person
+### Meeting 3: Second Consultant Meeting
+Mon 9th February, 14:30 - 15:00 | Silmoon, Alex, Fatimah, Chris | In-Person
 - reviewed what each of us have worked on so far
 - high level design: who is using our system, what are we using, we need to sort out interfaces by next week (at least a first draft)
 - risk register: security issues are completely eliminated for a first prototype
@@ -63,3 +63,12 @@ Mon 9th February, 14:30 - 15:00 | In-Person
 - for flexible discount plans
 - look at dentalpro document for use case spec format
 - peer reviews covered next week
+
+### Meeting 4: Third Consultant Meeting
+Mon 15th February, 14:30 - 15:00 | Silmoon, Alex, Fatimah, Chris | In-Person
+- concluded that reminder state flow diagrams are not required
+- we need a class diagram for the first deliverable
+- user accounts that we create are for OUR subsystem
+- we need to connect to SA subsystem when ordering, merchant account details need to be used for this. SA will neeed to provide an interface with an operation CONNECT, so that we can authenticate ourselves (details are created by them)
+- IPOS-SA as a secondary actor when we connect
+- we need to have a connect use case 
