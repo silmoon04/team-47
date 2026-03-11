@@ -9,7 +9,7 @@ public class Main {
         // TODO: call FlatIntelliJLaf.setup() here before creating any swing stuff
         //   import com.formdev.flatlaf.FlatIntelliJLaf;
         //   FlatIntelliJLaf.setup();
-
+        System.out.println("Test Commit");
         SwingUtilities.invokeLater(() -> {
             // TODO: create MainFrame and show it
             //   new MainFrame().setVisible(true);
