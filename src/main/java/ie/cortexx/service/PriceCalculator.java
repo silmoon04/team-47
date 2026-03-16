@@ -13,4 +13,6 @@ public class PriceCalculator {
     // TODO: calculateChange(tendered, totalDue) -> BigDecimal
     // TODO: calculateDiscountAmount(price, discountRate) -> BigDecimal
     // TODO: calculateTotalWithVAT(subtotal, vatAmount) -> BigDecimal
+
+    //test commit
 }
