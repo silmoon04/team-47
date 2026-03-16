@@ -12,8 +12,23 @@ public class MainFrame extends JFrame {
         setSize(1200, 800);
         setLocationRelativeTo(null);
 
-        // TODO: show LoginPanel initially
+        // TODO: show LoginPanel initially *
         // TODO: on login success, replace content with JTabbedPane
         // TODO: add/hide tabs based on role (pharmacist/admin/manager)
+
+        setContentPane(new LoginPanel(this));
     }
+
+    public void showMainFrame() {
+        JTabbedPane tabs = new JTabbedPane();
+        // placeholder tabs
+        tabs.addTab("Tab 1", new JPanel());
+        tabs.addTab("Tab 2", new JPanel());
+        tabs.addTab("Tab 3", new JPanel());
+
+        setContentPane(tabs);
+        revalidate();
+    }
+
+
 }
