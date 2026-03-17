@@ -172,7 +172,6 @@ CREATE TABLE system_config (
 
 ALTER TABLE users ADD CONSTRAINT FKusers138177 FOREIGN KEY (merchant_id) REFERENCES merchant_details (merchant_id);
 ALTER TABLE customers ADD CONSTRAINT FKcustomers848476 FOREIGN KEY (merchant_id) REFERENCES merchant_details (merchant_id);
-ALTER TABLE local_stocks ADD CONSTRAINT FKlocal_stoc561797 FOREIGN KEY (merchant_id) REFERENCES merchant_details (merchant_id);
 ALTER TABLE sales ADD CONSTRAINT FKsales360902 FOREIGN KEY (customer_id) REFERENCES customers (customer_id);
 ALTER TABLE stock ADD CONSTRAINT FKstock942274 FOREIGN KEY (product_id) REFERENCES products (product_id);
 ALTER TABLE customers ADD CONSTRAINT FKcustomers938353 FOREIGN KEY (flexible_tier_id) REFERENCES discount_tiers (tier_id);
