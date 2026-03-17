@@ -3,6 +3,7 @@
 -- run this first to create all tables
 
 -- TODO: CREATE DATABASE IF NOT EXISTS ipos_ca
+CREATE DATABASE IF NOT EXISTS iposca_database;
 
 -- TODO: users table
 --   user_id (PK, auto increment)
