@@ -15,11 +15,8 @@ public class LoginPanel extends JPanel {
     private JTextField usernameField = new JTextField(25);
     private JPasswordField passwordField = new JPasswordField(25);
     private JButton loginButton = new JButton("Login");
-    private MainFrame mainFrame;
 
-    public LoginPanel(MainFrame mainFrame) {
-        this.mainFrame = mainFrame;
-
+    public LoginPanel() {
         add(new JLabel("Username"));
         add(usernameField);
         add(new JLabel("Password"));
@@ -28,17 +25,16 @@ public class LoginPanel extends JPanel {
 
         loginButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                // AuthService.authenticate();
+                loginSuccess(); // TODO: add login functionality
             }
         });
     }
 
     public void loginSuccess() {
-        JOptionPane.showMessageDialog(this, "Login Successful");
-        mainFrame.showMainFrame();
+        JOptionPane.showMessageDialog(this, "Login Successful.");
     }
 
     public void loginFail() {
-        JOptionPane.showMessageDialog(this, "Login Unsuccessful");
+        JOptionPane.showMessageDialog(this, "Login Unsuccessful.");
     }
 }

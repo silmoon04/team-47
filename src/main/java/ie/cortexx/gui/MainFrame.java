@@ -1,6 +1,7 @@
 package ie.cortexx.gui;
 
 import javax.swing.*;
+import java.awt.*;
 
 // main application window
 // shows login first, then switches to tabs based on user role
@@ -16,19 +17,41 @@ public class MainFrame extends JFrame {
         // TODO: on login success, replace content with JTabbedPane
         // TODO: add/hide tabs based on role (pharmacist/admin/manager)
 
-        setContentPane(new LoginPanel(this));
+        setLayout(new BorderLayout());
+        add(showHeader(), BorderLayout.NORTH);
+        add(showTab(), BorderLayout.CENTER);
     }
 
-    public void showMainFrame() {
-        JTabbedPane tabs = new JTabbedPane();
-        // placeholder tabs
-        tabs.addTab("Tab 1", new JPanel());
-        tabs.addTab("Tab 2", new JPanel());
-        tabs.addTab("Tab 3", new JPanel());
+    private JPanel showHeader() {
+        JPanel headers = new JPanel(new BorderLayout());
 
-        setContentPane(tabs);
-        revalidate();
+        JLabel userLabel = new JLabel("USER");
+        JLabel roleLabel = new JLabel("ROLE");
+        JButton logoutButton = new JButton("Logout");
+
+        JPanel leftPanel = new JPanel();
+        JPanel rightPanel = new JPanel();
+
+        rightPanel.add(userLabel);
+        rightPanel.add(roleLabel);
+        rightPanel.add(logoutButton);
+
+        headers.add(leftPanel, BorderLayout.WEST);
+        headers.add(rightPanel, BorderLayout.EAST);
+
+        logoutButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA."));
+        // prompt user back to login page
+        return headers;
     }
 
-
+    // TODO: add role based tabs
+    private Component showTab() {
+        JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
+        tabs.addTab("Order", new JPanel());
+        tabs.addTab("Customer", new JPanel());
+        tabs.addTab("Stock", new JPanel());
+        tabs.addTab("Reports", new JPanel());
+        tabs.addTab("Settings", new JPanel());
+        return tabs;
+    }
 }
