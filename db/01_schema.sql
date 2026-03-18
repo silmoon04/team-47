@@ -19,9 +19,11 @@ CREATE TABLE users (
     username      varchar(255) NOT NULL UNIQUE,
     password_hash varchar(255) NOT NULL,
     full_name     varchar(255) NOT NULL,
+    email         varchar(255) NOT NULL,
+    phone         varchar(30) NOT NULL,
     role          enum('PHARMACIST','ADMIN','MANAGER') NOT NULL,
     is_active     boolean NOT NULL DEFAULT TRUE,
-    created_at    datetime NOT NULL,
+    created_at    datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
     merchant_id   int(10) NOT NULL,
     PRIMARY KEY (user_id));
 
@@ -31,7 +33,7 @@ CREATE TABLE users (
 --   sa_merchant_id (for team A integration)
 
 CREATE TABLE merchant_details (
-    merchant_id    int(10) DEFAULT 1 NOT NULL,
+    merchant_id    int(10) DEFAULT 1 NOT NULL AUTO_INCREMENT,
     business_name  varchar(255) NOT NULL,
     address        varchar(255) NOT NULL,
     phone          varchar(255) NOT NULL,
