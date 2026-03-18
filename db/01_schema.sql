@@ -15,12 +15,12 @@ CREATE DATABASE IF NOT EXISTS iposca_database;
 --   created_at (timestamp)
 
 CREATE TABLE users (
-    user_id       int(10) NOT NULL,
+    user_id       int(10) NOT NULL AUTO_INCREMENT,
     username      varchar(255) NOT NULL UNIQUE,
     password_hash varchar(255) NOT NULL,
     full_name     varchar(255) NOT NULL,
-    role          varchar(255) NOT NULL,
-    is_active     varchar(255) DEFAULT 'true',
+    role          enum('PHARMACIST','ADMIN','MANAGER') NOT NULL,
+    is_active     boolean NOT NULL DEFAULT TRUE,
     created_at    datetime NOT NULL,
     merchant_id   int(10) NOT NULL,
     PRIMARY KEY (user_id));
@@ -29,6 +29,7 @@ CREATE TABLE users (
 --   merchant_id (PK, default 1)
 --   business_name, address, phone, email
 --   sa_merchant_id (for team A integration)
+
 CREATE TABLE merchant_details (
     merchant_id    int(10) DEFAULT 1 NOT NULL,
     business_name  varchar(255) NOT NULL,
@@ -52,7 +53,7 @@ CREATE TABLE products (
     markup_rate   decimal(10, 2) NOT NULL,
     vat_rate      decimal(10, 2) NOT NULL,
     category      varchar(255) NOT NULL,
-    is_active     varchar(255) NOT NULL,
+    is_active     boolean NOT NULL,
     last_synced   datetime NOT NULL,
     PRIMARY KEY (product_id));
 
@@ -97,10 +98,10 @@ CREATE TABLE customers (
     email               varchar(255) NOT NULL,
     phone               varchar(255),
     address             varchar(255) NOT NULL,
-    account_status      varchar(255) NOT NULL,
+    account_status      enum('NORMAL','SUSPENDED','IN_DEFAULT') NOT NULL,
     credit_limit        decimal(10, 2) NOT NULL,
     outstanding_balance decimal(10, 2) NOT NULL,
-    discount_type       varchar(255) NOT NULL,
+    discount_type       enum('FIXED','FLEXIBLE') NOT NULL,
     fixed_discount_rate decimal(10, 2) NOT NULL,
     flexible_tier_id    int(10) NOT NULL,
     debt_period_start   date NOT NULL,
@@ -161,7 +162,7 @@ CREATE TABLE payments (
     customer_id  int(10),
     payment_type varchar(255) NOT NULL,
     amount       decimal(10, 2) NOT NULL,
-    card_type    varchar(255) NOT NULL,
+    card_type    enum('CASH','DEBIT_CARD','CREDIT_CARD','ON_CREDIT','ACCOUNT_PAYMENT') NOT NULL,
     card_first4  int(4) NOT NULL,
     card_last4   int(4) NOT NULL,
     card_expiry  int(6) NOT NULL,
@@ -179,7 +180,7 @@ CREATE TABLE orders (
     order_id     int(10) NOT NULL AUTO_INCREMENT,
     sa_order_id  int(10) NOT NULL,
     merchant_id  int(10) NOT NULL,
-    order_status varchar(255) NOT NULL,
+    order_status enum('ACCEPTED','PROCESSING','PACKED','IN_TRANSIT','DELIVERED','CANCELLED') NOT NULL,
     total_amount decimal(10, 2) NOT NULL,
     ordered_at   datetime NOT NULL,
     delivered_at datetime NOT NULL,
