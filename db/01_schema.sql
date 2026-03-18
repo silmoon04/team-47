@@ -15,12 +15,12 @@ CREATE DATABASE IF NOT EXISTS iposca_database;
 --   created_at (timestamp)
 
 CREATE TABLE users (
-    user_id       int(10) NOT NULL,
+    user_id       int(10) NOT NULL AUTO_INCREMENT,
     username      varchar(255) NOT NULL UNIQUE,
     password_hash varchar(255) NOT NULL,
     full_name     varchar(255) NOT NULL,
-    role          varchar(255) NOT NULL,
-    is_active     varchar(255) DEFAULT 'true',
+    role          enum('PHARMACIST','ADMIN','MANAGER') NOT NULL,
+    is_active     BOOLEAN NOT NULL DEFAULT TRUE,
     created_at    datetime NOT NULL,
     merchant_id   int(10) NOT NULL,
     PRIMARY KEY (user_id));
