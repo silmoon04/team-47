@@ -19,7 +19,7 @@ public class MainFrame extends JFrame {
 
         setLayout(new BorderLayout());
         add(showHeader(), BorderLayout.NORTH);
-        add(showTab(), BorderLayout.CENTER);
+        add(showTabPharmacist(), BorderLayout.CENTER);
     }
 
     private JPanel showHeader() {
@@ -44,14 +44,30 @@ public class MainFrame extends JFrame {
         return headers;
     }
 
-    // TODO: add role based tabs
-    private Component showTab() {
+    // placeholder tabs
+    private Component showTabPharmacist() {
         JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
         tabs.addTab("Order", new JPanel());
         tabs.addTab("Customer", new JPanel());
         tabs.addTab("Stock", new JPanel());
         tabs.addTab("Reports", new JPanel());
         tabs.addTab("Settings", new JPanel());
+        return tabs;
+    }
+
+    private Component showTabManager() {
+        JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
+        tabs.addTab("Manager Tab 1", new JPanel());
+        tabs.addTab("Manager Tab 2", new JPanel());
+        tabs.addTab("Manager Tab 3", new JPanel());
+        return tabs;
+    }
+
+    private Component showTabAdmin() {
+        JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
+        tabs.addTab("Admin Tab 1", new JPanel());
+        tabs.addTab("Admin Tab 2", new JPanel());
+        tabs.addTab("Admin Tab 3", new JPanel());
         return tabs;
     }
 }
