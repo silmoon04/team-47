@@ -14,12 +14,9 @@
     <description>CortexX Team B — IPOS Counter Assistant module</description>
 
     <properties>
-        <!-- Java version -->
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- Dependency versions — centralised here for easy updates -->
         <mysql.version>8.3.0</mysql.version>
         <junit.version>5.11.4</junit.version>
         <mockito.version>5.14.2</mockito.version>
@@ -31,36 +28,26 @@
     </properties>
 
     <dependencies>
-        <!-- ═══════════════════════════════════════════════ -->
-        <!-- DATABASE                                        -->
-        <!-- ═══════════════════════════════════════════════ -->
-        <!-- MySQL Connector/J — JDBC driver for MySQL 8.x  -->
+        <!-- DATABASE -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <version>${mysql.version}</version>
         </dependency>
 
-        <!-- ═══════════════════════════════════════════════ -->
-        <!-- LOGGING (much better than System.out.println)   -->
-        <!-- ═══════════════════════════════════════════════ -->
-        <!-- SLF4J API — use this in your code               -->
+        <!-- LOGGING -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
-        <!-- Logback — the actual logging implementation      -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
         </dependency>
 
-        <!-- ═══════════════════════════════════════════════ -->
-        <!-- TESTING                                         -->
-        <!-- ═══════════════════════════════════════════════ -->
-        <!-- JUnit 5 (Jupiter) — the test framework          -->
+        <!-- TESTING -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -68,14 +55,13 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Mockito — mock DAOs so service tests don't need a real DB -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- Mockito-JUnit-Jupiter — @ExtendWith(MockitoExtension.class) -->
+
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
@@ -83,8 +69,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- AssertJ — fluent assertions (much more readable than assertEquals) -->
-        <!-- Example: assertThat(customer.getStatus()).isEqualTo(SUSPENDED);    -->
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
@@ -92,7 +76,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- FlatLaf — modern Swing look and feel (replaces grey 2005 aesthetic) -->
+        <!-- UI -->
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>
@@ -102,25 +86,45 @@
 
     <build>
         <plugins>
-            <!-- Compiler plugin — target Java 17 -->
+
+            <!-- Compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <release>17</release>
                 </configuration>
             </plugin>
 
-            <!-- Surefire — runs JUnit 5 tests with `mvn test` -->
+            <!-- Unit tests -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
             </plugin>
 
-            <!-- Jar plugin — set Main-Class so `java -jar` works -->
+            <!-- Integration tests (NEW - IMPORTANT) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.5.2</version>
+                <configuration>
+                    <includes>
+                        <include>**/*IT.java</include>
+                    </includes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -134,8 +138,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Shade plugin — creates a fat JAR with all dependencies bundled -->
-            <!-- This solves the #1 student problem: "ClassNotFoundException for MySQL driver" -->
+            <!-- Fat jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -157,7 +160,7 @@
                 </executions>
             </plugin>
 
-            <!-- JaCoCo — code coverage reports -->
+            <!-- Coverage -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -174,7 +177,7 @@
                 </executions>
             </plugin>
 
-            <!-- Exec Maven Plugin - Run app reliably from terminal -->
+            <!-- Run app -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -183,6 +186,7 @@
                     <mainClass>ie.cortexx.Main</mainClass>
                 </configuration>
             </plugin>
+
         </plugins>
     </build>
 </project>
