@@ -5,6 +5,11 @@ import java.awt.*;
 
 // main application window
 // shows login first, then switches to tabs based on user role
+
+// TODO: show LoginPanel initially *
+// TODO: on login success, replace content with JTabbedPane *
+// TODO: add/hide tabs based on role (pharmacist/admin/manager)
+
 public class MainFrame extends JFrame {
 
     public MainFrame() {
@@ -12,23 +17,33 @@ public class MainFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1200, 800);
         setLocationRelativeTo(null);
+        showLoginPanel();
+    }
 
-        // TODO: show LoginPanel initially *
-        // TODO: on login success, replace content with JTabbedPane
-        // TODO: add/hide tabs based on role (pharmacist/admin/manager)
-
+    // TODO: show tabs based off user role
+    // manages main frame
+    public void showMainFrame() {
+        getContentPane().removeAll();
         setLayout(new BorderLayout());
         add(showHeader(), BorderLayout.NORTH);
         add(showTabPharmacist(), BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
+
+    // manages login panel
+    public void showLoginPanel() {
+        getContentPane().removeAll();
+        setContentPane(new LoginPanel(this));
+        revalidate();
+        repaint();
     }
 
     private JPanel showHeader() {
         JPanel headers = new JPanel(new BorderLayout());
-
         JLabel userLabel = new JLabel("USER");
         JLabel roleLabel = new JLabel("ROLE");
         JButton logoutButton = new JButton("Logout");
-
         JPanel leftPanel = new JPanel();
         JPanel rightPanel = new JPanel();
 
@@ -39,8 +54,11 @@ public class MainFrame extends JFrame {
         headers.add(leftPanel, BorderLayout.WEST);
         headers.add(rightPanel, BorderLayout.EAST);
 
-        logoutButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA."));
-        // prompt user back to login page
+        logoutButton.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA.");
+            // prompt user back to login page
+            showLoginPanel();
+        });
         return headers;
     }
 
