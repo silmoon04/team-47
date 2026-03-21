@@ -23,3 +23,6 @@ CREATE TABLE users (
     CONSTRAINT uq_users_username UNIQUE (username),
     CONSTRAINT uq_users_email UNIQUE (email)
 )
+
+-- Merchant details
+-- single row table for pharmacy identity, VAT defaults, etc 
