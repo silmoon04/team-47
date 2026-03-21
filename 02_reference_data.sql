@@ -128,3 +128,30 @@ VALUES (
     1,
     (SELECT user_id FROM users WHERE username = 'admin')
 );
+
+INSERT INTO system_config (config_key, config_value) 
+VALUES
+('vat_rate', '20.00'),
+('currency_code', 'GBP'),
+('debt_period_days', '30'),
+('first_reminder_after_days', '30'),
+('second_reminder_after_days', '60'),
+('suspension_after_days', '60'),
+('default_after_days', '90'),
+('default_credit_limit', '150.00'),
+('default_reorder_level', '10');
+
+INSERT INTO discount_tiers(
+    discount_plan_code,
+    discount_plan_name,
+    discount_type,
+    min_monthly_spend,
+    max_monthly_spend,
+    discount_rate,
+    is_active
+)
+VALUES
+('LOYALTY_BRONZE', 'Bronze Tier', 'FLEXIBLE', 0.00, 99.99,5.00, TRUE),
+('LOYALTY_SILVER', 'Silver Tier', 'FLEXIBLE', 100,00, 250.00, 10.00, TRUE),
+('LOYALTY_GOLD', 'Gold Tier', 'FLEXIBLE', 250.00, 500.00, 15.00, TRUE),
+('LOYALTY_PLATINUM', 'Platinum', 'FLEXIBLE', 500.00, 750.00, 20.00, TRUE);
