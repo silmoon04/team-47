@@ -12,11 +12,13 @@ public class LoginPanel extends JPanel {
     // TODO: show error label if login fails *
     // TODO: on success, call the callback to switch to main view *
 
+    private MainFrame mainFrame;
     private JTextField usernameField = new JTextField(25);
     private JPasswordField passwordField = new JPasswordField(25);
     private JButton loginButton = new JButton("Login");
 
-    public LoginPanel() {
+    public LoginPanel(MainFrame mainFrame) {
+        this.mainFrame = mainFrame;
         add(new JLabel("Username"));
         add(usernameField);
         add(new JLabel("Password"));
@@ -25,13 +27,14 @@ public class LoginPanel extends JPanel {
 
         loginButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                loginSuccess(); // TODO: add login functionality
+                loginSuccess();
             }
         });
     }
 
     public void loginSuccess() {
         JOptionPane.showMessageDialog(this, "Login Successful.");
+        mainFrame.showMainFrame();
     }
 
     public void loginFail() {
