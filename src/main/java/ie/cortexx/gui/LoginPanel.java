@@ -6,12 +6,6 @@ import java.awt.event.ActionEvent;
 
 // login form: username, password, login button
 public class LoginPanel extends JPanel {
-    // TODO: add JTextField for username *
-    // TODO: add JPasswordField for password *
-    // TODO: add JButton that calls AuthService.authenticate() *
-    // TODO: show error label if login fails *
-    // TODO: on success, call the callback to switch to main view *
-
     private MainFrame mainFrame;
     private JTextField usernameField = new JTextField(25);
     private JPasswordField passwordField = new JPasswordField(25);
@@ -34,7 +28,9 @@ public class LoginPanel extends JPanel {
 
     public void loginSuccess() {
         JOptionPane.showMessageDialog(this, "Login Successful.");
-        mainFrame.showMainFrame();
+//        mainFrame.showMainFrame("admin");
+//        mainFrame.showMainFrame("pharmacist");
+        mainFrame.showMainFrame("manager");
     }
 
     public void loginFail() {

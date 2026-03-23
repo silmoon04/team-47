@@ -6,10 +6,6 @@ import java.awt.*;
 // main application window
 // shows login first, then switches to tabs based on user role
 
-// TODO: show LoginPanel initially *
-// TODO: on login success, replace content with JTabbedPane *
-// TODO: add/hide tabs based on role (pharmacist/admin/manager)
-
 public class MainFrame extends JFrame {
 
     public MainFrame() {
@@ -20,13 +16,12 @@ public class MainFrame extends JFrame {
         showLoginPanel();
     }
 
-    // TODO: show tabs based off user role
     // manages main frame
-    public void showMainFrame() {
+    public void showMainFrame(String role) {
         getContentPane().removeAll();
         setLayout(new BorderLayout());
-        add(showHeader(), BorderLayout.NORTH);
-        add(showTabPharmacist(), BorderLayout.CENTER);
+        add(showHeaders(), BorderLayout.NORTH);
+        add(showTabs(role), BorderLayout.CENTER); // show tabs based off role
         revalidate();
         repaint();
     }
@@ -39,7 +34,8 @@ public class MainFrame extends JFrame {
         repaint();
     }
 
-    private JPanel showHeader() {
+    // manages headers
+    private JPanel showHeaders() {
         JPanel headers = new JPanel(new BorderLayout());
         JLabel userLabel = new JLabel("USER");
         JLabel roleLabel = new JLabel("ROLE");
@@ -62,30 +58,25 @@ public class MainFrame extends JFrame {
         return headers;
     }
 
-    // placeholder tabs
-    private Component showTabPharmacist() {
+    // manages tabs
+    private Component showTabs(String role) {
         JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
-        tabs.addTab("Order", new JPanel());
-        tabs.addTab("Customer", new JPanel());
-        tabs.addTab("Stock", new JPanel());
-        tabs.addTab("Reports", new JPanel());
-        tabs.addTab("Settings", new JPanel());
-        return tabs;
-    }
-
-    private Component showTabManager() {
-        JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
-        tabs.addTab("Manager Tab 1", new JPanel());
-        tabs.addTab("Manager Tab 2", new JPanel());
-        tabs.addTab("Manager Tab 3", new JPanel());
-        return tabs;
-    }
-
-    private Component showTabAdmin() {
-        JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
-        tabs.addTab("Admin Tab 1", new JPanel());
-        tabs.addTab("Admin Tab 2", new JPanel());
-        tabs.addTab("Admin Tab 3", new JPanel());
+        // admin tabs
+        if (role.equals("admin")) {
+            tabs.addTab("User Management", new JPanel());
+        } else {
+            // default tabs
+            tabs.addTab("Sales", new JPanel());
+            tabs.addTab("Stock", new JPanel());
+            tabs.addTab("Customers", new JPanel());
+            tabs.addTab("Catalogue", new JPanel());
+            tabs.addTab("Orders", new JPanel());
+            // manager tabs
+            if (role.equals("manager")) {
+                tabs.addTab("Reports", new JPanel());
+                tabs.addTab("Settings", new JPanel());
+            }
+        }
         return tabs;
     }
 }
