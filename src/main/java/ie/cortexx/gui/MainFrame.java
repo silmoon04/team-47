@@ -7,7 +7,8 @@ import java.awt.*;
 // shows login first, then switches to tabs based on user role
 
 public class MainFrame extends JFrame {
-
+    private static String currentUser;
+    private static String currentRole = "manager";
     public MainFrame() {
         setTitle("IPOS-CA");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -15,7 +16,6 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         showLoginPanel();
     }
-
     // manages main frame
     public void showMainFrame(String role) {
         getContentPane().removeAll();
@@ -25,7 +25,6 @@ public class MainFrame extends JFrame {
         revalidate();
         repaint();
     }
-
     // manages login panel
     public void showLoginPanel() {
         getContentPane().removeAll();
@@ -33,12 +32,11 @@ public class MainFrame extends JFrame {
         revalidate();
         repaint();
     }
-
     // manages headers
     private JPanel showHeaders() {
         JPanel headers = new JPanel(new BorderLayout());
-        JLabel userLabel = new JLabel("USER");
-        JLabel roleLabel = new JLabel("ROLE");
+        JLabel userLabel = new JLabel(currentUser.toUpperCase());
+        JLabel roleLabel = new JLabel(currentRole.toUpperCase());
         JButton logoutButton = new JButton("Logout");
         JPanel leftPanel = new JPanel();
         JPanel rightPanel = new JPanel();
@@ -57,7 +55,6 @@ public class MainFrame extends JFrame {
         });
         return headers;
     }
-
     // manages tabs
     private Component showTabs(String role) {
         JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
@@ -78,5 +75,18 @@ public class MainFrame extends JFrame {
             }
         }
         return tabs;
+    }
+    // getters and setters
+    public String getUsername() {
+        return currentUser;
+    }
+    public String getRole() {
+        return currentRole;
+    }
+    public static void setUsername(String username) {
+        currentUser = username;
+    }
+    public static void setRole(String role) {
+        currentRole = role;
     }
 }

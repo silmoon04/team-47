@@ -28,12 +28,11 @@ public class LoginPanel extends JPanel {
 
     public void loginSuccess() {
         JOptionPane.showMessageDialog(this, "Login Successful.");
-//        mainFrame.showMainFrame("admin");
-//        mainFrame.showMainFrame("pharmacist");
-        mainFrame.showMainFrame("manager");
+        mainFrame.setUsername(usernameField.getText());
+        mainFrame.showMainFrame(mainFrame.getRole());
     }
 
     public void loginFail() {
-        JOptionPane.showMessageDialog(this, "Login Unsuccessful.");
+        JOptionPane.showMessageDialog(this, "Login Failed.");
     }
 }
