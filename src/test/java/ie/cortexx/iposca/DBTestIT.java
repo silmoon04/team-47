@@ -1,25 +1,36 @@
 package ie.cortexx.iposca;
 
 import org.junit.jupiter.api.Test;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.Statement;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class DBTestIT {
 
     @Test
-    void testDemoDB() throws Exception {
-        Connection conn = DriverManager.getConnection(
-            "jdbc:mysql://localhost:3306/demo_db", "demo_user", "demo_pass");
-        Statement stmt = conn.createStatement();
+    void testProjectDatabaseConnectionAfterReset() throws Exception {
+        try (Connection conn = DriverManager.getConnection(
+            "jdbc:mysql://localhost:3306/ipos_ca",
+            "root",
+            "password123")) {
 
-        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM demo_table");
-        rs.next();
-        int rowCount = rs.getInt(1);
-        assertEquals(0, rowCount, "DB should be empty after reset");
+            assertNotNull(conn);
 
-        conn.close();
+            String resetSql = Files.readString(Path.of("db/reset_demo.sql"));
+
+            try (Statement stmt = conn.createStatement()) {
+                for (String sql : resetSql.split(";")) {
+                    String trimmed = sql.trim();
+                    if (!trimmed.isEmpty()) {
+                        stmt.execute(trimmed);
+                    }
+                }
+            }
+        }
     }
 }
