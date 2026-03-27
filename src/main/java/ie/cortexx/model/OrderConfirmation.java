@@ -1,6 +1,6 @@
 package ie.cortexx.model;
 
-// not stored in DB — this is what Team A returns when we place an order
+// not stored in DB, returned by team A when we place an order
 public class OrderConfirmation {
     private String saOrderId;
     private String status;
