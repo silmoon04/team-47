@@ -4,10 +4,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// maps to `statements` table
+// maps to `statements`
+// shows purchases/payments for an account holder over a period
 public class Statement {
     private int statementId;
     private int customerId;
+    // DATE in schema, not DATETIME
     private LocalDate periodStart;
     private LocalDate periodEnd;
     private BigDecimal openingBalance;

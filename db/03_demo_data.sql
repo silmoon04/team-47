@@ -1,8 +1,39 @@
--- Demo data — run after 02_reference_data.sql
--- realistic test data for development and demo day
+-- IPOS-CA demo data , fixed version
+-- run after 02_reference_data.sql
 
--- TODO: insert users (at least 1 pharmacist, 1 admin, 1 manager)
--- TODO: insert products (20+ pharmacy items with realistic prices)
--- TODO: insert stock (quantities for each product)
--- TODO: insert customers (mix of normal, some with outstanding balances)
--- TODO: insert some sample sales and payments
+-- marking criteria says start with only sysdba login
+-- products/stock/merchant already in reference data
+-- historical orders (scenarios 2 & 4) pre-seeded here
+
+USE iposca_database;
+-- fixed a few things from the previous version
+--  db name, user columns, missing commas, typos,
+--  syntax errors on products 7/8/14
+--  but what i kept is sale structure pattern (mix of payment types), sale_items format
+
+-- only sysdba is actually pre-seeded, we need to create others live during demo
+INSERT INTO users (username, password_hash, full_name, role, merchant_id) VALUES
+    ('sysdba', 'masterkey', 'System Administrator', 'ADMIN', 1);
+
+-- added historical orders
+-- scenario 2: 25 feb, cosymed ordered from SA, £376, delivered 26 feb
+INSERT INTO orders (sa_order_id, merchant_id, order_status, total_amount, ordered_at, delivered_at, ordered_by) VALUES
+    ('SA-ORD-001', 1, 'DELIVERED', 376.00, '2026-02-25 10:00:00', '2026-02-26 17:00:00', 1);
+
+INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
+                                                                         (1, 1,  10,  0.10),   -- Paracetamol x10 = £1.00
+                                                                         (1, 3,  20,  1.20),   -- Analgin x20 = £24.00
+                                                                         (1, 10, 10,  2.50),   -- Rhynol x10 = £25.00
+                                                                         (1, 12, 20, 15.00),   -- Amopen x20 = £300.00
+                                                                         (1, 14, 20,  1.30);   -- Vitamin B12 x20 = £26.00  total = £376
+
+-- scenario 4: 10 mar, cosymed ordered from SA, £430, delivered 12 mar
+INSERT INTO orders (sa_order_id, merchant_id, order_status, total_amount, ordered_at, delivered_at, ordered_by) VALUES
+    ('SA-ORD-002', 1, 'DELIVERED', 430.00, '2026-03-10 09:00:00', '2026-03-12 11:00:00', 1);
+
+INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
+                                                                         (2, 10, 10, 2.50),    -- Rhynol x10 = £25.00
+                                                                         (2, 11, 10, 10.50),   -- Ospen x10 = £105.00
+                                                                         (2, 12, 20, 15.00);   -- Amopen x20 = £300.00  total = £430
+
+-- rest of the scenarios im pretty sure that we need to do live, can double check later
