@@ -26,5 +26,26 @@ public class Payment {
     private BigDecimal changeGiven;
     private LocalDateTime paymentDate;
 
-    // TODO: generate getters & setters
+    public int getPaymentId() { return paymentId; }
+    public void setPaymentId(int paymentId) { this.paymentId = paymentId; }
+    public int getSaleId() { return saleId != null ? saleId : 0; }
+    public void setSaleId(int saleId) { this.saleId = saleId; }
+    public int getCustomerId() { return customerId != null ? customerId : 0; }
+    public void setCustomerId(int customerId) { this.customerId = customerId; }
+    public PaymentType getPaymentType() { return paymentType; }
+    public void setPaymentType(PaymentType paymentType) { this.paymentType = paymentType; }
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public String getCardType() { return cardType; }
+    public void setCardType(String cardType) { this.cardType = cardType; }
+    public String getCardFirst4() { return cardFirst4; }
+    public void setCardFirst4(String cardFirst4) { this.cardFirst4 = cardFirst4; }
+    public String getCardLast4() { return cardLast4; }
+    public void setCardLast4(String cardLast4) { this.cardLast4 = cardLast4; }
+    public String getCardExpiry() { return cardExpiry; }
+    public void setCardExpiry(String cardExpiry) { this.cardExpiry = cardExpiry; }
+    public BigDecimal getChangeGiven() { return changeGiven; }
+    public void setChangeGiven(BigDecimal changeGiven) { this.changeGiven = changeGiven; }
+    public LocalDateTime getPaymentDate() { return paymentDate; }
+    public void setPaymentDate(LocalDateTime paymentDate) { this.paymentDate = paymentDate; }
 }
