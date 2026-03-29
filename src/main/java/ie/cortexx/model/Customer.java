@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 // maps to `customers` table
 // demo: eva bauyer (ACC0001, FIXED 3%), glynne morrison (ACC0002, FLEXIBLE tiers)
 public class Customer {
+
     private int customerId;
     // ACC0001, ACC0002 etc
     private String accountNo;
@@ -43,148 +44,69 @@ public class Customer {
     // DEFAULT 1
     private int merchantId;
 
-    public int getCustomerId() {
-        return customerId;
-    }
+    public int getCustomerId() { return customerId; }
+    public void setCustomerId(int customerId) { this.customerId = customerId; }
 
-    public void setCustomerId(int customerId) {
-        this.customerId = customerId;
-    }
+    public String getAccountNo() { return accountNo; }
+    public void setAccountNo(String accountNo) { this.accountNo = accountNo; }
 
-    public String getName() {
-        return name;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public String getContactName() { return contactName; }
+    public void setContactName(String contactName) { this.contactName = contactName; }
 
-    public String getEmail() {
-        return email;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
-    public String getPhone() {
-        return phone;
-    }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
+    public AccountStatus getAccountStatus() { return accountStatus; }
+    public void setAccountStatus(AccountStatus accountStatus) { this.accountStatus = accountStatus; }
 
-    public String getAddress() {
-        return address;
-    }
+    public BigDecimal getCreditLimit() { return creditLimit; }
+    public void setCreditLimit(BigDecimal creditLimit) { this.creditLimit = creditLimit; }
 
-    public void setAddress(String address) {
-        this.address = address;
-    }
+    public BigDecimal getOutstandingBalance() { return outstandingBalance; }
+    public void setOutstandingBalance(BigDecimal outstandingBalance) { this.outstandingBalance = outstandingBalance; }
 
-    public AccountStatus getAccountStatus() {
-        return accountStatus;
-    }
+    public DiscountType getDiscountType() { return discountType; }
+    public void setDiscountType(DiscountType discountType) { this.discountType = discountType; }
 
-    public void setAccountStatus(AccountStatus accountStatus) {
-        this.accountStatus = accountStatus;
-    }
+    public BigDecimal getFixedDiscountRate() { return fixedDiscountRate; }
+    public void setFixedDiscountRate(BigDecimal fixedDiscountRate) { this.fixedDiscountRate = fixedDiscountRate; }
 
-    public BigDecimal getCreditLimit() {
-        return creditLimit;
-    }
+    public Integer getFlexibleTierId() { return flexibleTierId; }
+    public void setFlexibleTierId(Integer flexibleTierId) { this.flexibleTierId = flexibleTierId; }
 
-    public void setCreditLimit(BigDecimal creditLimit) {
-        this.creditLimit = creditLimit;
-    }
+    public LocalDate getDebtPeriodStart() { return debtPeriodStart; }
+    public void setDebtPeriodStart(LocalDate debtPeriodStart) { this.debtPeriodStart = debtPeriodStart; }
 
-    public BigDecimal getOutstandingBalance() {
-        return outstandingBalance;
-    }
+    public LocalDate getLastPaymentDate() { return lastPaymentDate; }
+    public void setLastPaymentDate(LocalDate lastPaymentDate) { this.lastPaymentDate = lastPaymentDate; }
 
-    public void setOutstandingBalance(BigDecimal outstandingBalance) {
-        this.outstandingBalance = outstandingBalance;
-    }
+    public LocalDate getDate1stReminder() { return date1stReminder; }
+    public void setDate1stReminder(LocalDate date1stReminder) { this.date1stReminder = date1stReminder; }
 
-    public DiscountType getDiscountType() {
-        return discountType;
-    }
+    public ReminderStatus getStatus1stReminder() { return status1stReminder; }
+    public void setStatus1stReminder(ReminderStatus status1stReminder) { this.status1stReminder = status1stReminder; }
 
-    public void setDiscountType(DiscountType discountType) {
-        this.discountType = discountType;
-    }
+    public LocalDate getDate2ndReminder() { return date2ndReminder; }
+    public void setDate2ndReminder(LocalDate date2ndReminder) { this.date2ndReminder = date2ndReminder; }
 
-    public BigDecimal getFixedDiscountRate() {
-        return fixedDiscountRate;
-    }
+    public ReminderStatus getStatus2ndReminder() { return status2ndReminder; }
+    public void setStatus2ndReminder(ReminderStatus status2ndReminder) { this.status2ndReminder = status2ndReminder; }
 
-    public void setFixedDiscountRate(BigDecimal fixedDiscountRate) {
-        this.fixedDiscountRate = fixedDiscountRate;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public Integer getFlexibleTierId() {
-        return flexibleTierId;
-    }
+    public Integer getCreatedBy() { return createdBy; }
+    public void setCreatedBy(Integer createdBy) { this.createdBy = createdBy; }
 
-    public void setFlexibleTierId(Integer flexibleTierId) {
-        this.flexibleTierId = flexibleTierId;
-    }
-
-    public LocalDate getDebtPeriodStart() {
-        return debtPeriodStart;
-    }
-
-    public void setDebtPeriodStart(LocalDate debtPeriodStart) {
-        this.debtPeriodStart = debtPeriodStart;
-    }
-
-    public LocalDate getDate1stReminder() {
-        return date1stReminder;
-    }
-
-    public void setDate1stReminder(LocalDate date1stReminder) {
-        this.date1stReminder = date1stReminder;
-    }
-
-    public ReminderStatus getStatus1stReminder() {
-        return status1stReminder;
-    }
-
-    public void setStatus1stReminder(ReminderStatus status1stReminder) {
-        this.status1stReminder = status1stReminder;
-    }
-
-    public LocalDate getDate2ndReminder() {
-        return date2ndReminder;
-    }
-
-    public void setDate2ndReminder(LocalDate date2ndReminder) {
-        this.date2ndReminder = date2ndReminder;
-    }
-
-    public ReminderStatus getStatus2ndReminder() {
-        return status2ndReminder;
-    }
-
-    public void setStatus2ndReminder(ReminderStatus status2ndReminder) {
-        this.status2ndReminder = status2ndReminder;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public int getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(int createdBy) {
-        this.createdBy = createdBy;
-    }
-// TODO: generate getters & setters
+    public int getMerchantId() { return merchantId; }
+    public void setMerchantId(int merchantId) { this.merchantId = merchantId; }
 }
