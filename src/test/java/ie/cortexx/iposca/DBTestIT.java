@@ -1,36 +1,172 @@
 package ie.cortexx.iposca;
 
+import ie.cortexx.util.DBConnection;
 import org.junit.jupiter.api.Test;
+import java.sql.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
+// db schema + connection integration tests
+// see context/JDBC_AND_DAO_GUIDE.md for how to write dao methods and tests
+//
+// run with:  mvn verify  or  mvn test -Dtest=DBTestIT
+// prereq:    mysql running, db/01_schema.sql executed
 public class DBTestIT {
 
-    @Test
-    void testProjectDatabaseConnectionAfterReset() throws Exception {
-        try (Connection conn = DriverManager.getConnection(
-            "jdbc:mysql://localhost:3306/ipos_ca",
-            "root",
-            "password123")) {
+    static final String[] TABLES = {
+        "system_config", "users", "merchant_details", "products", "stock",
+        "discount_tiers", "customers", "sales", "sale_items", "payments",
+        "orders", "order_items", "statements", "reminders", "templates"
+    };
 
-            assertNotNull(conn);
+    // helper: query information_schema and return first column of first row
+    String schemaInfo(Connection c, String sql) throws Exception {
+        try (var rs = c.createStatement().executeQuery(sql)) {
+            return rs.next() ? rs.getString(1) : null;
+        }
+    }
 
-            String resetSql = Files.readString(Path.of("db/reset_demo.sql"));
+    // ---- connection ----
 
-            try (Statement stmt = conn.createStatement()) {
-                for (String sql : resetSql.split(";")) {
-                    String trimmed = sql.trim();
-                    if (!trimmed.isEmpty()) {
-                        stmt.execute(trimmed);
-                    }
+    @Test void connects() throws Exception {
+        try (var c = DBConnection.getConnection()) {
+            assertNotNull(c);
+            assertFalse(c.isClosed());
+            System.out.println("[ok] connected");
+        }
+    }
+
+    @Test void correctDb() throws Exception {
+        // make sure we're not accidentally hitting some other db
+        try (var c = DBConnection.getConnection();
+             var rs = c.createStatement().executeQuery("SELECT DATABASE()")) {
+            rs.next();
+            assertEquals("iposca_database", rs.getString(1));
+            System.out.println("[ok] database = iposca_database");
+        }
+    }
+
+    // ---- schema structure ----
+
+    @Test void allTablesExist() throws Exception {
+        try (var c = DBConnection.getConnection()) {
+            var meta = c.getMetaData();
+            for (String t : TABLES) {
+                try (var rs = meta.getTables(null, "iposca_database", t, null)) {
+                    assertTrue(rs.next(), "missing table: " + t);
                 }
             }
+            System.out.println("[ok] all 15 tables exist");
+        }
+    }
+
+    @Test void columnFixes() throws Exception {
+        // spot checks the critical schema bugs fixed on 26 mar
+        try (var c = DBConnection.getConnection()) {
+            String base = "SELECT %s FROM information_schema.columns "
+                + "WHERE table_schema='iposca_database' AND table_name='%s' AND column_name='%s'";
+
+            // merchant_details.merchant_id not auto_increment (THE bug that broke everything)
+            assertFalse(schemaInfo(c, String.format(base, "EXTRA", "merchant_details", "merchant_id"))
+                .contains("auto_increment"));
+
+            // payments.payment_type is enum (was swapped with card_type, causes silent wrong data)
+            assertTrue(schemaInfo(c, String.format(base, "COLUMN_TYPE", "payments", "payment_type"))
+                .startsWith("enum"));
+
+            // nullable fields that were NOT NULL (broke cash payments, new orders, unsent reminders)
+            for (String[] col : new String[][]{
+                {"payments", "card_type"}, {"orders", "delivered_at"}, {"reminders", "sent_at"}
+            }) {
+                assertEquals("YES", schemaInfo(c, String.format(base, "IS_NULLABLE", col[0], col[1])),
+                    col[0] + "." + col[1] + " should be nullable");
+            }
+
+            // customers reminder columns split (was single reminder_dates + statuses)
+            var meta = c.getMetaData();
+            for (String col : new String[]{"date_1st_reminder", "status_1st_reminder",
+                                           "date_2nd_reminder", "status_2nd_reminder"}) {
+                try (var rs = meta.getColumns(null, "iposca_database", "customers", col)) {
+                    assertTrue(rs.next(), "customers." + col + " missing");
+                }
+            }
+            System.out.println("[ok] column fixes verified");
+        }
+    }
+
+    // ---- cascades (worth 2 marks in demo) ----
+
+    @Test void cascadeDeletes() throws Exception {
+        // deleting a sale should auto-delete its sale_items + payments
+        // deleting an order should auto-delete its order_items
+        String[] fks = {"fk_sale_items_sale", "fk_order_items_order", "fk_payments_sale"};
+        try (var c = DBConnection.getConnection()) {
+            for (String fk : fks) {
+                var rs = c.createStatement().executeQuery(
+                    "SELECT DELETE_RULE FROM information_schema.referential_constraints "
+                    + "WHERE constraint_schema='iposca_database' AND constraint_name='" + fk + "'");
+                assertTrue(rs.next(), fk + " not found");
+                assertEquals("CASCADE", rs.getString(1), fk + " should cascade");
+                rs.close();
+            }
+            System.out.println("[ok] cascade deletes verified");
+        }
+    }
+
+    // ---- constraints (shows assertThrows pattern for the team) ----
+
+    @Test void rejectsNegativeStock() throws Exception {
+        // CHECK (quantity >= 0) on stock table
+        try (var c = DBConnection.getConnection();
+             var rs = c.createStatement().executeQuery("SELECT product_id FROM stock LIMIT 1")) {
+            if (!rs.next()) { System.out.println("[skip] no stock data"); return; }
+            var ps = c.prepareStatement("UPDATE stock SET quantity = -1 WHERE product_id = ?");
+            ps.setInt(1, rs.getInt(1));
+            assertThrows(SQLException.class, ps::executeUpdate);
+            System.out.println("[ok] negative stock rejected");
+        }
+    }
+
+    @Test void rejectsDuplicateUsername() throws Exception {
+        // UNIQUE constraint on users.username
+        try (var c = DBConnection.getConnection();
+             var rs = c.createStatement().executeQuery("SELECT username FROM users LIMIT 1")) {
+            if (!rs.next()) { System.out.println("[skip] no users"); return; }
+            var ps = c.prepareStatement(
+                "INSERT INTO users (username,password_hash,full_name,role,merchant_id) VALUES (?,'x','x','ADMIN',1)");
+            ps.setString(1, rs.getString(1));
+            assertThrows(SQLException.class, ps::executeUpdate);
+            System.out.println("[ok] duplicate username rejected");
+        }
+    }
+
+    // ---- data integrity (needs demo/test data loaded) ----
+
+    @Test void orderTotalsMatchItems() throws Exception {
+        // checks that order header totals = sum of (qty * unit_price) in items
+        // shows JOIN + GROUP BY + HAVING pattern
+        try (var c = DBConnection.getConnection();
+             var rs = c.createStatement().executeQuery(
+                 "SELECT o.order_id FROM orders o "
+                 + "JOIN order_items oi ON o.order_id=oi.order_id "
+                 + "GROUP BY o.order_id, o.total_amount "
+                 + "HAVING o.total_amount != SUM(oi.quantity * oi.unit_price)")) {
+            assertFalse(rs.next(), "order total mismatch found");
+            System.out.println("[ok] order totals match items");
+        }
+    }
+
+    // ---- summary (prints row counts so you can eyeball the data) ----
+
+    @Test void schemaSummary() throws Exception {
+        try (var c = DBConnection.getConnection()) {
+            System.out.println("\n=== SCHEMA SUMMARY ===");
+            for (String t : TABLES) {
+                var rs = c.createStatement().executeQuery("SELECT COUNT(*) FROM " + t);
+                rs.next();
+                System.out.printf("  %-20s %d rows%n", t, rs.getInt(1));
+                rs.close();
+            }
+            System.out.println("======================\n");
         }
     }
 }
