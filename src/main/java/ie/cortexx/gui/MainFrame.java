@@ -9,6 +9,7 @@ import java.awt.*;
 public class MainFrame extends JFrame {
     private static String currentUser;
     private static String currentRole = "manager";
+
     public MainFrame() {
         setTitle("IPOS-CA");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -16,6 +17,7 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         showLoginPanel();
     }
+
     // manages main frame
     public void showMainFrame(String role) {
         getContentPane().removeAll();
@@ -25,6 +27,7 @@ public class MainFrame extends JFrame {
         revalidate();
         repaint();
     }
+
     // manages login panel
     public void showLoginPanel() {
         getContentPane().removeAll();
@@ -32,6 +35,7 @@ public class MainFrame extends JFrame {
         revalidate();
         repaint();
     }
+
     // manages headers
     private JPanel showHeaders() {
         JPanel headers = new JPanel(new BorderLayout());
@@ -55,6 +59,7 @@ public class MainFrame extends JFrame {
         });
         return headers;
     }
+
     // manages tabs
     private Component showTabs(String role) {
         JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
@@ -76,16 +81,20 @@ public class MainFrame extends JFrame {
         }
         return tabs;
     }
+
     // getters and setters
     public String getUsername() {
         return currentUser;
     }
+
     public String getRole() {
         return currentRole;
     }
+
     public static void setUsername(String username) {
         currentUser = username;
     }
+
     public static void setRole(String role) {
         currentRole = role;
     }

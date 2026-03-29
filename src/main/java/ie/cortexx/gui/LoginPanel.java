@@ -1,8 +1,8 @@
 package ie.cortexx.gui;
-
 import javax.swing.*;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import ie.cortexx.service.AuthService;
 
 // login form: username, password, login button
 public class LoginPanel extends JPanel {
@@ -10,6 +10,7 @@ public class LoginPanel extends JPanel {
     private JTextField usernameField = new JTextField(25);
     private JPasswordField passwordField = new JPasswordField(25);
     private JButton loginButton = new JButton("Login");
+    private AuthService authService = new AuthService();
 
     public LoginPanel(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
@@ -21,6 +22,17 @@ public class LoginPanel extends JPanel {
 
         loginButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+                String username = usernameField.getText();
+                // mock login service
+                if (username.equalsIgnoreCase("sysdba")) {
+                    mainFrame.setRole("admin");
+                } else if (username.equalsIgnoreCase("manager")) {
+                    mainFrame.setRole("manager");
+                } else {
+                    mainFrame.setRole("pharmacist");
+                }
+                mainFrame.setUsername(username);
+                // AuthService.authenticate(username, password) // to be implemented
                 loginSuccess();
             }
         });
