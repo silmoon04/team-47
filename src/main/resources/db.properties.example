@@ -1,8 +1,9 @@
+# ipos-ca database connection config
 # copy this to db.properties and fill in your password
 # db.properties is gitignored so your password stays local
 
-db.url=jdbc:mysql://localhost:3306/ipos_ca
+db.url=jdbc:mysql://localhost:3306/iposca_database
 db.user=root
-db.password=
+db.password=YOUR_PASSWORD_HERE
 
-db.test.url=jdbc:mysql://localhost:3306/ipos_ca_test
+db.test.url=jdbc:mysql://localhost:3306/iposca_test
