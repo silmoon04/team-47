@@ -15,6 +15,17 @@ public class MerchantDetails {
     private String saUsername;
     private String saPassword;
 
+    public MerchantDetails() {}
+
+    public MerchantDetails(String businessName, String address, String phone, String email, String saMerchantId) {
+        this.merchantId = 1;
+        this.businessName = businessName;
+        this.address = address;
+        this.phone = phone;
+        this.email = email;
+        this.saMerchantId = saMerchantId;
+    }
+
     public int getMerchantId() { return merchantId; }
     public void setMerchantId(int merchantId) { this.merchantId = merchantId; }
 

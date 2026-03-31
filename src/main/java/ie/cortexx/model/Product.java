@@ -25,6 +25,17 @@ public class Product {
     private boolean active;
     private LocalDateTime lastSynced;
 
+    public Product() {}
+
+    // convenience constructor for the common fields needed to create a product
+    public Product(String saProductId, String name, BigDecimal costPrice, BigDecimal markupRate) {
+        this.saProductId = saProductId;
+        this.name = name;
+        this.costPrice = costPrice;
+        this.markupRate = markupRate;
+        this.active = true;
+    }
+
     public int getProductId() { return productId; }
     public void setProductId(int productId) { this.productId = productId; }
 

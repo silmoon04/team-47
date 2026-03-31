@@ -14,6 +14,15 @@ public class DiscountTier {
     // e.g. 0.0100 = 1%
     private BigDecimal discountRate;
 
+    public DiscountTier() {}
+
+    public DiscountTier(int customerId, String tierName, BigDecimal minMonthlySpend, BigDecimal discountRate) {
+        this.customerId = customerId;
+        this.tierName = tierName;
+        this.minMonthlySpend = minMonthlySpend;
+        this.discountRate = discountRate;
+    }
+
     public int getTierId() { return tierId; }
     public void setTierId(int tierId) { this.tierId = tierId; }
 

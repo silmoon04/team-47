@@ -26,6 +26,16 @@ public class Payment {
     private BigDecimal changeGiven;
     private LocalDateTime paymentDate;
 
+    public Payment() {}
+
+    // convenience: cash payment for a sale
+    public Payment(int saleId, PaymentType paymentType, BigDecimal amount) {
+        this.saleId = saleId;
+        this.paymentType = paymentType;
+        this.amount = amount;
+        this.changeGiven = BigDecimal.ZERO;
+    }
+
     public int getPaymentId() { return paymentId; }
     public void setPaymentId(int paymentId) { this.paymentId = paymentId; }
     public int getSaleId() { return saleId != null ? saleId : 0; }

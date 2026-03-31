@@ -25,6 +25,19 @@ public class Sale {
     private boolean walkIn;
     private List<SaleItem> items = new ArrayList<>();
 
+    public Sale() {}
+
+    // convenience: walk-in cash sale (defaults: no customer, no discount/vat)
+    public Sale(int soldBy, BigDecimal totalAmount, String paymentMethod) {
+        this.soldBy = soldBy;
+        this.subtotal = totalAmount;
+        this.discountAmount = BigDecimal.ZERO;
+        this.vatAmount = BigDecimal.ZERO;
+        this.totalAmount = totalAmount;
+        this.paymentMethod = paymentMethod;
+        this.walkIn = true;
+    }
+
     public int getSaleId() {
         return saleId;
     }

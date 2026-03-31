@@ -20,6 +20,20 @@ public class Statement {
     private LocalDateTime generatedAt;
     private int generatedBy;
 
+    public Statement() {}
+
+    public Statement(int customerId, LocalDate periodStart, LocalDate periodEnd,
+                     BigDecimal openingBalance, BigDecimal closingBalance, int generatedBy) {
+        this.customerId = customerId;
+        this.periodStart = periodStart;
+        this.periodEnd = periodEnd;
+        this.openingBalance = openingBalance;
+        this.totalPurchases = BigDecimal.ZERO;
+        this.totalPayments = BigDecimal.ZERO;
+        this.closingBalance = closingBalance;
+        this.generatedBy = generatedBy;
+    }
+
     public int getStatementId() { return statementId; }
     public void setStatementId(int statementId) { this.statementId = statementId; }
 

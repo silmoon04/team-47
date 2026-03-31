@@ -12,6 +12,14 @@ public class OrderItem {
     private int quantity;
     private BigDecimal unitPrice;
 
+    public OrderItem() {}
+
+    public OrderItem(int productId, int quantity, BigDecimal unitPrice) {
+        this.productId = productId;
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
+    }
+
     public int getOrderItemId() { return orderItemId; }
     public void setOrderItemId(int orderItemId) { this.orderItemId = orderItemId; }
 

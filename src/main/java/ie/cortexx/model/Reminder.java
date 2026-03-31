@@ -19,6 +19,14 @@ public class Reminder {
     // TEXT in schema, the actual letter content from template
     private String content;
 
+    public Reminder() {}
+
+    public Reminder(int customerId, ReminderType reminderType, BigDecimal amountOwed) {
+        this.customerId = customerId;
+        this.reminderType = reminderType;
+        this.amountOwed = amountOwed;
+    }
+
     public int getReminderId() { return reminderId; }
     public void setReminderId(int reminderId) { this.reminderId = reminderId; }
 

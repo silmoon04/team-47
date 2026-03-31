@@ -19,6 +19,18 @@ public class User {
     // DEFAULT 1, all users belong to cosymed
     private int merchantId;
 
+    public User() {}
+
+    // convenience constructor for the common fields needed to create a user
+    public User(String username, String passwordHash, String fullName, UserRole role) {
+        this.username = username;
+        this.passwordHash = passwordHash;
+        this.fullName = fullName;
+        this.role = role;
+        this.active = true;
+        this.merchantId = 1;
+    }
+
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
 

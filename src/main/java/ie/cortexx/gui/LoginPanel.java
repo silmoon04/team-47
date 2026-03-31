@@ -6,7 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 
 /*
-=== why this panel is built like this ===
+why this panel is built like this
 
 UI.centeredPanel() centers the card in the window (GridBagLayout).
 UI.vcard() creates a vertical BoxLayout card with custom padding + size.

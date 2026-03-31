@@ -14,6 +14,13 @@ public class Template {
     // nullable, system templates have no user
     private Integer updatedBy;
 
+    public Template() {}
+
+    public Template(String templateType, String content) {
+        this.templateType = templateType;
+        this.content = content;
+    }
+
     public int getTemplateId() { return templateId; }
     public void setTemplateId(int templateId) { this.templateId = templateId; }
 

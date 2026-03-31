@@ -21,6 +21,14 @@ public class StockItem {
     private int reorderLevel;
     private LocalDateTime lastUpdated;
 
+    public StockItem() {}
+
+    public StockItem(int productId, int quantity, int reorderLevel) {
+        this.productId = productId;
+        this.quantity = quantity;
+        this.reorderLevel = reorderLevel;
+    }
+
     public boolean isLowStock() { return quantity <= reorderLevel; }
 
     public int getStockId() { return stockId; }

@@ -17,6 +17,18 @@ public class SaleItem {
     private BigDecimal discountRate;
     private BigDecimal lineTotal;
 
+    public SaleItem() {}
+
+    // convenience: product, qty, price (defaults: no discount)
+    public SaleItem(int productId, String productName, int quantity, BigDecimal unitPrice, BigDecimal lineTotal) {
+        this.productId = productId;
+        this.productName = productName;
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
+        this.discountRate = BigDecimal.ZERO;
+        this.lineTotal = lineTotal;
+    }
+
     public int getSaleItemId() {
         return saleItemId;
     }

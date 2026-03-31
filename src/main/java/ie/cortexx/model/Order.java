@@ -23,6 +23,16 @@ public class Order {
     private int orderedBy;
     private List<OrderItem> items = new ArrayList<>();
 
+    public Order() {}
+
+    // convenience: new order (defaults: ACCEPTED status, merchant 1)
+    public Order(BigDecimal totalAmount, int orderedBy) {
+        this.totalAmount = totalAmount;
+        this.orderedBy = orderedBy;
+        this.orderStatus = OrderStatus.ACCEPTED;
+        this.merchantId = 1;
+    }
+
     public int getOrderId() { return orderId; }
     public void setOrderId(int orderId) { this.orderId = orderId; }
 

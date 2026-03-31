@@ -44,6 +44,19 @@ public class Customer {
     // DEFAULT 1
     private int merchantId;
 
+    public Customer() {}
+
+    // convenience: name, address, discount type (defaults: NORMAL status, £500 limit, merchant 1)
+    public Customer(String name, String address, DiscountType discountType) {
+        this.name = name;
+        this.address = address;
+        this.discountType = discountType;
+        this.accountStatus = AccountStatus.NORMAL;
+        this.creditLimit = new BigDecimal("500.00");
+        this.outstandingBalance = BigDecimal.ZERO;
+        this.merchantId = 1;
+    }
+
     public int getCustomerId() { return customerId; }
     public void setCustomerId(int customerId) { this.customerId = customerId; }
 
