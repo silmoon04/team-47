@@ -741,4 +741,48 @@ public final class UI {
         p.setOpaque(false);
         return p;
     }
+
+
+    // -- more layout helpers --
+
+    /** panel with BorderLayout + dark bg, no padding. for panels that dont want
+     *  the 20px padding from applyPanel() but still need the standard bg + layout. */
+    public static void applyPanelNoPad(JPanel p) {
+        p.setLayout(new BorderLayout());
+        p.setBackground(BG);
+    }
+
+    /** card-coloured panel with BorderLayout + border line. good for cart panels,
+     *  side panels, anything that needs the card bg with custom content layout. */
+    public static JPanel cardPanel() {
+        var p = new JPanel(new BorderLayout());
+        p.setBackground(BG_CARD);
+        p.setBorder(BorderFactory.createLineBorder(BORDER));
+        return p;
+    }
+
+    /** transparent panel with FlowLayout LEFT aligned. good for toolbar left sections
+     *  where you need controls in a horizontal row with gaps. */
+    public static JPanel flowRow(int hgap) {
+        var p = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, 0));
+        p.setOpaque(false);
+        return p;
+    }
+
+    /** transparent panel with GridLayout in a single row. good for payment buttons,
+     *  evenly spaced button groups, etc. */
+    public static JPanel gridRow(int cols, int hgap) {
+        var p = new JPanel(new GridLayout(1, cols, hgap, 0));
+        p.setOpaque(false);
+        return p;
+    }
+
+    /** transparent panel with BorderLayout + EmptyBorder padding. good for headers
+     *  and sections that need custom insets inside a card. */
+    public static JPanel paddedPanel(int top, int left, int bottom, int right) {
+        var p = new JPanel(new BorderLayout(0, 8));
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(top, left, bottom, right));
+        return p;
+    }
 }
