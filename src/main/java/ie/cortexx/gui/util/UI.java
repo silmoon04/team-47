@@ -639,4 +639,106 @@ public final class UI {
         tabs.setBackground(BG);
         return tabs;
     }
+
+
+    // -- label helpers --
+    // creating a JLabel normally takes 3-4 lines (new, setFont, setForeground, setAlignment).
+    // these one-liners cover the common cases so panels stay short.
+
+    /** label with custom font and colour, left aligned. */
+    public static JLabel label(String text, Font font, Color colour) {
+        var lbl = new JLabel(text);
+        lbl.setFont(font);
+        lbl.setForeground(colour);
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return lbl;
+    }
+
+    /** label with custom font and colour, center aligned. */
+    public static JLabel labelCenter(String text, Font font, Color colour) {
+        var lbl = label(text, font, colour);
+        lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+        return lbl;
+    }
+
+    /** big title label (24px bold, primary text colour). */
+    public static JLabel title(String text) {
+        return label(text, FONT_TITLE.deriveFont(24f), TEXT);
+    }
+
+    /** subtitle / secondary info label (small dim text). */
+    public static JLabel subtitle(String text) {
+        return label(text, FONT_SMALL, TEXT_DIM);
+    }
+
+    /** error label (small red text, starts with blank space so it takes up room). */
+    public static JLabel errorLabel() {
+        var lbl = label(" ", FONT_SMALL, RED);
+        return lbl;
+    }
+
+
+    // -- input helpers --
+    // text fields normally need placeholder + maxSize + alignment = 3 lines.
+    // these do it in one call.
+
+    /** text field with placeholder text, full width, fixed height. */
+    public static JTextField inputField(String placeholder) {
+        var tf = new JTextField();
+        tf.putClientProperty("JTextField.placeholderText", placeholder);
+        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        tf.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return tf;
+    }
+
+    /** password field with placeholder text, full width, fixed height. */
+    public static JPasswordField passwordField(String placeholder) {
+        var pf = new JPasswordField();
+        pf.putClientProperty("JTextField.placeholderText", placeholder);
+        pf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        pf.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return pf;
+    }
+
+
+    // -- button helpers --
+    // making a full-width button normally takes 3 lines (create + maxSize + alignment).
+
+    /** primary button stretched to full width. good for login, save, etc. */
+    public static JButton primaryButtonWide(String text) {
+        var btn = primaryButton(text);
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return btn;
+    }
+
+
+    // -- layout helpers --
+    // centering a single component (like a login card) takes 2-3 lines every time.
+
+    /** panel that centers its children using GridBagLayout. dark bg. */
+    public static JPanel centeredPanel() {
+        var p = new JPanel(new GridBagLayout());
+        p.setBackground(BG);
+        return p;
+    }
+
+    /** vertical card with custom padding and preferred size. good for login, dialogs. */
+    public static JPanel vcard(int padX, int padY, int width, int height) {
+        var p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(BG_CARD);
+        p.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER),
+            new EmptyBorder(padY, padX, padY, padX)));
+        p.setPreferredSize(new Dimension(width, height));
+        return p;
+    }
+
+    /** transparent panel with BorderLayout and optional vertical gap. */
+    public static JPanel transparentPanel(int vgap) {
+        var p = new JPanel(new BorderLayout(0, vgap));
+        p.setOpaque(false);
+        return p;
+    }
 }
