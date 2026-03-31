@@ -77,7 +77,22 @@ public class ProductDAO {
         }
     }
 
-    // TODO: update product
+    // update product
     public void update(Product product) throws SQLException {
+        String sql = "UPDATE products SET name = ?, sa_product_id = ?, cost_price = ?, markup_rate = ?, is_active = ? "
+            + "WHERE product_id = ?";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql)){
+            ps.setString(1, product.getName());
+            ps.setString(2, product.getSaProductId());
+            ps.setBigDecimal(3, product.getCostPrice());
+            ps.setBigDecimal(4, product.getMarkupRate());
+            ps.setBoolean(5, product.isActive());
+            ps.setInt(6, product.getProductId());
+
+            ps.executeUpdate();
+        }
+    }
     }
 }
