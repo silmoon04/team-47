@@ -29,26 +29,88 @@ public class UserDAO {
         }
     }
 
-    // TODO: find user by id (same pattern as authenticate but WHERE user_id = ?)
+    // find user by id
     public User findById(int userId) throws SQLException {
-        return null;
+        String sql = "SELECT * FROM users WHERE user_id = ?";
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql)){
+            ps.setInt(1, userId);
+            try (var rs = ps.executeQuery()){
+                if (!rs.next()) return null;
+                return mapUser(rs);
+            }
+        }
     }
 
-    // TODO: get all users (use while(rs.next()) loop, add each to list)
+    // get all users
     public List<User> findAll() throws SQLException {
-        return null;
+        String sql = "SELECT * FROM users";
+        List<User> users = new ArrayList<>();
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql);
+            var rs = ps.executeQuery()){
+            while (rs.next()){
+                users.add(mapUser(rs));
+            }
+        }
+        return users;
     }
 
-    // TODO: insert new user (use Statement.RETURN_GENERATED_KEYS to get user_id back)
+    // insert new user
     public void save(User user) throws SQLException {
+        String sql = "INSERT INTO users (username, password_hash, full_name, email, phone, role, is_active, merchant_id) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
+            ps.setString(1, user.getUsername());
+            ps.setString(2, user.getPasswordHash());
+            ps.setString(3, user.getFullName());
+            ps.setString(4, user.getEmail());
+            ps.setString(5, user.getPhone());
+            ps.setString(6, user.getRole().name());
+            ps.setBoolean(7, user.isActive());
+            ps.setInt(8, user.getMerchantId());
+            ps.executeUpdate();
+
+            try (var rs = ps.getGeneratedKeys()){
+                if (rs.next()){
+                    user.setUserId(rs.getInt(1));
+                }
+            }
+        }
     }
 
-    // TODO: update existing user (UPDATE ... SET ... WHERE user_id = ?)
+    // update existing user
     public void update(User user) throws SQLException {
+        String sql = "UPDATE users SET username = ?, password_hash = ?, full_name = ?, email = ?, phone = ?, " + "role = ?, is_active = ?, merchant_id = ? WHERE user_id = ?";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql)) {
+            ps.setString(1, user.getUsername());
+            ps.setString(2, user.getPasswordHash());
+            ps.setString(3, user.getFullName());
+            ps.setString(4, user.getEmail());
+            ps.setString(5, user.getPhone());
+            ps.setString(6, user.getRole().name());
+            ps.setBoolean(7, user.isActive());
+            ps.setInt(8, user.getMerchantId());
+            ps.setInt(9, user.getUserId());
+
+            ps.executeUpdate();
+        }
     }
 
-    // TODO: soft delete (UPDATE is_active = FALSE, dont actually DELETE)
+    // soft delete
     public void deactivate(int userId) throws SQLException {
+        String sql = "UPDATE users SET is_active = FALSE WHERE user_id = ?";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql)){
+            ps.setInt(1, userId);
+            ps.executeUpdate();
+        }
     }
 
     // converts a ResultSet row to a User object
