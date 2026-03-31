@@ -194,6 +194,103 @@ public class DAOTestIT {
         del("payments", "payment_id", p.getPaymentId());
     }
 
+    // -- TemplateDAO --
+    // methods: findByType, update
+    // templates are seeded in test data (FIRST, SECOND)
+    // settings panel loads them by type and saves edits
+
+    // should find the FIRST reminder template from test data
+    @Test void templateFindByType() throws Exception {
+        var t = new TemplateDAO().findByType("FIRST");
+        ok(t);
+        assertNotNull(t.getContent());
+        assertEquals("FIRST", t.getTemplateType());
+    }
+
+    // bogus type should return null
+    @Test void templateFindByTypeBogus() throws Exception {
+        assertNull(new TemplateDAO().findByType("DOESNOTEXIST"));
+    }
+
+    // change content, verify, restore
+    @Test void templateUpdate() throws Exception {
+        var dao = new TemplateDAO();
+        var t = dao.findByType("FIRST");
+        if (t == null) return;
+        String orig = t.getContent();
+
+        t.setContent("test content");
+        dao.update(t);
+        assertEquals("test content", dao.findByType("FIRST").getContent());
+
+        t.setContent(orig); // restore
+        dao.update(t);
+    }
+
+    // -- ReminderDAO --
+    // methods: findByCustomer, save, markSent
+    // reminders are always for a specific customer
+
+    // save a reminder, find it by customer, then clean up
+    @Test void reminderSaveAndFind() throws Exception {
+        int custId = id("SELECT customer_id FROM customers LIMIT 1");
+        if (custId == 0) return;
+
+        var dao = new ReminderDAO();
+        var r = new Reminder(custId, ReminderType.FIRST, bd("45.50"));
+        dao.save(r);
+        assertTrue(r.getReminderId() > 0);
+
+        // should show up in findByCustomer
+        var list = dao.findByCustomer(custId);
+        ok(list);
+        assertTrue(list.stream().anyMatch(x -> x.getReminderId() == r.getReminderId()));
+
+        del("reminders", "reminder_id", r.getReminderId());
+    }
+
+    // mark a reminder as sent, check sent_at got set
+    @Test void reminderMarkSent() throws Exception {
+        int custId = id("SELECT customer_id FROM customers LIMIT 1");
+        if (custId == 0) return;
+
+        var dao = new ReminderDAO();
+        var r = new Reminder(custId, ReminderType.SECOND, bd("100.00"));
+        dao.save(r);
+
+        dao.markSent(r.getReminderId());
+        // sent_at should no longer be null
+        assertNotNull(str("reminders", "sent_at", "reminder_id", r.getReminderId()));
+
+        del("reminders", "reminder_id", r.getReminderId());
+    }
+
+    // -- StatementDAO --
+    // methods: findByCustomer, save
+    // statements are generated once per period, never edited
+
+    // save a statement, find it by customer, clean up
+    @Test void statementSaveAndFind() throws Exception {
+        int custId = id("SELECT customer_id FROM customers LIMIT 1");
+        int userId = id("SELECT user_id FROM users LIMIT 1");
+        if (custId == 0 || userId == 0) return;
+
+        var dao = new StatementDAO();
+        var s = new Statement(custId,
+            LocalDate.of(2026, 3, 1),
+            LocalDate.of(2026, 3, 31),
+            bd("0.00"), bd("45.50"), userId);
+        dao.save(s);
+        assertTrue(s.getStatementId() > 0);
+
+        // should show up in findByCustomer
+        var list = dao.findByCustomer(custId);
+        ok(list);
+        assertTrue(list.stream().anyMatch(x -> x.getStatementId() == s.getStatementId()));
+
+        del("statements", "statement_id", s.getStatementId());
+    }
+
     // -- helpers (use these to keep tests short) --
 
     void ok(Object obj) { assertNotNull(obj); }
