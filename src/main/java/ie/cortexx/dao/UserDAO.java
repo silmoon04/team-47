@@ -102,8 +102,15 @@ public class UserDAO {
         }
     }
 
-    // TODO: soft delete (UPDATE is_active = FALSE, dont actually DELETE)
+    // soft delete
     public void deactivate(int userId) throws SQLException {
+        String sql = "UPDATE users SET is_active = FALSE WHERE user_id = ?";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql)){
+            ps.setInt(1, userId);
+            ps.executeUpdate();
+        }
     }
 
     // converts a ResultSet row to a User object
