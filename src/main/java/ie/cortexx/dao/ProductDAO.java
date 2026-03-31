@@ -4,6 +4,7 @@ import ie.cortexx.model.Product;
 import ie.cortexx.util.DBConnection;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
 // handles all SQL for `products` table
@@ -26,7 +27,17 @@ public class ProductDAO {
 
     // get all active products
     public List<Product> findAll() throws SQLException {
-        return null;
+        String sql = "SELECT * FROM products WHERE is_active = TRUE";
+        List<Product> products = new ArrayList<>();
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql);
+            var rs = ps.executeQuery()){
+            while (rs.next()){
+                products.add(mapProduct(rs));
+            }
+        }
+        return products;
     }
 
     // TODO: find by SA catalogue id (for syncing with team A)
