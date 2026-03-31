@@ -40,9 +40,19 @@ public class ProductDAO {
         return products;
     }
 
-    // TODO: find by SA catalogue id (for syncing with team A)
+    // find by SA catalogue id (for syncing with team A)
     public Product findBySaProductId(String saId) throws SQLException {
-        return null;
+        String sql = "SELECT * FROM products WHERE sa_product_id = ?";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql)){
+            ps.setString(1, saId);
+
+            try (var rs = ps.executeQuery()){
+                if (!rs.next()) return null;
+                return mapProduct(rs);
+            }
+        }
     }
 
     // TODO: insert new product
