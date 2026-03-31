@@ -57,16 +57,23 @@ public class ProductDAO {
 
     // insert new product
     public void save(Product product) throws SQLException {
-        String sql = "INSERT INTO products (name, sa_product_id, cost_price, markup_rate, is_active) "
-            + "VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO products "
+            + "(sa_product_id, name, package_type, unit_type, units_per_pack, "
+            + "cost_price, markup_rate, vat_rate, category, is_active) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (var c = DBConnection.getConnection();
             var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, product.getName());
-            ps.setString(2, product.getSaProductId());
-            ps.setBigDecimal(3, product.getCostPrice());
-            ps.setBigDecimal(4, product.getMarkupRate());
-            ps.setBoolean(5, product.isActive());
+            ps.setString(1, product.getSaProductId());
+            ps.setString(2, product.getName());
+            ps.setString(3, product.getPackageType());
+            ps.setString(4, product.getUnitType());
+            ps.setInt(5, product.getUnitsPerPack());
+            ps.setBigDecimal(6, product.getCostPrice());
+            ps.setBigDecimal(7, product.getMarkupRate());
+            ps.setBigDecimal(8, product.getVatRate());
+            ps.setString(9, product.getCategory());
+            ps.setBoolean(10, product.isActive());
 
             ps.executeUpdate();
             try (var rs = ps.getGeneratedKeys()){
@@ -79,17 +86,23 @@ public class ProductDAO {
 
     // update product
     public void update(Product product) throws SQLException {
-        String sql = "UPDATE products SET name = ?, sa_product_id = ?, cost_price = ?, markup_rate = ?, is_active = ? "
+        String sql = "UPDATE products SET sa_product_id = ?, name = ?, package_type = ?, unit_type = ?, "
+            + "units_per_pack = ?, cost_price = ?, markup_rate = ?, vat_rate = ?, category = ?, is_active = ? "
             + "WHERE product_id = ?";
 
         try (var c = DBConnection.getConnection();
             var ps = c.prepareStatement(sql)){
-            ps.setString(1, product.getName());
-            ps.setString(2, product.getSaProductId());
-            ps.setBigDecimal(3, product.getCostPrice());
-            ps.setBigDecimal(4, product.getMarkupRate());
-            ps.setBoolean(5, product.isActive());
-            ps.setInt(6, product.getProductId());
+            ps.setString(1, product.getSaProductId());
+            ps.setString(2, product.getName());
+            ps.setString(3, product.getPackageType());
+            ps.setString(4, product.getUnitType());
+            ps.setInt(5, product.getUnitsPerPack());
+            ps.setBigDecimal(6, product.getCostPrice());
+            ps.setBigDecimal(7, product.getMarkupRate());
+            ps.setBigDecimal(8, product.getVatRate());
+            ps.setString(9, product.getCategory());
+            ps.setBoolean(10, product.isActive());
+            ps.setInt(11, product.getProductId());
 
             ps.executeUpdate();
         }
@@ -98,10 +111,15 @@ public class ProductDAO {
     private Product mapProduct(ResultSet rs) throws SQLException {
         Product p = new Product();
         p.setProductId(rs.getInt("product_id"));
-        p.setName(rs.getString("name"));
         p.setSaProductId(rs.getString("sa_product_id"));
+        p.setName(rs.getString("name"));
+        p.setPackageType(rs.getString("package_type"));
+        p.setUnitType(rs.getString("unit_type"));
+        p.setUnitsPerPack(rs.getInt("units_per_pack"));
         p.setCostPrice(rs.getBigDecimal("cost_price"));
         p.setMarkupRate(rs.getBigDecimal("markup_rate"));
+        p.setVatRate(rs.getBigDecimal("vat_rate"));
+        p.setCategory(rs.getString("category"));
         p.setActive(rs.getBoolean("is_active"));
         return p;
     }
