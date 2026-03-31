@@ -94,5 +94,15 @@ public class ProductDAO {
             ps.executeUpdate();
         }
     }
+
+    private Product mapProduct(ResultSet rs) throws SQLException {
+        Product p = new Product();
+        p.setProductId(rs.getInt("product_id"));
+        p.setName(rs.getString("name"));
+        p.setSaProductId(rs.getString("sa_product_id"));
+        p.setCostPrice(rs.getBigDecimal("cost_price"));
+        p.setMarkupRate(rs.getBigDecimal("markup_rate"));
+        p.setActive(rs.getBoolean("is_active"));
+        return p;
     }
 }
