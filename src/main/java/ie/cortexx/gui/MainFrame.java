@@ -1,5 +1,13 @@
 package ie.cortexx.gui;
 
+import ie.cortexx.gui.customer.CustomerListPanel;
+import ie.cortexx.gui.order.CataloguePanel;
+import ie.cortexx.gui.order.OrderPanel;
+import ie.cortexx.gui.reports.ReportPanel;
+import ie.cortexx.gui.sales.POSPanel;
+import ie.cortexx.gui.settings.SettingsPanel;
+import ie.cortexx.gui.stock.StockPanel;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -68,15 +76,15 @@ public class MainFrame extends JFrame {
             tabs.addTab("User Management", new JPanel());
         } else {
             // default tabs
-            tabs.addTab("Sales", new JPanel());
-            tabs.addTab("Stock", new JPanel());
-            tabs.addTab("Customers", new JPanel());
-            tabs.addTab("Catalogue", new JPanel());
-            tabs.addTab("Orders", new JPanel());
+            tabs.addTab("Sales", new POSPanel());
+            tabs.addTab("Stock", new StockPanel());
+            tabs.addTab("Customers", new CustomerListPanel());
+            tabs.addTab("Catalogue", new CataloguePanel());
+            tabs.addTab("Orders", new OrderPanel());
             // manager tabs
             if (role.equals("manager")) {
-                tabs.addTab("Reports", new JPanel());
-                tabs.addTab("Settings", new JPanel());
+                tabs.addTab("Reports", new ReportPanel());
+                tabs.addTab("Settings", new SettingsPanel());
             }
         }
         return tabs;
