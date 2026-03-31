@@ -57,8 +57,29 @@ public class UserDAO {
         return users;
     }
 
-    // TODO: insert new user (use Statement.RETURN_GENERATED_KEYS to get user_id back)
+    // insert new user
     public void save(User user) throws SQLException {
+        String sql = "INSERT INTO users (username, password_hash, full_name, email, phone, role, is_active, merchant_id) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
+            ps.setString(1, user.getUsername());
+            ps.setString(2, user.getPasswordHash());
+            ps.setString(3, user.getFullName());
+            ps.setString(4, user.getEmail());
+            ps.setString(5, user.getPhone());
+            ps.setString(6, user.getRole().name());
+            ps.setBoolean(7, user.isActive());
+            ps.setInt(8, user.getMerchantId());
+            ps.executeUpdate();
+
+            try (var rs = ps.getGeneratedKeys()){
+                if (rs.next()){
+                    user.setUserId(rs.getInt(1));
+                }
+            }
+        }
     }
 
     // TODO: update existing user (UPDATE ... SET ... WHERE user_id = ?)
