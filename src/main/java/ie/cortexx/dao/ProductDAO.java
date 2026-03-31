@@ -55,8 +55,26 @@ public class ProductDAO {
         }
     }
 
-    // TODO: insert new product
+    // insert new product
     public void save(Product product) throws SQLException {
+        String sql = "INSERT INTO products (name, sa_product_id, cost_price, markup_rate, is_active) "
+            + "VALUES (?, ?, ?, ?, ?)";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, product.getName());
+            ps.setString(2, product.getSaProductId());
+            ps.setBigDecimal(3, product.getCostPrice());
+            ps.setBigDecimal(4, product.getMarkupRate());
+            ps.setBoolean(5, product.isActive());
+
+            ps.executeUpdate();
+            try (var rs = ps.getGeneratedKeys()){
+                if (rs.next()){
+                    product.setProductId(rs.getInt(1));
+                }
+            }
+        }
     }
 
     // TODO: update product
