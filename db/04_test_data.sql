@@ -7,6 +7,28 @@
 
 USE iposca_database;
 
+-- CLEANUP
+-- delete in reverse FK order so nothing blocks
+-- every rerun starts fresh
+
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE reminders;
+TRUNCATE TABLE statements;
+TRUNCATE TABLE payments;
+TRUNCATE TABLE sale_items;
+TRUNCATE TABLE sales;
+TRUNCATE TABLE order_items;
+TRUNCATE TABLE orders;
+TRUNCATE TABLE discount_tiers;
+TRUNCATE TABLE customers;
+TRUNCATE TABLE stock;
+TRUNCATE TABLE products;
+TRUNCATE TABLE templates;
+TRUNCATE TABLE users;
+TRUNCATE TABLE system_config;
+DELETE FROM merchant_details WHERE merchant_id = 1;
+SET FOREIGN_KEY_CHECKS = 1;
+
 -- need merchant details first (users FK depends on it)
 INSERT INTO merchant_details (merchant_id, business_name, address, phone, email, sa_merchant_id) VALUES
     (1, 'Test Pharmacy', '14 Green Lane, London EC1V 0HB', '0207 000 0001', 'info@testpharmacy.local', 'TEST001');
