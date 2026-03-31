@@ -10,9 +10,20 @@ import java.util.List;
 // owner: Alex
 public class StockDAO {
 
-    // TODO: get all stock items (same pattern as findLowStock but without WHERE)
+    //get all stock items (same pattern as findLowStock but without WHERE)
     public List<StockItem> findAll() throws SQLException {
-        return null;
+        String sql = "SELECT s.stock_id, s.product_id, s.quantity, s.reorder_level, "
+        + "p.name, p.sa_product_id, p.cost_price, p.markup_rate "
+            + "FROM stock s JOIN products p ON s.product_id = p.product_id";
+
+        List<StockItem> items = new ArrayList<>();
+        try (var c = DBConnection.getConnection();
+            var rs = c.createStatement().executeQuery(sql)){
+            while (rs.next()){
+                items.add(mapStockItem(rs));
+            }
+        }
+        return items;
     }
 
     // TODO: find stock for a specific product (add WHERE s.product_id = ?)
