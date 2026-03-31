@@ -29,14 +29,32 @@ public class UserDAO {
         }
     }
 
-    // TODO: find user by id (same pattern as authenticate but WHERE user_id = ?)
+    // find user by id
     public User findById(int userId) throws SQLException {
-        return null;
+        String sql = "SELECT * FROM users WHERE user_id = ?";
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql)){
+            ps.setInt(1, userId);
+            try (var rs = ps.executeQuery()){
+                if (!rs.next()) return null;
+                return mapUser(rs);
+            }
+        }
     }
 
-    // TODO: get all users (use while(rs.next()) loop, add each to list)
+    // get all users
     public List<User> findAll() throws SQLException {
-        return null;
+        String sql = "SELECT * FROM users";
+        List<User> users = new ArrayList<>();
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql);
+            var rs = ps.executeQuery()){
+            while (rs.next()){
+                users.add(mapUser(rs));
+            }
+        }
+        return users;
     }
 
     // TODO: insert new user (use Statement.RETURN_GENERATED_KEYS to get user_id back)
