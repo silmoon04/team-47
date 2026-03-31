@@ -26,9 +26,22 @@ public class StockDAO {
         return items;
     }
 
-    // TODO: find stock for a specific product (add WHERE s.product_id = ?)
+    // find stock for a specific product (add WHERE s.product_id = ?)
     public StockItem findByProductId(int productId) throws SQLException {
-        return null;
+        String sql = "SELECT s.stock_id, s.product_id, s.quantity, s.reorder_level, "
+            + "p.name, p.sa_product_id, p.cost_price, p.markup_rate "
+            + "FROM stock s JOIN products p ON s.product_id = p.product_id "
+            + "WHERE s.product_id = ?";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql)){
+            ps.setInt(1, productId);
+
+            try (var rs = ps.executeQuery()){
+                if (!rs.next()) return null;
+                return mapStockItem(rs);
+            }
+        }
     }
 
     // -- example method (silmoon) --
