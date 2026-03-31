@@ -1,18 +1,30 @@
 package ie.cortexx.dao;
 
 import ie.cortexx.model.Product;
+import ie.cortexx.util.DBConnection;
+
 import java.sql.*;
 import java.util.List;
 
 // handles all SQL for `products` table
 public class ProductDAO {
 
-    // TODO: find product by id
+    // find product by id
     public Product findById(int productId) throws SQLException {
-        return null;
+        String sql = "SELECT * FROM products WHERE product_id = ?";
+
+        try (var c = DBConnection.getConnection();
+            var ps = c.prepareStatement(sql)){
+            ps.setInt(1, productId);
+
+            try (var rs = ps.executeQuery()){
+                if (!rs.next()) return null;
+                return mapProduct(rs);
+            }
+        }
     }
 
-    // TODO: get all active products
+    // get all active products
     public List<Product> findAll() throws SQLException {
         return null;
     }
