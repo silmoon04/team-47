@@ -142,3 +142,20 @@ INSERT INTO payments (sale_id, customer_id, payment_type, amount, card_type, car
 INSERT INTO payments (sale_id, customer_id, payment_type, amount) VALUES
     (3, 3, 'ON_CREDIT',        22.20),
     (6, 5, 'ACCOUNT_PAYMENT',  30.60);
+
+
+-- orders (so order tests have data to work with)
+INSERT INTO orders (sa_order_id, merchant_id, order_status, total_amount, ordered_at, delivered_at, ordered_by) VALUES
+    ('ORD-TEST-001', 1, 'DELIVERED',  120.00, '2026-03-15 09:00:00', '2026-03-17 14:00:00', 1),
+    ('ORD-TEST-002', 1, 'PROCESSING',  85.50, '2026-03-20 10:30:00', NULL,                  2);
+
+INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
+    (1, 1, 50, 1.20),
+    (1, 2, 20, 1.80),
+    (2, 4, 15, 2.75),
+    (2, 5, 10, 3.20);
+
+-- templates (so settings panel has data)
+INSERT INTO templates (template_type, content) VALUES
+    ('FIRST',  'Dear {customer_name},\n\nYour account ({account_no}) has an outstanding balance of £{amount_owed}.\n\nPlease arrange payment.\n\nRegards,\nTest Pharmacy'),
+    ('SECOND', 'Dear {customer_name},\n\nFINAL NOTICE: Account ({account_no}) remains unpaid. Balance: £{amount_owed}.\n\nRegards,\nTest Pharmacy');
