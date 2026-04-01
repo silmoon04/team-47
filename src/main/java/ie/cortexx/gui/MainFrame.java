@@ -12,6 +12,7 @@ import ie.cortexx.gui.user.UserManagementPanel;
 import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Image;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class MainFrame extends JFrame {
 
     public MainFrame() {
         setTitle("IPOS-CA");
+        setAppIcon();
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1200, 800);
         setLocationRelativeTo(null);
@@ -84,6 +86,13 @@ public class MainFrame extends JFrame {
             return;
         }
         showMainFrame(currentRole);
+    }
+
+    private void setAppIcon() {
+        var url = getClass().getResource("/icons/cortexx_logo.png");
+        if (url == null) return;
+        Image image = new ImageIcon(url).getImage();
+        setIconImage(image);
     }
 
     private List<SidePanel.Page> buildPages(String role, JPanel content) {

@@ -51,15 +51,15 @@ public class StockPanel extends JPanel {
         );
 
         var table = UI.table(
-            UI.monoCol("SA ID", StockRow::saId),
-            UI.col("Name", StockRow::name),
-            UI.col("Type", StockRow::type),
-            UI.monoCol("Cost", StockRow::cost),
-            UI.monoCol("Retail", StockRow::retail),
-            UI.monoCol("Qty", StockRow::qty),
-            UI.monoCol("Reorder", StockRow::reorder),
-            UI.badgeCol("Status", StockRow::status),
-            UI.monoCol("Value", StockRow::value)
+            UI.monoCol("SA ID", StockRow::saId, 110),
+            UI.col("Name", StockRow::name, 220),
+            UI.col("Type", StockRow::type, 80),
+            UI.monoCol("Cost", StockRow::cost, 70),
+            UI.monoCol("Retail", StockRow::retail, 70),
+            UI.monoCol("Qty", StockRow::qty, 55),
+            UI.monoCol("Reorder", StockRow::reorder, 70),
+            UI.badgeCol("Status", StockRow::status, 105),
+            UI.monoCol("Value", StockRow::value, 90)
         ).rows(List.of(
             new StockRow("100 00001", "Paracetamol", "Box", "£0.10", "£0.20", 121, 10, "IN_STOCK", "£24.20"),
             new StockRow("100 00007", "Lipitor TB 20mg", "Box", "£15.50", "£31.00", 10, 10, "LOW_STOCK", "£310.00"),

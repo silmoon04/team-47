@@ -305,7 +305,7 @@ public final class UI {
     public record Stat(String label, String value, Color colour, String iconPath) {}
     public record Detail(String label, String value) {}
     public record Tab(String title, JComponent content) {}
-    public record Column<T>(String title, Function<T, ?> value, ColumnStyle style) {}
+    public record Column<T>(String title, Function<T, ?> value, ColumnStyle style, Integer preferredWidth) {}
 
     public enum ColumnStyle {
         TEXT,
@@ -330,15 +330,27 @@ public final class UI {
     }
 
     public static <T> Column<T> col(String title, Function<T, ?> value) {
-        return new Column<>(title, value, ColumnStyle.TEXT);
+        return new Column<>(title, value, ColumnStyle.TEXT, null);
+    }
+
+    public static <T> Column<T> col(String title, Function<T, ?> value, int preferredWidth) {
+        return new Column<>(title, value, ColumnStyle.TEXT, preferredWidth);
     }
 
     public static <T> Column<T> monoCol(String title, Function<T, ?> value) {
-        return new Column<>(title, value, ColumnStyle.MONO);
+        return new Column<>(title, value, ColumnStyle.MONO, null);
+    }
+
+    public static <T> Column<T> monoCol(String title, Function<T, ?> value, int preferredWidth) {
+        return new Column<>(title, value, ColumnStyle.MONO, preferredWidth);
     }
 
     public static <T> Column<T> badgeCol(String title, Function<T, ?> value) {
-        return new Column<>(title, value, ColumnStyle.BADGE);
+        return new Column<>(title, value, ColumnStyle.BADGE, null);
+    }
+
+    public static <T> Column<T> badgeCol(String title, Function<T, ?> value, int preferredWidth) {
+        return new Column<>(title, value, ColumnStyle.BADGE, preferredWidth);
     }
 
 
@@ -567,6 +579,9 @@ public final class UI {
                 default -> {
                 }
             }
+            if (columns[i].preferredWidth() != null) {
+                table.getColumnModel().getColumn(i).setPreferredWidth(columns[i].preferredWidth());
+            }
         }
 
         return new DataTable<>(table, model, wrap(table));
@@ -587,16 +602,19 @@ public final class UI {
     public static record DataTable<T>(JTable table, DataTableModel<T> model, JScrollPane scroll) {
         public DataTable<T> rows(Iterable<? extends T> rows) {
             model.setRows(rows);
+            refreshSorter();
             return this;
         }
 
         public DataTable<T> addRow(T row) {
             model.addRow(row);
+            refreshSorter();
             return this;
         }
 
         public DataTable<T> clear() {
             model.clear();
+            refreshSorter();
             return this;
         }
 
@@ -613,6 +631,12 @@ public final class UI {
         public T rowAtView(int row) {
             if (row < 0) return null;
             return model.rowAt(table.convertRowIndexToModel(row));
+        }
+
+        private void refreshSorter() {
+            if (table.getRowSorter() instanceof DefaultRowSorter<?, ?> sorter) {
+                sorter.sort();
+            }
         }
     }
 
@@ -638,6 +662,14 @@ public final class UI {
 
         @Override public Object getValueAt(int rowIndex, int columnIndex) {
             return columns.get(columnIndex).value().apply(rows.get(rowIndex));
+        }
+
+        @Override public Class<?> getColumnClass(int columnIndex) {
+            for (var row : rows) {
+                Object value = columns.get(columnIndex).value().apply(row);
+                if (value != null) return value.getClass();
+            }
+            return Object.class;
         }
 
         @Override public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -675,16 +707,14 @@ public final class UI {
         table.setGridColor(BORDER);
         table.setSelectionBackground(ACCENT);
         table.setSelectionForeground(Color.WHITE);
-        table.setShowHorizontalLines(true);
+        table.setShowHorizontalLines(false);
         table.setShowVerticalLines(false);
-        table.setIntercellSpacing(new Dimension(0, 1));
+        table.setIntercellSpacing(new Dimension(0, 0));
         table.setFillsViewportHeight(true);
         table.getTableHeader().setFont(new Font(SANS, Font.BOLD, 10));
         table.getTableHeader().setBackground(BG_HOVER);
         table.getTableHeader().setForeground(TEXT_DIM);
         table.setDefaultRenderer(Object.class, defaultRenderer());
-        table.putClientProperty("FlatLaf.style", "selectionArc:" );
-
         if (sortable) {
             table.setRowSorter(new TableRowSorter<>((TableModel) table.getModel()));
         }
@@ -830,10 +860,7 @@ public final class UI {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
 
-        var lbl = new JLabel(label);
-        lbl.setFont(FONT_SMALL);
-        lbl.setForeground(TEXT_DIM);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        var lbl = label( label , FONT_SMALL , TEXT_DIM );
         lbl.setBorder(new EmptyBorder(0, 0, 4, 0));
         p.add(lbl);
 
@@ -841,10 +868,11 @@ public final class UI {
         if (input instanceof JTextField tf) {
             tf.putClientProperty("FlatLaf.style", inputStyle());
             tf.setCaretColor(TEXT);
-            tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+            sizeField(tf, 42);
         }
         if (input instanceof JComboBox<?> box) {
             box.putClientProperty("FlatLaf.style", inputStyle());
+            sizeField(box, 42);
         }
         if (input instanceof JScrollPane scroll) {
             scroll.putClientProperty("FlatLaf.style", "arc:" + CARD_ARC);
@@ -1094,6 +1122,13 @@ public final class UI {
             "; innerFocusWidth:0; borderColor:" + hex(BORDER) +
             "; focusedBorderColor:" + hex(isDarkTheme() ? BORDER.brighter() : TEXT) +
             "; background:" + hex(BG_INPUT);
+    }
+
+    private static void sizeField(JComponent component, int height) {
+        Dimension preferred = component.getPreferredSize();
+        component.setPreferredSize(new Dimension(preferred.width, height));
+        component.setMinimumSize(new Dimension(0, height));
+        component.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
     }
 
     private static Border roundedBorder(int arc) {
