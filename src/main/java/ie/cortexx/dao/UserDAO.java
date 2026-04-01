@@ -114,18 +114,8 @@ public class UserDAO {
     }
 
     // converts a ResultSet row to a User object
-    // reuse this in every method that returns a User
+    // delegates to User.fromRS() so the mapping lives on the model
     private User mapUser(ResultSet rs) throws SQLException {
-        User u = new User();
-        u.setUserId(rs.getInt("user_id"));
-        u.setUsername(rs.getString("username"));
-        u.setPasswordHash(rs.getString("password_hash"));
-        u.setFullName(rs.getString("full_name"));
-        u.setEmail(rs.getString("email"));
-        u.setPhone(rs.getString("phone"));
-        u.setRole(UserRole.valueOf(rs.getString("role")));
-        u.setActive(rs.getBoolean("is_active"));
-        u.setMerchantId(rs.getInt("merchant_id"));
-        return u;
+        return User.fromRS(rs);
     }
 }

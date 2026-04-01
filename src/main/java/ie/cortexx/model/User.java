@@ -1,6 +1,8 @@
 package ie.cortexx.model;
 
 import ie.cortexx.enums.UserRole;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 
 // maps to `users` table
@@ -60,4 +62,20 @@ public class User {
 
     public int getMerchantId() { return merchantId; }
     public void setMerchantId(int merchantId) { this.merchantId = merchantId; }
+
+    // builds a User from a ResultSet row so DAOs dont need a separate mapUser()
+    // usage in DAO: return User.fromRS(rs);
+    public static User fromRS(ResultSet rs) throws SQLException {
+        User u = new User();
+        u.userId = rs.getInt("user_id");
+        u.username = rs.getString("username");
+        u.passwordHash = rs.getString("password_hash");
+        u.fullName = rs.getString("full_name");
+        u.email = rs.getString("email");
+        u.phone = rs.getString("phone");
+        u.role = UserRole.valueOf(rs.getString("role"));
+        u.active = rs.getBoolean("is_active");
+        u.merchantId = rs.getInt("merchant_id");
+        return u;
+    }
 }
