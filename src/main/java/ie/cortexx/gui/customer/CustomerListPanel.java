@@ -3,8 +3,8 @@ package ie.cortexx.gui.customer;
 import ie.cortexx.gui.util.UI;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.util.List;
 
 /*
 
@@ -22,62 +22,54 @@ placeholder data for now, swap with CustomerDAO.findAll() later.
 
 // table of all customers with detail panel on the right
 public class CustomerListPanel extends JPanel {
-    private JPanel detailPanel;
+    private final JPanel detailPanel = UI.transparentPanel(0);
+
+    private record CustomerRow(
+        String account,
+        String name,
+        String status,
+        String balance,
+        String limit,
+        String discount
+    ) {}
 
     public CustomerListPanel() {
-        setLayout(new GridLayout(1, 2, 24, 0));
-        setBackground(UI.BG);
-        setBorder(new EmptyBorder(20, 20, 20, 20));
+        UI.applyPanel(this);
 
-        // --- left: customer table ---
-        var t = UI.table("Account", "Name", "Status", "Balance", "Limit", "Discount");
-        t.monoColumn(0).badgeColumn(2).monoColumn(3).monoColumn(4).badgeColumn(5);
-        // TODO: swap with CustomerDAO.findAll() loop
-        t.model().addRow(new Object[]{"ACC0001", "Ms Eva Bauyer", "NORMAL", "£0.00", "£500.00", "FIXED"});
-        t.model().addRow(new Object[]{"ACC0002", "Mr Glynne Morrison", "NORMAL", "£0.00", "£500.00", "FLEXIBLE"});
+        var customers = UI.table(
+            UI.monoCol("Account", CustomerRow::account),
+            UI.col("Name", CustomerRow::name),
+            UI.badgeCol("Status", CustomerRow::status),
+            UI.monoCol("Balance", CustomerRow::balance),
+            UI.monoCol("Limit", CustomerRow::limit),
+            UI.badgeCol("Discount", CustomerRow::discount)
+        ).rows(List.of(
+            new CustomerRow("ACC0001", "Ms Eva Bauyer", "NORMAL", "£0.00", "£500.00", "FIXED"),
+            new CustomerRow("ACC0002", "Mr Glynne Morrison", "NORMAL", "£0.00", "£500.00", "FLEXIBLE")
+        )).onSelect(this::showDetail);
 
-        JPanel left = UI.transparentPanel(12);
-        left.add(UI.toolbar("Search customers...", t.table(), "+ New Customer"), BorderLayout.NORTH);
-        left.add(t.scroll(), BorderLayout.CENTER);
+        JPanel left = UI.toolbarAndTable(
+            UI.toolbar("Search customers...", customers.table(), "+ New Customer"),
+            customers.scroll()
+        );
 
-        // click row to show detail on the right
-        t.table().getSelectionModel().addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
-            int row = t.table().getSelectedRow();
-            if (row < 0) return;
-            row = t.table().convertRowIndexToModel(row);
-            showDetail(
-                (String) t.model().getValueAt(row, 0),
-                (String) t.model().getValueAt(row, 1),
-                (String) t.model().getValueAt(row, 2),
-                (String) t.model().getValueAt(row, 3),
-                (String) t.model().getValueAt(row, 4),
-                (String) t.model().getValueAt(row, 5));
-        });
-        add(left);
-
-        // --- right: starts with empty state ---
-        detailPanel = UI.transparentPanel(0);
-        detailPanel.add(UI.emptyState("Select a customer to view details"));
-        add(detailPanel);
+        UI.swap(detailPanel, UI.emptyState("Select a customer to view details"));
+        add(UI.twoColumn(left, detailPanel, 24), BorderLayout.CENTER);
     }
 
-    // swaps the right side to show selected customer info
-    private void showDetail(String acc, String name, String status,
-                            String balance, String limit, String discount) {
-        detailPanel.removeAll();
-        JPanel info = UI.formCard();
-        info.add(UI.heading(name));
-        info.add(UI.gap(12));
-        info.add(UI.detailRow("Account No", acc));
-        info.add(UI.detailRow("Status", status));
-        info.add(UI.detailRow("Outstanding Balance", balance));
-        info.add(UI.detailRow("Credit Limit", limit));
-        info.add(UI.detailRow("Discount Type", discount));
-        info.add(UI.gap(16));
-        info.add(UI.buttonRow(UI.button("Edit"), UI.button("Receive Payment"), UI.dangerButton("Delete")));
-        detailPanel.add(info, BorderLayout.NORTH);
-        detailPanel.revalidate();
-        detailPanel.repaint();
+    private void showDetail(CustomerRow row) {
+        UI.swap(detailPanel, UI.detailCard(
+            row.name(),
+            new UI.Detail[]{
+                UI.detail("Account No", row.account()),
+                UI.detail("Status", row.status()),
+                UI.detail("Outstanding Balance", row.balance()),
+                UI.detail("Credit Limit", row.limit()),
+                UI.detail("Discount Type", row.discount())
+            },
+            UI.button("Edit"),
+            UI.button("Receive Payment"),
+            UI.dangerButton("Delete")
+        ));
     }
 }

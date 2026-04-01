@@ -4,6 +4,7 @@ import ie.cortexx.gui.util.UI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
 /*
 basically
@@ -27,43 +28,45 @@ the table, search, badges all stay the same, only the data loading changes.
 
 // shows all products and their quantities in a JTable
 public class StockPanel extends JPanel {
+    private record StockRow(
+        String saId,
+        String name,
+        String type,
+        String cost,
+        String retail,
+        int qty,
+        int reorder,
+        String status,
+        String value
+    ) {}
+
     public StockPanel() {
-        // dark bg, 20px padding, BorderLayout (standard for every panel)
         UI.applyPanel(this);
 
-        // stat cards across the top
-        // statsRow(4) creates a horizontal grid with 4 columns
-        // statCard() makes a card with coloured icon, label, and big number
-        // TODO: replace hardcoded values with real counts from DAO
-        JPanel stats = UI.statsRow(4);
-        stats.add(UI.statCard("Total Products", "14", UI.ACCENT));
-        stats.add(UI.statCard("Total Units", "786", UI.GREEN));
-        stats.add(UI.statCard("Stock Value", "£1,547.40", UI.PURPLE));
-        stats.add(UI.statCard("Low Stock", "2", UI.RED));
+        JPanel stats = UI.stats(
+            UI.stat("Total Products", "14", UI.ACCENT, "icons/package.svg"),
+            UI.stat("Total Units", "786", UI.GREEN, "icons/boxes.svg"),
+            UI.stat("Stock Value", "£1,547.40", UI.PURPLE, "icons/coins.svg"),
+            UI.stat("Low Stock", "2", UI.RED, "icons/alert-triangle.svg")
+        );
 
-        // table
-        // 9 cols: mono on numbers/prices, badge on status
-        var t = UI.table("SA ID", "Name", "Type", "Cost",
-            "Retail", "Qty", "Reorder", "Status", "Value");
-        t.monoColumn(0).monoColumn(3).monoColumn(4)
-            .monoColumn(5).monoColumn(6).badgeColumn(7).monoColumn(8);
+        var table = UI.table(
+            UI.monoCol("SA ID", StockRow::saId),
+            UI.col("Name", StockRow::name),
+            UI.col("Type", StockRow::type),
+            UI.monoCol("Cost", StockRow::cost),
+            UI.monoCol("Retail", StockRow::retail),
+            UI.monoCol("Qty", StockRow::qty),
+            UI.monoCol("Reorder", StockRow::reorder),
+            UI.badgeCol("Status", StockRow::status),
+            UI.monoCol("Value", StockRow::value)
+        ).rows(List.of(
+            new StockRow("100 00001", "Paracetamol", "Box", "£0.10", "£0.20", 121, 10, "IN_STOCK", "£24.20"),
+            new StockRow("100 00007", "Lipitor TB 20mg", "Box", "£15.50", "£31.00", 10, 10, "LOW_STOCK", "£310.00"),
+            new StockRow("200 00005", "Rhynol", "Bottle", "£2.50", "£5.00", 14, 15, "LOW_STOCK", "£70.00")
+        ));
 
-        // toolbar
-        // search left, "+ Add Stock" btn right
-        // search filters the table as you type (RowFilter under the hood)
-        JPanel toolbar = UI.toolbar("Search stock...", t.table(), "+ Add Stock");
-
-        // pageWithStats assembles: stats NORTH, toolbar+table CENTER
-        add(UI.pageWithStats(stats, toolbar, t.scroll()), BorderLayout.CENTER);
-
-        // placeholder data
-        // TODO: swap with StockDAO.findAll() loop
-        // retail = costPrice * 2 (100% markup), status based on qty vs reorder lvl
-        t.model().addRow(new Object[]{
-            "100 00001", "Paracetamol", "Box", "£0.10", "£0.20", 121, 10, "IN_STOCK", "£24.20"});
-        t.model().addRow(new Object[]{
-            "100 00007", "Lipitor TB 20mg", "Box", "£15.50", "£31.00", 10, 10, "LOW_STOCK", "£310.00"});
-        t.model().addRow(new Object[]{
-            "200 00005", "Rhynol", "Bottle", "£2.50", "£5.00", 14, 15, "LOW_STOCK", "£70.00"});
+        JPanel toolbar = UI.toolbar("Search stock...", table.table(), "+ Add Stock");
+        add(UI.pageWithStats(stats, toolbar, table.scroll()), BorderLayout.CENTER);
     }
 }

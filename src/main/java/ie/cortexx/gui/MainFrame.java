@@ -7,9 +7,13 @@ import ie.cortexx.gui.reports.ReportPanel;
 import ie.cortexx.gui.sales.POSPanel;
 import ie.cortexx.gui.settings.SettingsPanel;
 import ie.cortexx.gui.stock.StockPanel;
+import ie.cortexx.gui.user.UserManagementPanel;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.util.ArrayList;
+import java.util.List;
 
 // main application window
 // shows login first, then switches to tabs based on user role
@@ -28,10 +32,30 @@ public class MainFrame extends JFrame {
 
     // manages main frame
     public void showMainFrame(String role) {
-        getContentPane().removeAll();
-        setLayout(new BorderLayout());
-        add(showHeaders(), BorderLayout.NORTH);
-        add(showTabs(role), BorderLayout.CENTER); // show tabs based off role
+        currentRole = role;
+
+        JPanel root = new JPanel(new BorderLayout());
+        setContentPane(root);
+
+        CardLayout cardLayout = new CardLayout();
+        JPanel content = new JPanel(cardLayout);
+
+        List<SidePanel.Page> pages = buildPages(role, content);
+        SidePanel sidePanel = new SidePanel(
+            pages,
+            page -> cardLayout.show(content, page.title()),
+            currentUser,
+            currentRole,
+            this::logout
+        );
+
+        root.add(sidePanel, BorderLayout.WEST);
+        root.add(content, BorderLayout.CENTER);
+
+        if (!pages.isEmpty()) {
+            cardLayout.show(content, pages.get(0).title());
+        }
+
         revalidate();
         repaint();
     }
@@ -44,50 +68,36 @@ public class MainFrame extends JFrame {
         repaint();
     }
 
-    // manages headers
-    private JPanel showHeaders() {
-        JPanel headers = new JPanel(new BorderLayout());
-        JLabel userLabel = new JLabel(currentUser.toUpperCase());
-        JLabel roleLabel = new JLabel(currentRole.toUpperCase());
-        JButton logoutButton = new JButton("Logout");
-        JPanel leftPanel = new JPanel();
-        JPanel rightPanel = new JPanel();
+    private List<SidePanel.Page> buildPages(String role, JPanel content) {
+        List<SidePanel.Page> pages = new ArrayList<>();
 
-        rightPanel.add(userLabel);
-        rightPanel.add(roleLabel);
-        rightPanel.add(logoutButton);
+        if ("admin".equalsIgnoreCase(role)) {
+            addPage(content, pages, "User Management", "icons/user-cog.svg", new JPanel());
+            return pages;
+        }
 
-        headers.add(leftPanel, BorderLayout.WEST);
-        headers.add(rightPanel, BorderLayout.EAST);
+        addPage(content, pages, "Sales", "icons/shopping-cart.svg", new POSPanel());
+        addPage(content, pages, "Stock", "icons/package.svg", new StockPanel());
+        addPage(content, pages, "Customers", "icons/users.svg", new CustomerListPanel());
+        addPage(content, pages, "Catalogue", "icons/book-open.svg", new CataloguePanel());
+        addPage(content, pages, "Orders", "icons/truck.svg", new OrderPanel());
 
-        logoutButton.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA.");
-            // prompt user back to login page
-            showLoginPanel();
-        });
-        return headers;
+        if ("manager".equalsIgnoreCase(role)) {
+            addPage(content, pages, "Reports", "icons/bar-chart-3.svg", new ReportPanel());
+            addPage(content, pages, "Settings", "icons/settings.svg", new SettingsPanel());
+        }
+        return pages;
     }
 
-    // manages tabs
-    private Component showTabs(String role) {
-        JTabbedPane tabs = new JTabbedPane(JTabbedPane.LEFT);
-        // admin tabs
-        if (role.equals("admin")) {
-            tabs.addTab("User Management", new JPanel());
-        } else {
-            // default tabs
-            tabs.addTab("Sales", new POSPanel());
-            tabs.addTab("Stock", new StockPanel());
-            tabs.addTab("Customers", new CustomerListPanel());
-            tabs.addTab("Catalogue", new CataloguePanel());
-            tabs.addTab("Orders", new OrderPanel());
-            // manager tabs
-            if (role.equals("manager")) {
-                tabs.addTab("Reports", new ReportPanel());
-                tabs.addTab("Settings", new SettingsPanel());
-            }
-        }
-        return tabs;
+    private void addPage(JPanel content, List<SidePanel.Page> pages,
+                         String title, String iconPath, JComponent page) {
+        pages.add(new SidePanel.Page(title, iconPath));
+        content.add(page, title);
+    }
+
+    private void logout() {
+        JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA.");
+        showLoginPanel();
     }
 
     // getters and setters

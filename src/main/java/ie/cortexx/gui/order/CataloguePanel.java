@@ -4,6 +4,7 @@ import ie.cortexx.gui.util.UI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
 /*
 simple toolbar + table layout using UI.toolbarAndTable().
@@ -22,26 +23,24 @@ mono on ID, cost, and availability cols bc theyre numbers/prices.
 
 // shows SA catalogue products, lets you search and place orders
 public class CataloguePanel extends JPanel {
+    private record CatalogueRow(String itemId, String productName, String packageCost, String availability) {}
+
     public CataloguePanel() {
-        // dark bg, 20px padding, BorderLayout
         UI.applyPanel(this);
 
-        // table
-        // mono on numbers/prices cols
-        var t = UI.table("Item ID", "Product Name", "Package Cost", "SA Availability");
-        t.monoColumn(0).monoColumn(2).monoColumn(3);
+        var table = UI.table(
+            UI.monoCol("Item ID", CatalogueRow::itemId),
+            UI.col("Product Name", CatalogueRow::productName),
+            UI.monoCol("Package Cost", CatalogueRow::packageCost),
+            UI.monoCol("SA Availability", CatalogueRow::availability)
+        ).rows(List.of(
+            new CatalogueRow("100 00001", "Paracetamol", "£0.10", "10,345 packs"),
+            new CatalogueRow("300 00002", "Amopen", "£15.00", "1,340 packs")
+        ));
 
-        // TODO: swap with SAProxyService.getCatalogue() loop
-        t.model().addRow(new Object[]{"100 00001", "Paracetamol", "£0.10", "10,345 packs"});
-        t.model().addRow(new Object[]{"300 00002", "Amopen", "£15.00", "1,340 packs"});
-
-        // toolbar
-        // search left, Sync + Place Order buttons right
-        // toolbar(hint, table, buttons...) accepts varargs JButtons
-        var toolbar = UI.toolbar("Search catalogue...", t.table(),
+        var toolbar = UI.toolbar("Search catalogue...", table.table(),
             UI.button("Sync Catalogue"), UI.primaryButton("Place Order"));
 
-        // toolbarAndTable stacks toolbar NORTH, table CENTER
-        add(UI.toolbarAndTable(toolbar, t.scroll()), BorderLayout.CENTER);
+        add(UI.toolbarAndTable(toolbar, table.scroll()), BorderLayout.CENTER);
     }
 }

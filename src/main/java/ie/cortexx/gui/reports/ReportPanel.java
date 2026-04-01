@@ -4,6 +4,7 @@ import ie.cortexx.gui.util.UI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
 /*
 
@@ -19,6 +20,10 @@ placeholder data, swap with DAO calls later.
 // date range picker + report type, generates different report tables
 public class ReportPanel extends JPanel {
     private JPanel contentArea;
+
+    private record TurnoverRow(String saleId, String customer, String date, String payment, String total) {}
+    private record StockRow(String product, int qty, String cost, String retail, String value, String status) {}
+    private record DebtRow(String customer, String account, String status, String balance, String limit) {}
 
     public ReportPanel() {
         UI.applyPanel(this);
@@ -36,46 +41,58 @@ public class ReportPanel extends JPanel {
         toolbar.add(UI.buttonRow(UI.primaryButton("Generate"), UI.button("Export")), BorderLayout.EAST);
         add(toolbar, BorderLayout.NORTH);
 
-        // content area: swaps tables based on selected report
         contentArea = UI.transparentPanel(0);
         add(contentArea, BorderLayout.CENTER);
         showTurnover();
 
         reportType.addActionListener(e -> {
-            contentArea.removeAll();
             switch ((String) reportType.getSelectedItem()) {
                 case "Turnover" -> showTurnover();
                 case "Stock" -> showStock();
                 case "Debt Summary" -> showDebt();
-                default -> contentArea.add(UI.emptyState("No data"));
+                default -> UI.swap(contentArea, UI.emptyState("No data"));
             }
-            contentArea.revalidate();
-            contentArea.repaint();
         });
     }
 
     private void showTurnover() {
-        var t = UI.table("Sale #", "Customer", "Date", "Payment", "Total");
-        t.monoColumn(0).badgeColumn(3).monoColumn(4);
-        // TODO: swap with SaleDAO.findByDateRange(from, to)
-        t.model().addRow(new Object[]{"#0001", "Ms Eva Bauyer", "2026-03-01", "ON_CREDIT", "£63.60"});
-        t.model().addRow(new Object[]{"#0002", "Walk-in", "2026-03-03", "CASH", "£4.60"});
-        contentArea.add(t.scroll());
+        var table = UI.table(
+            UI.monoCol("Sale #", TurnoverRow::saleId),
+            UI.col("Customer", TurnoverRow::customer),
+            UI.col("Date", TurnoverRow::date),
+            UI.badgeCol("Payment", TurnoverRow::payment),
+            UI.monoCol("Total", TurnoverRow::total)
+        ).rows(List.of(
+            new TurnoverRow("#0001", "Ms Eva Bauyer", "2026-03-01", "ON_CREDIT", "£63.60"),
+            new TurnoverRow("#0002", "Walk-in", "2026-03-03", "CASH", "£4.60")
+        ));
+        UI.swap(contentArea, table.scroll());
     }
 
     private void showStock() {
-        var t = UI.table("Product", "Qty", "Cost", "Retail", "Value", "Status");
-        t.monoColumn(1).monoColumn(2).monoColumn(3).monoColumn(4).badgeColumn(5);
-        // TODO: swap with StockDAO.findAll()
-        t.model().addRow(new Object[]{"Paracetamol", 121, "£0.10", "£0.20", "£24.20", "IN_STOCK"});
-        contentArea.add(t.scroll());
+        var table = UI.table(
+            UI.col("Product", StockRow::product),
+            UI.monoCol("Qty", StockRow::qty),
+            UI.monoCol("Cost", StockRow::cost),
+            UI.monoCol("Retail", StockRow::retail),
+            UI.monoCol("Value", StockRow::value),
+            UI.badgeCol("Status", StockRow::status)
+        ).rows(List.of(
+            new StockRow("Paracetamol", 121, "£0.10", "£0.20", "£24.20", "IN_STOCK")
+        ));
+        UI.swap(contentArea, table.scroll());
     }
 
     private void showDebt() {
-        var t = UI.table("Customer", "Account", "Status", "Balance", "Limit");
-        t.monoColumn(1).badgeColumn(2).monoColumn(3).monoColumn(4);
-        // TODO: swap with CustomerDAO.findDebtors()
-        t.model().addRow(new Object[]{"Ms Eva Bauyer", "ACC0001", "NORMAL", "£0.00", "£500.00"});
-        contentArea.add(t.scroll());
+        var table = UI.table(
+            UI.col("Customer", DebtRow::customer),
+            UI.monoCol("Account", DebtRow::account),
+            UI.badgeCol("Status", DebtRow::status),
+            UI.monoCol("Balance", DebtRow::balance),
+            UI.monoCol("Limit", DebtRow::limit)
+        ).rows(List.of(
+            new DebtRow("Ms Eva Bauyer", "ACC0001", "NORMAL", "£0.00", "£500.00")
+        ));
+        UI.swap(contentArea, table.scroll());
     }
 }

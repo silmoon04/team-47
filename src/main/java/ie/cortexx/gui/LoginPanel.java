@@ -19,38 +19,38 @@ mock role assignment for now, swap with AuthService later.
 
 // centered login card: username, password, sign in
 public class LoginPanel extends JPanel {
-    private MainFrame mainFrame;
-    private JTextField usernameField = UI.inputField("Username");
-    private JPasswordField passwordField = UI.passwordField("Password");
-    private JLabel errorLabel = UI.errorLabel();
+    private final MainFrame mainFrame;
+    private final JTextField usernameField = UI.inputField("Username");
+    private final JPasswordField passwordField = UI.passwordField("Password");
+    private final JLabel errorLabel = UI.errorLabel();
 
     public LoginPanel(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
-        setBackground(UI.BG);
-        setLayout(new GridBagLayout());
+        setLayout(new BorderLayout());
+        add(buildContent(), BorderLayout.CENTER);
+    }
 
-        // card: vertical stack, 48px padding, 420x350
+    private JComponent buildContent() {
+        JPanel outer = UI.centeredPanel();
         JPanel card = UI.vcard(48, 48, 420, 350);
-
         card.add(UI.title("IPOS-CA"));
-        card.add(Box.createVerticalStrut(4));
+        card.add(UI.gap(4));
         card.add(UI.subtitle("Cosymed Ltd - Pharmacy Management System"));
-        card.add(Box.createVerticalStrut(12));
-
+        card.add(UI.gap(12));
         card.add(usernameField);
-        card.add(Box.createVerticalStrut(12));
+        card.add(UI.gap(12));
         card.add(passwordField);
-        card.add(Box.createVerticalStrut(12));
+        card.add(UI.gap(12));
 
         JButton btn = UI.primaryButtonWide("SIGN IN");
         card.add(btn);
-        card.add(Box.createVerticalStrut(12));
+        card.add(UI.gap(12));
         card.add(errorLabel);
-
-        add(card);
 
         btn.addActionListener(e -> attemptLogin());
         passwordField.addActionListener(e -> attemptLogin());
+        outer.add(card);
+        return outer;
     }
 
     private void attemptLogin() {

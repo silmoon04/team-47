@@ -5,9 +5,10 @@ import ie.cortexx.gui.util.UI;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.List;
 
 /*
-=== why this panel is built like this ===
+why this panel is built like this
 
 two views (POS + history) in inner tabs.
 POS tab uses UI.splitPanel(left, right, 360) to fix the cart at 360px.
@@ -26,63 +27,46 @@ public class POSPanel extends JPanel {
     private DefaultTableModel cartModel;
     private JLabel subtotalLabel, totalLabel;
 
+    private record ProductRow(String name, String price, int stock) {}
+    private record SaleRow(String saleId, String customer, String date, int items, String payment, String total) {}
+
     public POSPanel() {
         UI.applyPanelNoPad(this);
-        var tabs = UI.innerTabs();
-        tabs.addTab("Point of Sale", buildPOS());
-        tabs.addTab("Sale History", buildHistory());
-        add(tabs);
+        add(UI.innerTabs(
+            UI.tab("Point of Sale", buildPOS()),
+            UI.tab("Sale History", buildHistory())
+        ));
     }
 
     private JPanel buildPOS() {
-        // --- left side: product search + table ---
-        var products = UI.table("Name", "Price", "In Stock");
-        products.monoColumn(1).monoColumn(2);
-        // TODO: swap with StockDAO.findAll() loop
-        products.model().addRow(new Object[]{"Paracetamol", "£0.20", 121});
-        products.model().addRow(new Object[]{"Aspirin", "£1.00", 201});
-        products.model().addRow(new Object[]{"Ospen", "£21.00", 78});
+        var products = UI.table(
+            UI.col("Name", ProductRow::name),
+            UI.monoCol("Price", ProductRow::price),
+            UI.monoCol("In Stock", ProductRow::stock)
+        ).rows(List.of(
+            new ProductRow("Paracetamol", "£0.20", 121),
+            new ProductRow("Aspirin", "£1.00", 201),
+            new ProductRow("Ospen", "£21.00", 78)
+        )).onSelect(row -> addToCart(row.name(), row.price()));
 
         JPanel left = UI.transparentPanel(8);
         left.add(UI.searchField("Search products...", products.table()), BorderLayout.NORTH);
         left.add(products.scroll(), BorderLayout.CENTER);
 
-        // click product row to add to cart
-        products.table().addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                int row = products.table().getSelectedRow();
-                if (row < 0) return;
-                row = products.table().convertRowIndexToModel(row);
-                addToCart(
-                    (String) products.model().getValueAt(row, 0),
-                    (String) products.model().getValueAt(row, 1));
-            }
-        });
-
-        // --- right side: cart ---
-        // cardPanel() gives us card bg + border in one call
         JPanel cart = UI.cardPanel();
 
-        // cart header + customer dropdown
         JPanel header = UI.paddedPanel(12, 16, 12, 16);
         header.add(UI.heading("Current Sale"), BorderLayout.NORTH);
-        // TODO: populate from CustomerDAO.findAll()
         header.add(new JComboBox<>(new String[]{
             "Walk-in Customer", "Ms Eva Bauyer (ACC0001)", "Mr Glynne Morrison (ACC0002)"
         }), BorderLayout.SOUTH);
         cart.add(header, BorderLayout.NORTH);
 
-        // cart items table (manual, not UI.table(), bc we update rows dynamically)
-        cartModel = new DefaultTableModel(new String[]{"Item", "Qty", "Total"}, 0) {
-            public boolean isCellEditable(int r, int c) { return false; }
-        };
-        JTable cartTable = new JTable(cartModel);
-        cartTable.setBackground(UI.BG_CARD);
-        cartTable.setForeground(UI.TEXT);
-        cartTable.setRowHeight(32);
-        cart.add(new JScrollPane(cartTable), BorderLayout.CENTER);
+        cartModel = UI.readonlyModel("Item", "Qty", "Total");
+        var cartTable = UI.table(cartModel, false);
+        cartTable.table().setRowHeight(32);
+        cart.add(cartTable.scroll(), BorderLayout.CENTER);
 
-        // --- summary + payment buttons ---
         JPanel bottom = UI.formCard();
         subtotalLabel = UI.mono("Subtotal: £0.00");
         totalLabel = UI.mono("Total: £0.00");
@@ -91,7 +75,6 @@ public class POSPanel extends JPanel {
         bottom.add(UI.gap(4));
         bottom.add(totalLabel);
         bottom.add(UI.gap(12));
-        // gridRow(3, 8) = 3 cols, 8px gap, transparent
         JPanel payBtns = UI.gridRow(3, 8);
         payBtns.add(UI.button("Cash"));
         payBtns.add(UI.primaryButton("Card"));
@@ -104,7 +87,6 @@ public class POSPanel extends JPanel {
         return view;
     }
 
-    // adds item to cart, or increments qty if already there
     private void addToCart(String name, String price) {
         for (int i = 0; i < cartModel.getRowCount(); i++) {
             if (cartModel.getValueAt(i, 0).equals(name)) {
@@ -120,7 +102,6 @@ public class POSPanel extends JPanel {
         updateTotals();
     }
 
-    // recalculates subtotal/total from all cart rows
     private void updateTotals() {
         double sub = 0;
         for (int i = 0; i < cartModel.getRowCount(); i++)
@@ -131,11 +112,17 @@ public class POSPanel extends JPanel {
     }
 
     private JPanel buildHistory() {
-        var t = UI.table("Sale #", "Customer", "Date", "Items", "Payment", "Total");
-        t.monoColumn(0).monoColumn(5).badgeColumn(4);
-        // TODO: swap with SaleDAO.findByDateRange(from, to)
-        t.model().addRow(new Object[]{"#0001", "Ms Eva Bauyer", "2026-03-01", 4, "ON_CREDIT", "£63.60"});
-        t.model().addRow(new Object[]{"#0002", "Walk-in", "2026-03-03", 2, "CASH", "£4.60"});
+        var t = UI.table(
+            UI.monoCol("Sale #", SaleRow::saleId),
+            UI.col("Customer", SaleRow::customer),
+            UI.col("Date", SaleRow::date),
+            UI.col("Items", SaleRow::items),
+            UI.badgeCol("Payment", SaleRow::payment),
+            UI.monoCol("Total", SaleRow::total)
+        ).rows(List.of(
+            new SaleRow("#0001", "Ms Eva Bauyer", "2026-03-01", 4, "ON_CREDIT", "£63.60"),
+            new SaleRow("#0002", "Walk-in", "2026-03-03", 2, "CASH", "£4.60")
+        ));
         JPanel view = UI.panel();
         view.add(t.scroll(), BorderLayout.CENTER);
         return view;
