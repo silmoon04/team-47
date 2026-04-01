@@ -68,11 +68,10 @@ public class LoginPanel extends JPanel {
         }
 
         // TODO: swap with AuthService.authenticate(user, password)
-        if (user.equalsIgnoreCase("sysdba")) mainFrame.setRole("admin");
-        else if (user.equalsIgnoreCase("manager")) mainFrame.setRole("manager");
-        else mainFrame.setRole("pharmacist");
+        String role = user.equalsIgnoreCase("sysdba")
+            ? "admin"
+            : user.equalsIgnoreCase("manager") ? "manager" : "pharmacist";
 
-        mainFrame.setUsername(user);
-        mainFrame.showMainFrame(mainFrame.getRole());
+        mainFrame.login(user, role);
     }
 }

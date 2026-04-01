@@ -7,7 +7,6 @@ import ie.cortexx.gui.reports.ReportPanel;
 import ie.cortexx.gui.sales.POSPanel;
 import ie.cortexx.gui.settings.SettingsPanel;
 import ie.cortexx.gui.stock.StockPanel;
-import ie.cortexx.gui.user.UserManagementPanel;
 
 import javax.swing.*;
 import java.awt.BorderLayout;
@@ -20,8 +19,7 @@ import java.util.List;
 // shows login first, then switches to tabs based on user role
 
 public class MainFrame extends JFrame {
-    private static String currentUser;
-    private static String currentRole = "manager";
+    private UserSession session = UserSession.anonymous();
     private String activePageTitle;
     private boolean showingLogin = true;
 
@@ -36,8 +34,18 @@ public class MainFrame extends JFrame {
 
     // manages main frame
     public void showMainFrame(String role) {
-        currentRole = role;
+        session = session.withRole(role);
+        showMainFrame();
+    }
+
+    public void login(String username, String role) {
+        session = new UserSession(username, role);
+        showMainFrame();
+    }
+
+    private void showMainFrame() {
         showingLogin = false;
+        String role = session.role();
 
         JPanel root = new JPanel(new BorderLayout());
         setContentPane(root);
@@ -53,8 +61,8 @@ public class MainFrame extends JFrame {
                 activePageTitle = page.title();
                 cardLayout.show(content, page.title());
             },
-            currentUser,
-            currentRole,
+            session.username(),
+            session.role(),
             activePageTitle,
             this::logout
         );
@@ -85,7 +93,7 @@ public class MainFrame extends JFrame {
             showLoginPanel();
             return;
         }
-        showMainFrame(currentRole);
+        showMainFrame();
     }
 
     private void setAppIcon() {
@@ -124,24 +132,16 @@ public class MainFrame extends JFrame {
 
     private void logout() {
         JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA.");
+        session = UserSession.anonymous();
         activePageTitle = null;
         showLoginPanel();
     }
 
-    // getters and setters
     public String getUsername() {
-        return currentUser;
+        return session.username();
     }
 
     public String getRole() {
-        return currentRole;
-    }
-
-    public static void setUsername(String username) {
-        currentUser = username;
-    }
-
-    public static void setRole(String role) {
-        currentRole = role;
+        return session.role();
     }
 }
