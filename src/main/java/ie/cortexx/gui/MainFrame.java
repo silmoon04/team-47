@@ -7,6 +7,7 @@ import ie.cortexx.gui.reports.ReportPanel;
 import ie.cortexx.gui.sales.POSPanel;
 import ie.cortexx.gui.settings.SettingsPanel;
 import ie.cortexx.gui.stock.StockPanel;
+import ie.cortexx.gui.user.UserManagementPanel;
 
 import javax.swing.*;
 import java.awt.BorderLayout;
@@ -31,22 +32,15 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         showLoginPanel();
     }
-
     // manages main frame
     public void showMainFrame(String role) {
         session = session.withRole(role);
         showMainFrame();
     }
 
-    public void login(String username, String role) {
-        session = new UserSession(username, role);
-        showMainFrame();
-    }
-
     private void showMainFrame() {
         showingLogin = false;
         String role = session.role();
-
         JPanel root = new JPanel(new BorderLayout());
         setContentPane(root);
 
@@ -54,10 +48,7 @@ public class MainFrame extends JFrame {
         JPanel content = new JPanel(cardLayout);
 
         List<SidePanel.Page> pages = buildPages(role, content);
-        SidePanel sidePanel = new SidePanel(
-            this,
-            pages,
-            page -> {
+        SidePanel sidePanel = new SidePanel(this, pages, page -> {
                 activePageTitle = page.title();
                 cardLayout.show(content, page.title());
             },
@@ -66,15 +57,12 @@ public class MainFrame extends JFrame {
             activePageTitle,
             this::logout
         );
-
         root.add(sidePanel, BorderLayout.WEST);
         root.add(content, BorderLayout.CENTER);
-
         if (!pages.isEmpty()) {
             String target = activePageTitle != null ? activePageTitle : pages.get(0).title();
             cardLayout.show(content, target);
         }
-
         revalidate();
         repaint();
     }
@@ -106,17 +94,18 @@ public class MainFrame extends JFrame {
     private List<SidePanel.Page> buildPages(String role, JPanel content) {
         List<SidePanel.Page> pages = new ArrayList<>();
 
+        // admin tabs
         if ("admin".equalsIgnoreCase(role)) {
-            addPage(content, pages, "User Management", "icons/user-cog.svg", new JPanel());
+            addPage(content, pages, "User Management", "icons/user-cog.svg", new UserManagementPanel());
             return pages;
         }
-
+        // pharmacist tabs
         addPage(content, pages, "Sales", "icons/shopping-cart.svg", new POSPanel());
         addPage(content, pages, "Stock", "icons/package.svg", new StockPanel());
         addPage(content, pages, "Customers", "icons/users.svg", new CustomerListPanel());
         addPage(content, pages, "Catalogue", "icons/book-open.svg", new CataloguePanel());
         addPage(content, pages, "Orders", "icons/truck.svg", new OrderPanel());
-
+        // manager tabs
         if ("manager".equalsIgnoreCase(role)) {
             addPage(content, pages, "Reports", "icons/bar-chart-3.svg", new ReportPanel());
             addPage(content, pages, "Settings", "icons/settings.svg", new SettingsPanel());
@@ -124,10 +113,14 @@ public class MainFrame extends JFrame {
         return pages;
     }
 
-    private void addPage(JPanel content, List<SidePanel.Page> pages,
-                         String title, String iconPath, JComponent page) {
+    private void addPage(JPanel content, List<SidePanel.Page> pages, String title, String iconPath, JComponent page) {
         pages.add(new SidePanel.Page(title, iconPath));
         content.add(page, title);
+    }
+
+    public void login(String username, String role) {
+        session = new UserSession(username, role);
+        showMainFrame();
     }
 
     private void logout() {
