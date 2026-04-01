@@ -29,7 +29,6 @@ public class UserManagementPanel extends JPanel {
             UI.badgeCol("Role", UserRow::role),
             UI.badgeCol("Status", UserRow::status)
         );
-
         // user account data
         rows.add(new UserRow(1, "sysdba", "System Admin", "ADMIN", "ACTIVE"));
         rows.add(new UserRow(2, "manager", "Store Manager", "MANAGER", "ACTIVE"));
@@ -37,18 +36,58 @@ public class UserManagementPanel extends JPanel {
         rows.add(new UserRow(4, "pharmacist2", "Relief Pharmacist", "PHARMACIST", "ACTIVE"));
         // add data to table
         table.rows(rows);
-
+        // buttons and searchbar
         JTextField search = UI.searchField("Search Users", table.table());
         JButton createButton = UI.primaryButton("+ Create User");
         JButton editButton = UI.button("Edit User");
-
         JPanel toolbar = new JPanel(new BorderLayout(8, 0));
-        toolbar.add(search, BorderLayout.CENTER);
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+
         actions.add(createButton);
         actions.add(editButton);
-
+        toolbar.add(search, BorderLayout.CENTER);
         toolbar.add(actions, BorderLayout.EAST);
+        createButton.addActionListener(e -> createUser());
+
         add(UI.pageWithStats(stats, toolbar, table.scroll()), BorderLayout.CENTER);
+    }
+
+    // manages create user panel
+    private void createUser() {
+        // dialogue
+        JDialog createUserDialogue = new JDialog((Frame) null, "Create User Account", true);
+        createUserDialogue.setSize(325, 200);
+        createUserDialogue.setLocationRelativeTo(this);
+        createUserDialogue.setLayout(new BorderLayout(10, 10));
+        // labels
+        JPanel createUserButton = new JPanel(new BorderLayout(5, 5));
+        JTextField username = new JTextField();
+        JTextField fullName = new JTextField();
+        JComboBox<String> role = new JComboBox<>(new String[]{"MANAGER", "PHARMACIST"});
+        JLabel errorLabel = new JLabel(" ", SwingConstants.CENTER);
+        errorLabel.setForeground(Color.RED);
+        // text fields
+        JPanel fields = new JPanel(new GridLayout(3, 2, -50, 10));
+        fields.add(new JLabel("Username", SwingConstants.CENTER));
+        fields.add(username);
+        fields.add(new JLabel("Full Name", SwingConstants.CENTER));
+        fields.add(fullName);
+        fields.add(new JLabel("Role", SwingConstants.CENTER));
+        fields.add(role);
+        // create user button
+        JButton createButton = new JButton("Create User");
+        createUserDialogue.add(fields, BorderLayout.CENTER);
+        createButton.addActionListener(e -> {
+            if (username.getText().isEmpty() || fullName.getText().isEmpty()) {
+                errorLabel.setText("Please enter both username and full name.");
+                return;
+            }
+            // TODO: add user to account database
+            createUserDialogue.dispose();
+        });
+        createUserButton.add(errorLabel, BorderLayout.NORTH);
+        createUserButton.add(createButton, BorderLayout.CENTER);
+        createUserDialogue.add(createUserButton, BorderLayout.SOUTH);
+        createUserDialogue.setVisible(true);
     }
 }
