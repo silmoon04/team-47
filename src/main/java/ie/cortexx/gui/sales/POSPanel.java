@@ -76,9 +76,9 @@ public class POSPanel extends JPanel {
         bottom.add(totalLabel);
         bottom.add(UI.gap(12));
         JPanel payBtns = UI.gridRow(3, 8);
-        payBtns.add(UI.button("Cash"));
-        payBtns.add(UI.primaryButton("Card"));
-        payBtns.add(UI.button("Credit"));
+        payBtns.add(paymentButton("Cash", "icons/banknote.svg", false));
+        payBtns.add(paymentButton("Card", "icons/credit-card.svg", true));
+        payBtns.add(paymentButton("Credit", "icons/coins.svg", false));
         bottom.add(payBtns);
         cart.add(bottom, BorderLayout.SOUTH);
 
@@ -126,5 +126,12 @@ public class POSPanel extends JPanel {
         JPanel view = UI.panel();
         view.add(t.scroll(), BorderLayout.CENTER);
         return view;
+    }
+
+    private JButton paymentButton(String text, String iconPath, boolean primary) {
+        JButton button = primary ? UI.primaryButton(text) : UI.button(text);
+        button.setIcon(UI.icon(iconPath, 16, primary ? Color.WHITE : UI.TEXT));
+        button.setIconTextGap(8);
+        return button;
     }
 }

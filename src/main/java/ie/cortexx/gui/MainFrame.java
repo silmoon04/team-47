@@ -21,6 +21,8 @@ import java.util.List;
 public class MainFrame extends JFrame {
     private static String currentUser;
     private static String currentRole = "manager";
+    private String activePageTitle;
+    private boolean showingLogin = true;
 
     public MainFrame() {
         setTitle("IPOS-CA");
@@ -33,6 +35,7 @@ public class MainFrame extends JFrame {
     // manages main frame
     public void showMainFrame(String role) {
         currentRole = role;
+        showingLogin = false;
 
         JPanel root = new JPanel(new BorderLayout());
         setContentPane(root);
@@ -42,10 +45,15 @@ public class MainFrame extends JFrame {
 
         List<SidePanel.Page> pages = buildPages(role, content);
         SidePanel sidePanel = new SidePanel(
+            this,
             pages,
-            page -> cardLayout.show(content, page.title()),
+            page -> {
+                activePageTitle = page.title();
+                cardLayout.show(content, page.title());
+            },
             currentUser,
             currentRole,
+            activePageTitle,
             this::logout
         );
 
@@ -53,7 +61,8 @@ public class MainFrame extends JFrame {
         root.add(content, BorderLayout.CENTER);
 
         if (!pages.isEmpty()) {
-            cardLayout.show(content, pages.get(0).title());
+            String target = activePageTitle != null ? activePageTitle : pages.get(0).title();
+            cardLayout.show(content, target);
         }
 
         revalidate();
@@ -62,10 +71,19 @@ public class MainFrame extends JFrame {
 
     // manages login panel
     public void showLoginPanel() {
+        showingLogin = true;
         getContentPane().removeAll();
         setContentPane(new LoginPanel(this));
         revalidate();
         repaint();
+    }
+
+    public void refreshTheme() {
+        if (showingLogin) {
+            showLoginPanel();
+            return;
+        }
+        showMainFrame(currentRole);
     }
 
     private List<SidePanel.Page> buildPages(String role, JPanel content) {
@@ -97,6 +115,7 @@ public class MainFrame extends JFrame {
 
     private void logout() {
         JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA.");
+        activePageTitle = null;
         showLoginPanel();
     }
 

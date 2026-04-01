@@ -27,7 +27,14 @@ public class LoginPanel extends JPanel {
     public LoginPanel(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
         setLayout(new BorderLayout());
+        add(buildTopBar(), BorderLayout.NORTH);
         add(buildContent(), BorderLayout.CENTER);
+    }
+
+    private JComponent buildTopBar() {
+        JPanel bar = UI.paddedPanel(16, 16, 0, 16);
+        bar.add(ThemeSwitchButton.create(mainFrame), BorderLayout.EAST);
+        return bar;
     }
 
     private JComponent buildContent() {

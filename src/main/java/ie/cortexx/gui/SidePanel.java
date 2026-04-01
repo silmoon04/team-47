@@ -6,6 +6,7 @@ import ie.cortexx.gui.util.UI;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -22,7 +23,8 @@ public class SidePanel extends JPanel {
 	private final Map<Page, JToggleButton> navButtons = new LinkedHashMap<>();
 	private final ButtonGroup navGroup = new ButtonGroup();
 
-	public SidePanel(List<Page> pages, Consumer<Page> onTabChange, String username, String role, Runnable onLogout) {
+	public SidePanel(MainFrame mainFrame, List<Page> pages, Consumer<Page> onTabChange,
+					 String username, String role, String activeTitle, Runnable onLogout) {
 		this.onTabChange = onTabChange;
 
 		setLayout(new BorderLayout());
@@ -30,16 +32,20 @@ public class SidePanel extends JPanel {
 		setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, UI.BORDER));
 		setPreferredSize(new Dimension(260, 0));
 
-		add(buildBrand(), BorderLayout.NORTH);
+		add(buildBrand(mainFrame), BorderLayout.NORTH);
 		add(buildNav(pages), BorderLayout.CENTER);
 		add(buildFooter(username, role, onLogout), BorderLayout.SOUTH);
 
-		if (!pages.isEmpty()) {
-			setActiveTab(pages.get(0));
+		Page activePage = pages.stream()
+			.filter(page -> page.title().equals(activeTitle))
+			.findFirst()
+			.orElse(pages.isEmpty() ? null : pages.get(0));
+		if (activePage != null) {
+			setActiveTab(activePage);
 		}
 	}
 
-	private JPanel buildBrand() {
+	private JPanel buildBrand(MainFrame mainFrame) {
 		JPanel brand = UI.transparentPanel(2);
 		brand.setBorder(new EmptyBorder(22, 18, 16, 18));
 
@@ -50,6 +56,7 @@ public class SidePanel extends JPanel {
 		text.add(UI.gap(2));
 		text.add(UI.subtitle("COSYMED LTD"));
 		brand.add(text, BorderLayout.CENTER);
+		brand.add(ThemeSwitchButton.create(mainFrame), BorderLayout.EAST);
 		return brand;
 	}
 
@@ -82,7 +89,6 @@ public class SidePanel extends JPanel {
 
 	private JToggleButton createNavButton(Page page) {
 		JToggleButton button = new JToggleButton(page.title());
-		button.setIcon(new FlatSVGIcon(page.iconPath(), 18, 18));
 		button.putClientProperty("FlatLaf.styleClass", "sidebarNav");
 		button.setHorizontalAlignment(SwingConstants.LEFT);
 		button.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -92,6 +98,7 @@ public class SidePanel extends JPanel {
 		button.setFocusable(false);
 		button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		button.setFont(UI.FONT_BOLD);
+		applyNavVisual(button, page.iconPath(), false);
 		return button;
 	}
 
@@ -100,7 +107,18 @@ public class SidePanel extends JPanel {
 			boolean active = entry.getKey().equals(page);
 			JToggleButton button = entry.getValue();
 			button.setSelected(active);
+			applyNavVisual(button, entry.getKey().iconPath(), active);
 		}
+	}
+
+	private void applyNavVisual(AbstractButton button, String iconPath, boolean active) {
+		Color colour = active ? Color.WHITE : UI.TEXT_DIM;
+		button.setForeground(colour);
+		button.setIcon(navIcon(iconPath, colour));
+	}
+
+	private FlatSVGIcon navIcon(String path, Color colour) {
+		return UI.icon(path, 18, colour);
 	}
 
 	private JPanel buildFooter(String username, String role, Runnable onLogout) {

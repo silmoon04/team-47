@@ -1,5 +1,7 @@
 package ie.cortexx.gui.util;
 
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
@@ -35,25 +37,30 @@ import java.util.regex.Pattern;
 
 public final class UI {
 
+    public enum Theme {
+        DARK,
+        LIGHT
+    }
+
     private UI() {} // all static, never instantiate
 
     // -- colours --
     // having hex colrs here means we never hardcode a colour anywhere else.
 
-    public static final Color BG         = new Color(0x0f1117);
-    public static final Color BG_CARD    = new Color(0x181a20);
-    public static final Color BG_HOVER   = new Color(0x1e2028);
-    public static final Color BG_INPUT   = new Color(0x13151b);
-    public static final Color BORDER     = new Color(0x2a2d37);
-    public static final Color TEXT       = new Color(0xe4e6eb);
-    public static final Color TEXT_DIM   = new Color(0x8b8fa3);
-    public static final Color TEXT_MUTED = new Color(0x5c5f6e);
-    public static final Color ACCENT     = new Color(0x4f8cff);
-    public static final Color GREEN      = new Color(0x34d399);
-    public static final Color YELLOW     = new Color(0xfbbf24);
-    public static final Color RED        = new Color(0xf87171);
-    public static final Color ORANGE     = new Color(0xfb923c);
-    public static final Color PURPLE     = new Color(0xa78bfa);
+    public static Color BG         = new Color(0x0f1117);
+    public static Color BG_CARD    = new Color(0x181a20);
+    public static Color BG_HOVER   = new Color(0x1e2028);
+    public static Color BG_INPUT   = new Color(0x13151b);
+    public static Color BORDER     = new Color(0x2a2d37);
+    public static Color TEXT       = new Color(0xe4e6eb);
+    public static Color TEXT_DIM   = new Color(0x8b8fa3);
+    public static Color TEXT_MUTED = new Color(0x5c5f6e);
+    public static Color ACCENT     = new Color(0x4f8cff);
+    public static Color GREEN      = new Color(0x34d399);
+    public static Color YELLOW     = new Color(0xfbbf24);
+    public static Color RED        = new Color(0xf87171);
+    public static Color ORANGE     = new Color(0xfb923c);
+    public static Color PURPLE     = new Color(0xa78bfa);
     public static final int CARD_ARC     = 18;
     public static final int BUTTON_ARC   = 14;
     public static final int FIELD_ARC    = 14;
@@ -75,21 +82,8 @@ public final class UI {
 
     // -- badge colour map --
 
-    private static final Map<String, Color[]> BADGES = Map.ofEntries(
-        badge("NORMAL", GREEN),      badge("DELIVERED", GREEN),
-        badge("IN_STOCK", GREEN),    badge("ACTIVE", GREEN),
-        badge("CASH", GREEN),        badge("PHARMACIST", GREEN),
-        badge("SUSPENDED", YELLOW),  badge("LOW_STOCK", YELLOW),
-        badge("PROCESSING", ORANGE), badge("ON_CREDIT", ORANGE),
-        badge("PACKED", ORANGE),
-        badge("IN_DEFAULT", RED),    badge("CANCELLED", RED),
-        badge("OUT_OF_STOCK", RED),
-        badge("ACCEPTED", ACCENT),   badge("CREDIT_CARD", ACCENT),
-        badge("DEBIT_CARD", ACCENT), badge("FIXED", ACCENT),
-        badge("ADMIN", ACCENT),
-        badge("DISPATCHED", PURPLE), badge("FLEXIBLE", PURPLE),
-        badge("MANAGER", PURPLE)
-    );
+    private static Theme currentTheme = Theme.LIGHT;
+    private static Map<String, Color[]> BADGES = buildBadges();
 
     private static Map.Entry<String, Color[]> badge(String key, Color fg) {
         return Map.entry(key, new Color[]{
@@ -101,6 +95,27 @@ public final class UI {
     // -- init --
 
     public static void init() {
+        applyTheme(currentTheme);
+    }
+
+    public static Theme theme() {
+        return currentTheme;
+    }
+
+    public static boolean isDarkTheme() {
+        return currentTheme == Theme.DARK;
+    }
+
+    public static void toggleTheme() {
+        applyTheme(isDarkTheme() ? Theme.LIGHT : Theme.DARK);
+    }
+
+    public static void applyTheme(Theme theme) {
+        currentTheme = theme;
+        installLookAndFeel(theme);
+        applyPalette(theme);
+        BADGES = buildBadges();
+
         UIManager.put("defaultFont", FONT);
 
         // change this one constant if you want the app more or less rounded.
@@ -124,7 +139,7 @@ public final class UI {
 
         UIManager.put("Table.background", BG_CARD);
         UIManager.put("Table.alternateRowColor", BG_HOVER);
-        UIManager.put("Table.showHorizontalLines", true);
+        UIManager.put("Table.showHorizontalLines", false);
         UIManager.put("Table.showVerticalLines", false);
         UIManager.put("Table.gridColor", BORDER);
         UIManager.put("Table.selectionBackground", ACCENT);
@@ -148,23 +163,26 @@ public final class UI {
         UIManager.put("TextField.background", BG_INPUT);
         UIManager.put("TextField.focusedBackground", BG_INPUT);
         UIManager.put("TextField.borderColor", BORDER);
-        UIManager.put("TextField.focusedBorderColor", BORDER.brighter());
-        UIManager.put("TextField.focusWidth", 0);
+        UIManager.put("TextField.focusedBorderColor", theme == Theme.DARK ? BORDER.brighter() : TEXT);
+        UIManager.put("TextField.focusWidth", theme == Theme.DARK ? 0 : 1);
         UIManager.put("TextField.innerFocusWidth", 0);
         UIManager.put("TextField.margin", new Insets(0, 14, 0, 14));
         UIManager.put("TextField.foreground", TEXT);
+        UIManager.put("TextField.caretForeground", TEXT);
         UIManager.put("TextField.placeholderForeground", TEXT_MUTED);
         UIManager.put("PasswordField.background", BG_INPUT);
         UIManager.put("PasswordField.focusedBackground", BG_INPUT);
         UIManager.put("PasswordField.borderColor", BORDER);
-        UIManager.put("PasswordField.focusedBorderColor", BORDER.brighter());
-        UIManager.put("PasswordField.focusWidth", 0);
+        UIManager.put("PasswordField.focusedBorderColor", theme == Theme.DARK ? BORDER.brighter() : TEXT);
+        UIManager.put("PasswordField.focusWidth", theme == Theme.DARK ? 0 : 1);
         UIManager.put("PasswordField.innerFocusWidth", 0);
         UIManager.put("PasswordField.margin", new Insets(0, 14, 0, 14));
+        UIManager.put("PasswordField.foreground", TEXT);
+        UIManager.put("PasswordField.caretForeground", TEXT);
         UIManager.put("ComboBox.background", BG_INPUT);
         UIManager.put("ComboBox.borderColor", BORDER);
-        UIManager.put("ComboBox.focusedBorderColor", BORDER.brighter());
-        UIManager.put("ComboBox.focusWidth", 0);
+        UIManager.put("ComboBox.focusedBorderColor", theme == Theme.DARK ? BORDER.brighter() : TEXT);
+        UIManager.put("ComboBox.focusWidth", theme == Theme.DARK ? 0 : 1);
         UIManager.put("ComboBox.innerFocusWidth", 0);
         UIManager.put("ComboBox.padding", new Insets(0, 14, 0, 10));
         UIManager.put("List.background", BG_CARD);
@@ -173,33 +191,112 @@ public final class UI {
         UIManager.put("[style]ToggleButton.sidebarNav",
             "arc:" + BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
             "margin:11,12,11,12; iconTextGap:10; " +
-            "background:#181a20; foreground:#8b8fa3; borderColor:#181a20; " +
-            "hoverBackground:#1e2028; " +
-            "selectedBackground:#303648; selectedForeground:#e4e6eb; selectedBorderColor:#2a2d37");
+            "background:" + hex(BG_CARD) + "; foreground:" + hex(TEXT_DIM) + "; borderColor:" + hex(BG_CARD) + "; " +
+            "hoverBackground:" + hex(BG_HOVER) + "; " +
+            "selectedBackground:" + hex(ACCENT) + "; selectedForeground:" + hex(Color.WHITE) +
+            "; selectedBorderColor:" + hex(BORDER));
 
         UIManager.put("[style]Button.sidebarIcon",
             "arc:" + BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
             "margin:8,8,8,8; " +
-            "background:#181a20; foreground:#8b8fa3; borderColor:#2a2d37; " +
-            "hoverBackground:#1e2028");
+            "background:" + hex(BG_CARD) + "; foreground:" + hex(TEXT_DIM) + "; borderColor:" + hex(BORDER) + "; " +
+            "hoverBackground:" + hex(BG_HOVER));
+
+        UIManager.put("[style]Button.themeSwitch",
+            "arc:" + BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
+            "margin:7,10,7,10; " +
+            "background:" + hex(BG_CARD) + "; foreground:" + hex(TEXT) + "; borderColor:" + hex(BORDER) + "; " +
+            "hoverBackground:" + hex(BG_HOVER));
 
         UIManager.put("[style]Button.secondary",
             "arc:" + BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
             "margin:8,14,8,14; " +
-            "background:#222735; foreground:#e4e6eb; borderColor:#394055; " +
-            "hoverBackground:#2b3142; pressedBackground:#30384a");
+            "background:" + hex(theme == Theme.DARK ? new Color(0x222735) : Color.WHITE) +
+            "; foreground:" + hex(TEXT) + "; borderColor:" + hex(theme == Theme.DARK ? new Color(0x394055) : BORDER) +
+            "; hoverBackground:" + hex(theme == Theme.DARK ? new Color(0x2b3142) : BG_HOVER) +
+            "; pressedBackground:" + hex(theme == Theme.DARK ? new Color(0x30384a) : BG_HOVER.darker()));
 
         UIManager.put("[style]Button.primary",
             "arc:" + BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
             "margin:8,14,8,14; " +
-            "background:#4f8cff; foreground:#ffffff; borderColor:#4f8cff; " +
-            "hoverBackground:#6399ff; pressedBackground:#3d7ef6");
+            "background:" + hex(ACCENT) + "; foreground:" + hex(theme == Theme.DARK ? Color.WHITE : BG_CARD) +
+            "; borderColor:" + hex(ACCENT) + "; " +
+            "hoverBackground:" + hex(theme == Theme.DARK ? new Color(0x6399ff) : BORDER) +
+            "; pressedBackground:" + hex(theme == Theme.DARK ? new Color(0x3d7ef6) : BORDER.darker()));
 
         UIManager.put("[style]Button.danger",
             "arc:" + BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
             "margin:8,14,8,14; " +
-            "background:#2a1d1f; foreground:#f6b3b3; borderColor:#5c363b; " +
-            "hoverBackground:#332326; pressedBackground:#3b282c");
+            "background:" + hex(theme == Theme.DARK ? new Color(0x2a1d1f) : new Color(0xfff1d8)) +
+            "; foreground:" + hex(theme == Theme.DARK ? new Color(0xf6b3b3) : new Color(0x8b4b2b)) +
+            "; borderColor:" + hex(theme == Theme.DARK ? new Color(0x5c363b) : new Color(0xf0dec0)) + "; " +
+            "hoverBackground:" + hex(theme == Theme.DARK ? new Color(0x332326) : new Color(0xffecd0)) +
+            "; pressedBackground:" + hex(theme == Theme.DARK ? new Color(0x3b282c) : new Color(0xfbe3bc)));
+    }
+
+    private static void installLookAndFeel(Theme theme) {
+        try {
+            UIManager.setLookAndFeel(theme == Theme.DARK ? new FlatDarkLaf() : new FlatLightLaf());
+        } catch (UnsupportedLookAndFeelException e) {
+            throw new IllegalStateException("Unable to switch theme", e);
+        }
+    }
+
+    private static void applyPalette(Theme theme) {
+        if (theme == Theme.DARK) {
+            BG = new Color(0x0f1117);
+            BG_CARD = new Color(0x181a20);
+            BG_HOVER = new Color(0x1e2028);
+            BG_INPUT = new Color(0x13151b);
+            BORDER = new Color(0x2a2d37);
+            TEXT = new Color(0xe4e6eb);
+            TEXT_DIM = new Color(0x8b8fa3);
+            TEXT_MUTED = new Color(0x5c5f6e);
+            ACCENT = new Color(0x4f8cff);
+            GREEN = new Color(0x34d399);
+            YELLOW = new Color(0xfbbf24);
+            RED = new Color(0xf87171);
+            ORANGE = new Color(0xfb923c);
+            PURPLE = new Color(0xa78bfa);
+            return;
+        }
+
+        BG = new Color(0xf5f6f7);
+        BG_CARD = Color.WHITE;
+        BG_HOVER = new Color(0xeff1f2);
+        BG_INPUT = Color.WHITE;
+        BORDER = new Color(0xd7dbdf);
+        TEXT = new Color(0x323130);
+        TEXT_DIM = new Color(0x6f7378);
+        TEXT_MUTED = new Color(0xa1a6ad);
+        ACCENT = new Color(0x323130);
+        GREEN = new Color(0x8fbe6f);
+        YELLOW = new Color(0xe3b96b);
+        RED = new Color(0xe29595);
+        ORANGE = new Color(0xd8a96f);
+        PURPLE = new Color(0xb4bdd2);
+    }
+
+    private static Map<String, Color[]> buildBadges() {
+        return Map.ofEntries(
+            badge("NORMAL", GREEN),      badge("DELIVERED", GREEN),
+            badge("IN_STOCK", GREEN),    badge("ACTIVE", GREEN),
+            badge("CASH", GREEN),        badge("PHARMACIST", GREEN),
+            badge("SUSPENDED", YELLOW),  badge("LOW_STOCK", YELLOW),
+            badge("PROCESSING", ORANGE), badge("ON_CREDIT", ORANGE),
+            badge("PACKED", ORANGE),
+            badge("IN_DEFAULT", RED),    badge("CANCELLED", RED),
+            badge("OUT_OF_STOCK", RED),
+            badge("ACCEPTED", ACCENT),   badge("CREDIT_CARD", ACCENT),
+            badge("DEBIT_CARD", ACCENT), badge("FIXED", ACCENT),
+            badge("ADMIN", ACCENT),
+            badge("DISPATCHED", PURPLE), badge("FLEXIBLE", PURPLE),
+            badge("MANAGER", PURPLE)
+        );
+    }
+
+    private static String hex(Color color) {
+        return String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
     }
 
 
@@ -582,11 +679,11 @@ public final class UI {
         table.setShowVerticalLines(false);
         table.setIntercellSpacing(new Dimension(0, 1));
         table.setFillsViewportHeight(true);
-        table.getTableHeader().setFont(new Font(SANS, Font.BOLD, 11));
+        table.getTableHeader().setFont(new Font(SANS, Font.BOLD, 10));
         table.getTableHeader().setBackground(BG_HOVER);
         table.getTableHeader().setForeground(TEXT_DIM);
         table.setDefaultRenderer(Object.class, defaultRenderer());
-        table.putClientProperty("FlatLaf.style", "selectionArc:" + CARD_ARC);
+        table.putClientProperty("FlatLaf.style", "selectionArc:" );
 
         if (sortable) {
             table.setRowSorter(new TableRowSorter<>((TableModel) table.getModel()));
@@ -650,8 +747,9 @@ public final class UI {
         var field = new JTextField(20);
         field.putClientProperty("JTextField.placeholderText", placeholder);
         field.putClientProperty("JTextField.showClearButton", true);
-        field.putClientProperty("FlatLaf.style", "arc:" + FIELD_ARC + "; focusWidth:0; innerFocusWidth:0");
+        field.putClientProperty("FlatLaf.style", inputStyle());
         field.setFont(FONT);
+        field.setCaretColor(TEXT);
         field.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e)  { go(); }
             public void removeUpdate(DocumentEvent e)  { go(); }
@@ -741,11 +839,12 @@ public final class UI {
 
         input.setAlignmentX(Component.LEFT_ALIGNMENT);
         if (input instanceof JTextField tf) {
-            tf.putClientProperty("FlatLaf.style", "arc:" + FIELD_ARC + "; focusWidth:0; innerFocusWidth:0");
+            tf.putClientProperty("FlatLaf.style", inputStyle());
+            tf.setCaretColor(TEXT);
             tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
         }
         if (input instanceof JComboBox<?> box) {
-            box.putClientProperty("FlatLaf.style", "arc:" + FIELD_ARC + "; focusWidth:0; innerFocusWidth:0");
+            box.putClientProperty("FlatLaf.style", inputStyle());
         }
         if (input instanceof JScrollPane scroll) {
             scroll.putClientProperty("FlatLaf.style", "arc:" + CARD_ARC);
@@ -890,13 +989,19 @@ public final class UI {
         return icon;
     }
 
+    public static FlatSVGIcon icon(String path, int size, Color colour) {
+        return new FlatSVGIcon(path, size, size)
+            .setColorFilter(new FlatSVGIcon.ColorFilter(c -> colour));
+    }
+
 
     // -- input helpers --
 
     public static JTextField inputField(String placeholder) {
         var tf = new JTextField();
         tf.putClientProperty("JTextField.placeholderText", placeholder);
-        tf.putClientProperty("FlatLaf.style", "arc:" + FIELD_ARC + "; focusWidth:0; innerFocusWidth:0");
+        tf.putClientProperty("FlatLaf.style", inputStyle());
+        tf.setCaretColor(TEXT);
         tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         tf.setAlignmentX(Component.LEFT_ALIGNMENT);
         return tf;
@@ -905,7 +1010,8 @@ public final class UI {
     public static JPasswordField passwordField(String placeholder) {
         var pf = new JPasswordField();
         pf.putClientProperty("JTextField.placeholderText", placeholder);
-        pf.putClientProperty("FlatLaf.style", "arc:" + FIELD_ARC + "; focusWidth:0; innerFocusWidth:0");
+        pf.putClientProperty("FlatLaf.style", inputStyle());
+        pf.setCaretColor(TEXT);
         pf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         pf.setAlignmentX(Component.LEFT_ALIGNMENT);
         return pf;
@@ -980,6 +1086,14 @@ public final class UI {
 
     private static Border cardBorder(int top, int left, int bottom, int right, int arc) {
         return BorderFactory.createCompoundBorder(roundedBorder(arc), new EmptyBorder(top, left, bottom, right));
+    }
+
+    private static String inputStyle() {
+        return "arc:" + FIELD_ARC +
+            "; borderWidth:1; focusWidth:" + (isDarkTheme() ? 0 : 1) +
+            "; innerFocusWidth:0; borderColor:" + hex(BORDER) +
+            "; focusedBorderColor:" + hex(isDarkTheme() ? BORDER.brighter() : TEXT) +
+            "; background:" + hex(BG_INPUT);
     }
 
     private static Border roundedBorder(int arc) {
