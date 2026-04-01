@@ -1,31 +1,51 @@
 package ie.cortexx.impl;
 
+import ie.cortexx.TestDatabaseHelper;
 import ie.cortexx.exception.ProductNotFoundException;
 import ie.cortexx.interfaces.I_CAtoPU;
-import ie.cortexx.util.DBConnection;
+import ie.cortexx.model.StockItem;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.sql.Connection;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-// integration tests for I_CAtoPU implementation
-// follows HLD pattern: instantiate CAtoPUImpl, cast to I_CAtoPU, call methods
 public class CAtoPUImplIT {
 
-    @Test
-    void getStockLevel_validProduct() throws Exception {
-        String saProductId = getAnyExistingSaProductId();
-        assertNotNull(saProductId, "no products found in demo data");
+    @BeforeEach
+    void setUp() throws Exception {
+        TestDatabaseHelper.useTestDatabase();
+        TestDatabaseHelper.seedTestData();
+    }
 
-        I_CAtoPU api = new CAtoPUImpl();
-        int level = api.getStockLevel(saProductId);
-
-        assertTrue(level >= 0, "stock level should be >= 0");
+    @AfterEach
+    void tearDown() throws Exception {
+        TestDatabaseHelper.cleanTestData();
+        TestDatabaseHelper.useMainDatabase();
     }
 
     @Test
-    void getStockLevel_nonexistentProduct() {
+    void getStockLevel_validProduct_returnsExactQuantity() {
+        I_CAtoPU api = new CAtoPUImpl();
+
+        int level = api.getStockLevel(TestDatabaseHelper.PRODUCT_OK);
+
+        assertEquals(10, level);
+    }
+
+    @Test
+    void getStockLevel_zeroStockProduct_returnsZero() {
+        I_CAtoPU api = new CAtoPUImpl();
+
+        int level = api.getStockLevel(TestDatabaseHelper.PRODUCT_ZERO);
+
+        assertEquals(0, level);
+    }
+
+    @Test
+    void getStockLevel_nonexistentProduct_throwsProductNotFound() {
         I_CAtoPU api = new CAtoPUImpl();
 
         assertThrows(ProductNotFoundException.class,
@@ -33,7 +53,7 @@ public class CAtoPUImplIT {
     }
 
     @Test
-    void getStockLevel_nullId() {
+    void getStockLevel_nullId_throwsIllegalArgument() {
         I_CAtoPU api = new CAtoPUImpl();
 
         assertThrows(IllegalArgumentException.class,
@@ -41,107 +61,58 @@ public class CAtoPUImplIT {
     }
 
     @Test
-    void deductStock_sufficientStock() throws Exception {
-        ProductRow row = getProductWithMinimumStock(2);
-        assertNotNull(row, "need a product with stock >= 2 for this test");
-
-        I_CAtoPU api = new CAtoPUImpl();
-
-        int before = api.getStockLevel(row.saProductId);
-        boolean ok = api.deductStock(row.saProductId, 1);
-        int after = api.getStockLevel(row.saProductId);
-
-        assertTrue(ok, "deductStock should return true when enough stock exists");
-        assertEquals(before - 1, after, "stock should decrease by 1");
-
-        restoreStock(row.productId, 1);
-    }
-
-    @Test
-    void deductStock_insufficientStock() throws Exception {
-        ProductRow row = getAnyExistingProductRow();
-        assertNotNull(row, "no products found in demo data");
-
-        I_CAtoPU api = new CAtoPUImpl();
-
-        int before = api.getStockLevel(row.saProductId);
-        boolean ok = api.deductStock(row.saProductId, before + 1);
-        int after = api.getStockLevel(row.saProductId);
-
-        assertFalse(ok, "deductStock should return false when stock is insufficient");
-        assertEquals(before, after, "stock should not change when deduction fails");
-    }
-
-    @Test
-    void deductStock_negativeQty() throws Exception {
-        String saProductId = getAnyExistingSaProductId();
-        assertNotNull(saProductId, "no products found in demo data");
-
+    void getStockLevel_emptyId_throwsIllegalArgument() {
         I_CAtoPU api = new CAtoPUImpl();
 
         assertThrows(IllegalArgumentException.class,
-            () -> api.deductStock(saProductId, -1));
+            () -> api.getStockLevel("   "));
     }
 
-    // ---- helpers ----
+    @Test
+    void deductStock_sufficientStock_returnsTrue_andUpdatesExactQuantity() {
+        I_CAtoPU api = new CAtoPUImpl();
 
-    private String getAnyExistingSaProductId() throws Exception {
-        String sql = "SELECT sa_product_id FROM products LIMIT 1";
-        try (Connection c = DBConnection.getConnection();
-             var rs = c.createStatement().executeQuery(sql)) {
-            return rs.next() ? rs.getString(1) : null;
-        }
+        int before = api.getStockLevel(TestDatabaseHelper.PRODUCT_OK);
+        boolean ok = api.deductStock(TestDatabaseHelper.PRODUCT_OK, 3);
+        int after = api.getStockLevel(TestDatabaseHelper.PRODUCT_OK);
+
+        assertTrue(ok);
+        assertEquals(10, before);
+        assertEquals(7, after);
     }
 
-    private ProductRow getAnyExistingProductRow() throws Exception {
-        String sql = """
-            SELECT p.product_id, p.sa_product_id, s.quantity
-            FROM products p
-            JOIN stock s ON p.product_id = s.product_id
-            LIMIT 1
-            """;
-        try (Connection c = DBConnection.getConnection();
-             var rs = c.createStatement().executeQuery(sql)) {
-            if (!rs.next()) return null;
-            return new ProductRow(
-                rs.getInt("product_id"),
-                rs.getString("sa_product_id"),
-                rs.getInt("quantity")
-            );
-        }
+    @Test
+    void deductStock_insufficientStock_returnsFalse_andLeavesQuantityUnchanged() {
+        I_CAtoPU api = new CAtoPUImpl();
+
+        int before = api.getStockLevel(TestDatabaseHelper.PRODUCT_LOW);
+        boolean ok = api.deductStock(TestDatabaseHelper.PRODUCT_LOW, 5);
+        int after = api.getStockLevel(TestDatabaseHelper.PRODUCT_LOW);
+
+        assertFalse(ok);
+        assertEquals(2, before);
+        assertEquals(2, after);
     }
 
-    private ProductRow getProductWithMinimumStock(int minQty) throws Exception {
-        String sql = """
-            SELECT p.product_id, p.sa_product_id, s.quantity
-            FROM products p
-            JOIN stock s ON p.product_id = s.product_id
-            WHERE s.quantity >= ?
-            LIMIT 1
-            """;
-        try (Connection c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql)) {
-            ps.setInt(1, minQty);
-            try (var rs = ps.executeQuery()) {
-                if (!rs.next()) return null;
-                return new ProductRow(
-                    rs.getInt("product_id"),
-                    rs.getString("sa_product_id"),
-                    rs.getInt("quantity")
-                );
-            }
-        }
+    @Test
+    void deductStock_negativeQty_throwsIllegalArgument() {
+        I_CAtoPU api = new CAtoPUImpl();
+
+        assertThrows(IllegalArgumentException.class,
+            () -> api.deductStock(TestDatabaseHelper.PRODUCT_OK, -1));
     }
 
-    private void restoreStock(int productId, int delta) throws Exception {
-        String sql = "UPDATE stock SET quantity = quantity + ? WHERE product_id = ?";
-        try (Connection c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql)) {
-            ps.setInt(1, delta);
-            ps.setInt(2, productId);
-            ps.executeUpdate();
-        }
-    }
+    @Test
+    void getAllStock_returnsAllSeededRows() {
+        I_CAtoPU api = new CAtoPUImpl();
 
-    private record ProductRow(int productId, String saProductId, int quantity) {}
+        List<StockItem> items = api.getAllStock();
+
+        assertNotNull(items);
+        assertEquals(4, items.size());
+        assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_OK.equals(i.getSaProductId()) && i.getQuantity() == 10));
+        assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_ZERO.equals(i.getSaProductId()) && i.getQuantity() == 0));
+        assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_LOW.equals(i.getSaProductId()) && i.getQuantity() == 2));
+        assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_INACTIVE.equals(i.getSaProductId()) && i.getQuantity() == 7));
+    }
 }

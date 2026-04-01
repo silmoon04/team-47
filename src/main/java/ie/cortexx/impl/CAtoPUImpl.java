@@ -11,8 +11,6 @@ import ie.cortexx.model.StockItem;
 import java.sql.SQLException;
 import java.util.List;
 
-// our implementation of the interface Team C calls
-// delegates to ProductDAO + StockDAO for actual db queries
 public class CAtoPUImpl implements I_CAtoPU {
 
     private final StockDAO stockDAO;
@@ -42,7 +40,7 @@ public class CAtoPUImpl implements I_CAtoPU {
             StockItem stockItem = stockDAO.findByProductId(product.getProductId());
             return stockItem == null ? 0 : stockItem.getQuantity();
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to get stock level for product: " + productId);
+            throw new ServiceUnavailableException("Unable to read stock level");
         }
     }
 
@@ -71,17 +69,16 @@ public class CAtoPUImpl implements I_CAtoPU {
             stockDAO.updateQuantity(product.getProductId(), -quantity);
             return true;
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to deduct stock for product: " + productId);
+            throw new ServiceUnavailableException("Unable to deduct stock");
         }
     }
 
     @Override
-    public List<StockItem> getAllStock()
-        throws ServiceUnavailableException {
+    public List<StockItem> getAllStock() throws ServiceUnavailableException {
         try {
             return stockDAO.findAll();
         } catch (SQLException e) {
-            throw new ServiceUnavailableException("Failed to retrieve stock list: " + e.getMessage());
+            throw new ServiceUnavailableException("Unable to load stock list");
         }
     }
 
