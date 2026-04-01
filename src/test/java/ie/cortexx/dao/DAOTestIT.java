@@ -2,18 +2,17 @@ package ie.cortexx.dao;
 
 import ie.cortexx.enums.*;
 import ie.cortexx.model.*;
+import ie.cortexx.model.Statement;
 import ie.cortexx.util.DBConnection;
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDate;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /*
 how to write dao tests
-
-prereq: mysql running, 01_schema.sql + 04_test_data.sql loaded
-run all: mvn test -Dtest=DAOTestIT
-run one: mvn test -Dtest=DAOTestIT#userFindAll
 
 rules:
 - dont hardcode data (usernames, ids etc). grab from findAll() first
