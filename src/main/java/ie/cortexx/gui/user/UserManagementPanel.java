@@ -11,6 +11,7 @@ import java.util.ArrayList;
 public class UserManagementPanel extends JPanel {
     private record UserRow(int id, String username, String fullName, String role, String status) {}
     private final List<UserRow> rows = new ArrayList<>();
+    private UI.DataTable<UserRow> table;
 
     public UserManagementPanel() {
         UI.applyPanel(this);
@@ -22,7 +23,7 @@ public class UserManagementPanel extends JPanel {
             UI.stat("Pharmacists", "2", UI.ORANGE)
         );
 
-        var table = UI.table(
+        table = UI.table(
             UI.monoCol("ID", UserRow::id),
             UI.col("Username", UserRow::username),
             UI.col("Full Name", UserRow::fullName),
@@ -83,11 +84,19 @@ public class UserManagementPanel extends JPanel {
                 return;
             }
             // TODO: add user to account database
+            createUserAccount(username.getText(), fullName.getText(), role.getSelectedItem().toString());
             createUserDialogue.dispose();
         });
         createUserButton.add(errorLabel, BorderLayout.NORTH);
         createUserButton.add(createButton, BorderLayout.CENTER);
         createUserDialogue.add(createUserButton, BorderLayout.SOUTH);
         createUserDialogue.setVisible(true);
+    }
+    // manages create user account
+    void createUserAccount(String username, String fullName, String role) {
+        int userId = rows.size() + 1;
+        UserRow newUser = new UserRow(userId, username, fullName, role, "ACTIVE");
+        rows.add(newUser);
+        table.rows(rows);
     }
 }
