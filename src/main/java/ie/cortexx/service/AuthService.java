@@ -17,8 +17,8 @@ import java.sql.SQLException;
 
 public class AuthService {
     // placeholder variables
-    private String username;
-    private String password;
+    //private String username;
+   // private String password;
     private final UserDAO userDAO;
     // placeholder constructor
     public AuthService(UserDAO userDAO) {
@@ -41,6 +41,10 @@ public class AuthService {
             return false;
         }
 
+    }
+
+    public void logout() {
+        SessionManager.getInstance().logout();
     }
 
 
