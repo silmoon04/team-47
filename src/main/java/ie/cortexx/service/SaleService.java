@@ -20,7 +20,7 @@ public class SaleService {
     public ValidationResult validateStock(List<SaleItem> items, Map<Integer, Integer> stockLevels){
         for (SaleItem item : items) {
             int available = stockLevels.getOrDefault(item.getProductId(), 0);
-            if (available > 0) {
+            if (available < item.getQuantity()) {
                 return ValidationResult.fail( "Item"+item.getProductName()+"is out of stock" );
             }
         }
