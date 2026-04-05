@@ -2,7 +2,7 @@ package ie.cortexx.dao;
 
 import ie.cortexx.model.Statement;
 import ie.cortexx.util.DBConnection;
-import ie.cortexx.util.DBConnection;
+
 
 import java.sql.*;
 import java.time.LocalDate;
