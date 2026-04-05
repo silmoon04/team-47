@@ -11,6 +11,8 @@ target/
 .idea/dataSources/
 .idea/dataSources.local.xml
 .idea/dynamic.xml
+.idea/sqldialects.xml
+.idea/vcs.xml
 *.iws
 
 # === Environment ===
