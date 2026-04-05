@@ -9,25 +9,39 @@ package ie.cortexx.service;
 // TODO: logout()
 // TODO: static hashPassword(String) -> String (SHA-256)
 
+import ie.cortexx.dao.UserDAO;
+import ie.cortexx.model.User;
+import ie.cortexx.util.SessionManager;
+
+import java.sql.SQLException;
+
 public class AuthService {
-    // placeholder variables
-    private String username;
-    private String password;
+    private final UserDAO userDAO;
 
-    // placeholder constructor
-    public AuthService() {
-
+    public AuthService(UserDAO userDAO) {
+        this.userDAO = userDAO;
     }
 
-    // placeholder method
     public boolean authenticate(String username, String password) {
-        this.username = username;
-        this.password = password;
-        return true;
+        try {
+            String passwordHash = hashPassword(password);
+            User user = userDAO.authenticate(username, passwordHash);
+            if (user == null) {
+                return false;
+            }
+            SessionManager.getInstance().login(user);
+            return true;
+        } catch (SQLException error) {
+            System.out.println(error.getMessage());
+            return false;
+        }
     }
 
-    // placeholder method
-    public static void hashPassword(String password) {
+    public void logout() {
+        SessionManager.getInstance().logout();
+    }
 
+    public static String hashPassword(String password) {
+        return password;
     }
 }

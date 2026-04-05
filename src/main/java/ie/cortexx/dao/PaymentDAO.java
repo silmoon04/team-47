@@ -50,11 +50,62 @@ public class PaymentDAO {
 
     // TODO: find payments by sale_id (SELECT WHERE sale_id = ?)
     public List<Payment> findBySale(int saleId) throws SQLException {
-        return null;
+        String sql = "SELECT * FROM payments WHERE sale_id = ?";
+        List<Payment> payments = new ArrayList<>();
+
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement(sql)){
+            ps.setInt(1, saleId);
+            try (var rs = ps.executeQuery()){
+                while (rs.next()) {
+                    Payment payment = mapPayment(rs);
+                    payments.add(payment);
+                }
+            }
+        }
+        return payments;
     }
 
     // TODO: find payments by customer_id (SELECT WHERE customer_id = ?)
     public List<Payment> findByCustomer(int customerId) throws SQLException {
-        return null;
+        String sql = "SELECT * FROM payments WHERE customer_id = ?";
+        List<Payment> payments = new ArrayList<>();
+
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement(sql)){
+            ps.setInt(1, customerId);
+            try (var rs = ps.executeQuery()){
+                while (rs.next()){
+                    Payment payment = mapPayment(rs);
+                    payments.add(payment);
+                }
+            }
+        }
+        return payments;
+    }
+
+    private Payment mapPayment(ResultSet rs) throws SQLException {
+        Payment payment = new Payment();
+        payment.setPaymentId(rs.getInt("payment_id"));
+
+        int dbSaleId = rs.getInt("sale_id");
+        if (!rs.wasNull()) {
+            payment.setSaleId(dbSaleId);
+        }
+
+        int dbCustomerId = rs.getInt("customer_id");
+        if (!rs.wasNull()) {
+            payment.setCustomerId(dbCustomerId);
+        }
+
+        payment.setPaymentType(ie.cortexx.enums.PaymentType.valueOf(rs.getString("payment_type")));
+        payment.setAmount(rs.getBigDecimal("amount"));
+        payment.setCardType(rs.getString("card_type"));
+        payment.setCardFirst4(rs.getString("card_first4"));
+        payment.setCardLast4(rs.getString("card_last4"));
+        payment.setCardExpiry(rs.getString("card_expiry"));
+        payment.setChangeGiven(rs.getBigDecimal("change_given"));
+        payment.setPaymentDate(rs.getTimestamp("payment_date").toLocalDateTime());
+        return payment;
     }
 }
