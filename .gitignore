@@ -27,4 +27,4 @@ logs/
 
 # === Temp ===
 *.swp
-*~
+*~.idea/
