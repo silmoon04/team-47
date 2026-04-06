@@ -103,16 +103,17 @@ public class CAtoPUImplIT {
     }
 
     @Test
-    void getAllStock_returnsAllSeededRows() {
+    void getAllStock_returnsOnlyActiveSeededRows() {
         I_CAtoPU api = new CAtoPUImpl();
 
         List<StockItem> items = api.getAllStock();
 
         assertNotNull(items);
-        assertEquals(4, items.size());
+        assertEquals(3, items.size());
         assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_OK.equals(i.getSaProductId()) && i.getQuantity() == 10));
         assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_ZERO.equals(i.getSaProductId()) && i.getQuantity() == 0));
         assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_LOW.equals(i.getSaProductId()) && i.getQuantity() == 2));
-        assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_INACTIVE.equals(i.getSaProductId()) && i.getQuantity() == 7));
+        assertFalse(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_INACTIVE.equals(i.getSaProductId())));
     }
+
 }

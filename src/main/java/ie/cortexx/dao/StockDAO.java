@@ -13,8 +13,9 @@ public class StockDAO {
     //get all stock items (same pattern as findLowStock but without WHERE)
     public List<StockItem> findAll() throws SQLException {
         String sql = "SELECT s.stock_id, s.product_id, s.quantity, s.reorder_level, "
-        + "p.name, p.sa_product_id, p.cost_price, p.markup_rate "
-            + "FROM stock s JOIN products p ON s.product_id = p.product_id";
+            + "p.name, p.sa_product_id, p.cost_price, p.markup_rate "
+            + "FROM stock s JOIN products p ON s.product_id = p.product_id "
+            + "WHERE p.is_active = TRUE";
 
         List<StockItem> items = new ArrayList<>();
         try (var c = DBConnection.getConnection();
