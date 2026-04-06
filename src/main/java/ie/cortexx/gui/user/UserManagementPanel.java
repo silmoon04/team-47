@@ -30,6 +30,7 @@ public class UserManagementPanel extends JPanel {
             UI.badgeCol("Role", UserRow::role),
             UI.badgeCol("Status", UserRow::status)
         );
+        // TODO: replace hardcoded rows/stats with UserDAO.findAll() so admin CRUD reflects the real database.
         // user account data
         rows.add(new UserRow(1, "sysdba", "System Admin", "ADMIN", "ACTIVE"));
         rows.add(new UserRow(2, "manager", "Store Manager", "MANAGER", "ACTIVE"));
@@ -43,6 +44,7 @@ public class UserManagementPanel extends JPanel {
         JButton editButton = UI.button("Edit User");
         JPanel toolbar = new JPanel(new BorderLayout(8, 0));
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        // TODO: wire edit/deactivate/delete role management through UserDAO/AuthService instead of local list mutation.
 
         actions.add(createButton);
         actions.add(editButton);

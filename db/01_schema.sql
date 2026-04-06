@@ -203,6 +203,9 @@ CREATE TABLE orders (
                         PRIMARY KEY (order_id)
 );
 
+-- TODO: add an online_orders table (or extend orders cleanly) for the demo PU direct-DB path,
+-- including delivery address and fulfilment status fields for online orders written by Team C.
+
 -- renamed from ordered_items to match java model OrderItem
 -- added CHECK on quantity
 CREATE TABLE order_items (

@@ -12,17 +12,21 @@ import java.util.List;
 // owner: Fatima
 public class CustomerDAO {
 
+    // TODO: load the full customer row by id for customer detail, credit, debt, and reminder flows.
     public Customer findById(int customerId) throws SQLException {
         return null;
     }
 
+    // TODO: return all customer accounts ordered for the Customers screen instead of hardcoded rows.
     public List<Customer> findAll() throws SQLException {
         return null;
     }
 
+    // TODO: insert a new customer account with discount-plan and credit-limit fields from the brief/demo data.
     public void save(Customer customer) throws SQLException {
     }
 
+    // TODO: persist editable customer fields from the Customers screen, including balance/discount metadata changes.
     public void update(Customer customer) throws SQLException {
     }
 

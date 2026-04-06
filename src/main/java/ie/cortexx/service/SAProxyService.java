@@ -14,6 +14,7 @@ import java.util.List;
 // mock implementation of I_SAtoCA for when team A isnt available
 // returns hardcoded data matching context/SA-db.md
 // swap for real TCP connection on demo day if team A is ready
+// TODO: replace the hardcoded/mock behaviour with the agreed shared-SA-db sync/read path for the demo.
 public class SAProxyService implements I_SAtoCA {
 
     @Override

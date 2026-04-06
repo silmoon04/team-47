@@ -68,7 +68,7 @@ public class OrderDAO {
         return orders;
     }
 
-    // TODO: save order + items in a transaction (see JDBC_AND_DAO_GUIDE.md transaction section)
+    // TODO: save order + items in a transaction
     public void save(Order order) throws SQLException {
     }
 

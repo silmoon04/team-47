@@ -12,6 +12,7 @@ public class POSPanel extends JPanel {
     private final SaleCart cart = new SaleCart();
     private final JPanel cartItemsPanel = new JPanel();
     private final JLabel itemCountLabel = UI.countBadge("0 ITEMS");
+    // TODO: load customer choices from CustomerDAO and enforce live credit/status rules in the checkout flow.
     private final JComboBox<CustomerChoice> customerBox = new JComboBox<>(new CustomerChoice[]{
         new CustomerChoice("Walk-in Customer", 0.00, false),
         new CustomerChoice("Ms Eva Bauyer (ACC0001)", 0.03, true),
@@ -42,6 +43,8 @@ public class POSPanel extends JPanel {
     }
 
     private JPanel buildPOS() {
+        // TODO: replace hardcoded products/history with DAO-backed data and wire payment buttons to SaleService,
+        // including masked card-detail storage and the PU card-clearance/demo integration path.
         var products = UI.table(
             UI.col("Name", ProductRow::name, 240),
             UI.col("Price", ProductRow::price, 90),

@@ -24,6 +24,8 @@ saves us from manually nesting panels for this common layout.
 
 placeholder data is hardcoded for now, swap with StockDAO.findAll() loop later.
 the table, search, badges all stay the same, only the data loading changes.
+TODO: wire the stats/table/actions to StockDAO/StockService so low-stock, add-stock,
+and quantity edits are working demo features instead of static examples.
 */
 
 // shows all products and their quantities in a JTable
@@ -43,6 +45,7 @@ public class StockPanel extends JPanel {
     public StockPanel() {
         UI.applyPanel(this);
 
+        // TODO: compute these cards from live stock data so demo stats stay in sync with deliveries and sales.
         JPanel stats = UI.stats(
             UI.stat("Total Products", "14", UI.ACCENT, "icons/package.svg"),
             UI.stat("Total Units", "786", UI.GREEN, "icons/boxes.svg"),

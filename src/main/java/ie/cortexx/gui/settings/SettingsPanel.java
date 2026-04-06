@@ -17,6 +17,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private JPanel buildMerchant() {
+        // TODO: load/save merchant identity + SA credentials through MerchantDetailsDAO instead of static fields.
         JPanel form = UI.formCard();
         form.add(UI.formRow(
             UI.field("Business Name", new JTextField("Cosymed Ltd")),
@@ -40,6 +41,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private JPanel buildConfig() {
+        // TODO: persist VAT/system settings once a system_config DAO/service exists.
         JPanel form = UI.formCard();
         form.add(UI.field("VAT Rate (%)", new JTextField("0.00")));
         form.add(UI.gap(20));
@@ -52,6 +54,7 @@ public class SettingsPanel extends JPanel {
     }
 
     private JPanel buildTemplates() {
+        // TODO: load/update templates via TemplateDAO and add preview/print verification for reminder/receipt docs.
         JPanel form = UI.formCard();
         form.add(UI.textAreaField(
             "1st Reminder Template",

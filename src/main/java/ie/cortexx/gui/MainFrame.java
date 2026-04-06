@@ -20,6 +20,7 @@ import java.util.List;
 // shows login first, then switches to tabs based on user role
 
 public class MainFrame extends JFrame {
+    // TODO: replace this GUI-local session snapshot with SessionManager/AuthService once real auth is wired.
     private UserSession session = UserSession.anonymous();
     private String activePageTitle;
     private boolean showingLogin = true;
@@ -124,6 +125,7 @@ public class MainFrame extends JFrame {
     }
 
     private void logout() {
+        // TODO: call AuthService.logout() and clear SessionManager when the real auth flow replaces mock login.
         JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA.");
         session = UserSession.anonymous();
         activePageTitle = null;

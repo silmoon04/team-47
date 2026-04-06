@@ -15,6 +15,7 @@ content area swaps tables based on selected report type.
 each show*() builds a fresh table (simpler than reusing one and swapping cols).
 
 placeholder data, swap with DAO calls later.
+TODO: replace static rows with ReportService queries and wire Export/print output for demo marks.
 */
 
 // date range picker + report type, generates different report tables

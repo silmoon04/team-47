@@ -17,6 +17,8 @@ so we pass UI.button() and UI.primaryButton() directly.
 
 the catalogue data comes from SAProxyService.getCatalogue() which
 calls the SA API. for now its placeholder rows.
+TODO: replace the placeholder rows with SAProxyService.getCatalogue()
+and wire Sync Catalogue / Place Order to the real SA order flow.
 
 mono on ID, cost, and availability cols bc theyre numbers/prices.
 */

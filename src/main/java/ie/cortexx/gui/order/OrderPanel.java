@@ -14,6 +14,8 @@ SA tab uses pageWithStats(): stat cards NORTH, toolbar+table CENTER.
 empty toolbar for now, can add search/filters later.
 
 placeholder data, swap with OrderDAO.findAll() later.
+TODO: back the PU Online Orders tab with the planned direct-DB online_orders path,
+including delivery address visibility and status updates for demo scenarios.
 */
 
 // order history and status tracking for SA orders

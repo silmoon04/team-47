@@ -30,6 +30,7 @@ public class CustomerListPanel extends JPanel {
     public CustomerListPanel() {
         UI.applyPanel(this);
 
+        // TODO: replace demo rows with CustomerDAO + discount-tier queries so customer balances/status stay live.
         List<CustomerRow> rows = List.of(
             new CustomerRow(
                 "ACC0001",
@@ -139,6 +140,7 @@ public class CustomerListPanel extends JPanel {
         JButton edit = UI.button("Edit");
         JButton receivePayment = UI.button("Receive Payment");
         JButton delete = UI.dangerButton("Delete");
+        // TODO: wire edit/payment/delete actions through CustomerService + Payment/Reminder flows instead of static buttons.
         edit.setFont(UI.FONT_MONO_BOLD);
         receivePayment.setFont(UI.FONT_MONO_BOLD);
         delete.setFont(UI.FONT_MONO_BOLD);
