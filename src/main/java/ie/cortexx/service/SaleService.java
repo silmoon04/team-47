@@ -5,6 +5,8 @@ import ie.cortexx.model.*;
 import ie.cortexx.dao.SaleDAO;
 import ie.cortexx.dao.StockDAO;
 import ie.cortexx.dao.PaymentDAO;
+import ie.cortexx.dao.CustomerDAO;
+import ie.cortexx.enums.AccountStatus;
 
 
 
@@ -23,11 +25,13 @@ public class SaleService {
     private final SaleDAO saleDAO;
     private final StockDAO stockDAO;
     private final PaymentDAO paymentDAO;
+    private final CustomerDAO customerDAO;
 
-    public SaleService(SaleDAO saleDAO, StockDAO stockDAO, PaymentDAO paymentDAO) {
+    public SaleService(SaleDAO saleDAO, StockDAO stockDAO, PaymentDAO paymentDAO, CustomerDAO customerDAO) {
         this.saleDAO = saleDAO;
         this.stockDAO = stockDAO;
         this.paymentDAO = paymentDAO;
+        this.customerDAO = customerDAO;
     }
 
    //rule 1 no stock
@@ -100,15 +104,58 @@ public class SaleService {
         if (!walkInCheck.isValid()) {
             return walkInCheck;
         }
+// get customer if not walkin
+        Customer customer = null;
+        if (!sale.isWalkIn() && sale.getCustomerId() != null) {
+            try{
+                customer= customerDAO.findById(sale.getCustomerId());
+            } catch(SQLException error) {
+                return ValidationResult.fail(error.getMessage());
+            }
+        }
+
+        //block banned
+        if (customer != null) {
+            if(customer.getAccountStatus() == AccountStatus.SUSPENDED){
+                return ValidationResult.fail("Account is suspended");
+            }
+            if (customer.getAccountStatus() ==AccountStatus.IN_DEFAULT){
+                return ValidationResult.fail("Account is in default");
+            }
+        }
+
+        //validate payment type
+
+        ValidationResult paymentCheck = validatePaymentType(customer, paymentType, sale.isWalkIn());
+        if (!paymentCheck.isValid()) {
+            return paymentCheck;
+        }
+
+        //validate credit
+
+        if (customer != null) {
+            ValidationResult creditCheck = validateCreditLimit(customer, paymentType, grandTotal);
+            if (!creditCheck.isValid()) {
+                return creditCheck;
+            }
+        }
+
 
         try{
             saleDAO.save(sale);
+            payment.setSaleId(sale.getSaleId());
 
             for(SaleItem item : sale.getItems()) {
                 int deduct = -item.getQuantity();
                 stockDAO.updateQuantity(item.getProductId(), deduct);
             }
             paymentDAO.save(payment);
+
+            if (paymentType == PaymentType.ON_CREDIT && customer != null) {
+                BigDecimal newBalance = customer.getOutstandingBalance().add(grandTotal);
+                customerDAO.updateBalance(customer.getCustomerId(), newBalance);
+            }
+
         } catch(SQLException error) {
             return ValidationResult.fail(error.getMessage());
         }
