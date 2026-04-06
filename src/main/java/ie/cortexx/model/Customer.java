@@ -3,7 +3,11 @@ package ie.cortexx.model;
 import ie.cortexx.enums.AccountStatus;
 import ie.cortexx.enums.DiscountType;
 import ie.cortexx.enums.ReminderStatus;
+import ie.cortexx.enums.UserRole;
+
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -122,4 +126,33 @@ public class Customer {
 
     public int getMerchantId() { return merchantId; }
     public void setMerchantId(int merchantId) { this.merchantId = merchantId; }
+
+    // builds a User from a ResultSet row so DAOs dont need a separate mapUser()
+    // usage in DAO: return User.fromRS(rs);
+    public static Customer CfromRS(ResultSet rs) throws SQLException {
+        Customer c = new Customer();
+
+        c.customerId = rs.getInt("customer_id");
+        c.accountNo = rs.getString("account_no");
+        c.name = rs.getString("name");
+        c.contactName = rs.getString("contact_name");
+        c.email = rs.getString("email");
+        c.phone = rs.getString("phone");
+        c.address = rs.getString("address");
+        c.accountStatus = AccountStatus.valueOf(rs.getString("account_status"));
+        c.creditLimit = rs.getBigDecimal("credit_limit");
+        c.outstandingBalance = rs.getBigDecimal("outstanding_balance");
+        c.discountType = DiscountType.valueOf(rs.getString("discount_type"));
+        c.fixedDiscountRate = rs.getBigDecimal("fixed_discount_rate");
+        c.flexibleTierId = rs.getInt("flexible_tier_id");
+        c.date1stReminder = rs.getDate("date_1st_reminder");
+        c.status1stReminder = ReminderStatus.valueOf(rs.getString("status_1st_reminder"));
+        c.date2ndReminder = rs.getDate("date_2nd_reminder");
+        c.status2ndReminder = ReminderStatus.valueOf(rs.getString("status_2nd_reminder"));
+        c.createdAt = rs.getDate("created_at");
+        c.createdBy = rs.getInt("created_by");
+
+
+        return c;
+    }
 }
