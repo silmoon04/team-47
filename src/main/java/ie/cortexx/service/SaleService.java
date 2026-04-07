@@ -78,7 +78,8 @@ public class SaleService {
     }
 
     public ValidationResult processSale(Sale sale, Payment payment) {
-        BigDecimal grandTotal = payment.getAmount();
+        // use the sale total for credit
+        BigDecimal grandTotal = sale.getTotalAmount() != null ? sale.getTotalAmount() : payment.getAmount();
         PaymentType paymentType = payment.getPaymentType();
 
         Map<Integer, Integer> stockLevels = new HashMap<>();
@@ -112,6 +113,11 @@ public class SaleService {
             } catch(SQLException error) {
                 return ValidationResult.fail(error.getMessage());
             }
+        }
+
+        // account sales need a customer
+        if (!sale.isWalkIn() && customer == null) {
+            return ValidationResult.fail("account sale needs a customer");
         }
 
         //block banned
@@ -148,6 +154,10 @@ public class SaleService {
             for(SaleItem item : sale.getItems()) {
                 int deduct = -item.getQuantity();
                 stockDAO.updateQuantity(item.getProductId(), deduct);
+            }
+
+            if (paymentType == PaymentType.ON_CREDIT) {
+                payment.setAmount(grandTotal);
             }
             paymentDAO.save(payment);
 
