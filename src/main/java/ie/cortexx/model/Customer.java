@@ -6,8 +6,10 @@ import ie.cortexx.enums.ReminderStatus;
 import ie.cortexx.enums.UserRole;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -139,19 +141,46 @@ public class Customer {
         c.email = rs.getString("email");
         c.phone = rs.getString("phone");
         c.address = rs.getString("address");
-        c.accountStatus = AccountStatus.valueOf(rs.getString("account_status"));
+
+        String accountStatusStr = rs.getString("account_status");
+        c.accountStatus = accountStatusStr != null ? AccountStatus.valueOf(accountStatusStr) : null;
+
         c.creditLimit = rs.getBigDecimal("credit_limit");
         c.outstandingBalance = rs.getBigDecimal("outstanding_balance");
-        c.discountType = DiscountType.valueOf(rs.getString("discount_type"));
-        c.fixedDiscountRate = rs.getBigDecimal("fixed_discount_rate");
-        c.flexibleTierId = rs.getInt("flexible_tier_id");
-        c.date1stReminder = rs.getDate("date_1st_reminder").toLocalDate( );
-        c.status1stReminder = ReminderStatus.valueOf(rs.getString("status_1st_reminder"));
-        c.date2ndReminder = rs.getDate("date_2nd_reminder").toLocalDate( );
-        c.status2ndReminder = ReminderStatus.valueOf(rs.getString("status_2nd_reminder"));
-        c.createdAt = rs.getTimestamp("created_at").toLocalDateTime();
-        c.createdBy = rs.getInt("created_by");
 
+        String discountTypeStr = rs.getString("discount_type");
+        c.discountType = discountTypeStr != null ? DiscountType.valueOf(discountTypeStr) : null;
+
+        c.fixedDiscountRate = rs.getBigDecimal("fixed_discount_rate");
+
+        int flexibleTierId = rs.getInt("flexible_tier_id");
+        c.flexibleTierId = rs.wasNull() ? null : flexibleTierId;
+
+        Date debtPeriodStart = rs.getDate("debt_period_start");
+        c.debtPeriodStart = debtPeriodStart != null ? debtPeriodStart.toLocalDate() : null;
+
+        Date lastPaymentDate = rs.getDate("last_payment_date");
+        c.lastPaymentDate = lastPaymentDate != null ? lastPaymentDate.toLocalDate() : null;
+
+        Date date1stReminder = rs.getDate("date_1st_reminder");
+        c.date1stReminder = date1stReminder != null ? date1stReminder.toLocalDate() : null;
+
+        String status1stReminderStr = rs.getString("status_1st_reminder");
+        c.status1stReminder = status1stReminderStr != null ? ReminderStatus.valueOf(status1stReminderStr) : null;
+
+        Date date2ndReminder = rs.getDate("date_2nd_reminder");
+        c.date2ndReminder = date2ndReminder != null ? date2ndReminder.toLocalDate() : null;
+
+        String status2ndReminderStr = rs.getString("status_2nd_reminder");
+        c.status2ndReminder = status2ndReminderStr != null ? ReminderStatus.valueOf(status2ndReminderStr) : null;
+
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        c.createdAt = createdAt != null ? createdAt.toLocalDateTime() : null;
+
+        int createdBy = rs.getInt("created_by");
+        c.createdBy = rs.wasNull() ? null : createdBy;
+
+        c.merchantId = rs.getInt("merchant_id");
 
         return c;
     }

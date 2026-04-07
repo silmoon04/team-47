@@ -13,7 +13,6 @@ import java.util.List;
 // owner: Fatimah
 public class CustomerDAO {
 
-    // TODO: load the full customer row by id for customer detail, credit, debt, and reminder flows.
     public Customer findById(int customerId) throws SQLException {
         String sql = "SELECT * FROM customers WHERE customer_id = ?";
 
@@ -27,7 +26,6 @@ public class CustomerDAO {
         }
     }
 
-    // TODO: return all customer accounts ordered for the Customers screen instead of hardcoded rows.
     public List<Customer> findAll() throws SQLException {
         String sql = "SELECT * FROM customers";
 
@@ -38,7 +36,6 @@ public class CustomerDAO {
         }
     }
 
-    // TODO: insert a new customer account with discount-plan and credit-limit fields from the brief/demo data.
     public void save(Customer customer) throws SQLException {
         String sql = "INSERT INTO customers (" +
             "account_no, name, contact_name, email, phone, address, " +
@@ -49,6 +46,16 @@ public class CustomerDAO {
             "date_2nd_reminder, status_2nd_reminder, " +
             "created_at, created_by, merchant_id" +
             ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        if (customer.getCreatedAt() == null) {
+            customer.setCreatedAt(java.time.LocalDateTime.now());
+        }
+        if (customer.getOutstandingBalance() == null) {
+            customer.setOutstandingBalance(BigDecimal.ZERO);
+        }
+        if (customer.getAccountStatus() == null) {
+            customer.setAccountStatus(AccountStatus.NORMAL);
+        }
 
         try (var c = DBConnection.getConnection();
              var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -64,7 +71,6 @@ public class CustomerDAO {
         }
     }
 
-    // TODO: persist editable customer fields from the Customers screen, including balance/discount metadata changes.
     public void update(Customer customer) throws SQLException {
         String sql = "UPDATE customers SET " +
             "account_no = ?, name = ?, contact_name = ?, email = ?, phone = ?, address = ?, " +
