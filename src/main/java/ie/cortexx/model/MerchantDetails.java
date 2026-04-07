@@ -1,5 +1,8 @@
 package ie.cortexx.model;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 // maps to `merchant_details` (only 1 row ever, CHECK constraint)
 // cosymed ltd: Mr Alex Wright, 25 Bond Street, ACC0002
 public class MerchantDetails {
@@ -49,4 +52,21 @@ public class MerchantDetails {
 
     public String getSaPassword() { return saPassword; }
     public void setSaPassword(String saPassword) { this.saPassword = saPassword; }
+
+    public static MerchantDetails MfromRS(ResultSet rs) throws SQLException {
+        MerchantDetails md = new MerchantDetails();
+
+        md.merchantId = rs.getInt("merchant_id");
+        md.businessName = rs.getString("business_name");
+        md.address = rs.getString("address");
+        md.phone = rs.getString("phone");
+        md.email = rs.getString("email");
+        md.saMerchantId = rs.getString("sa_merchant_id");
+        md.saUsername = rs.getString("sa_username");
+        md.saPassword = rs.getString("sa_password");
+
+        return md;
+
+
+    }
 }
