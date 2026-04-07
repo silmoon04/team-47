@@ -53,6 +53,14 @@ public class CAtoPUImplIT {
     }
 
     @Test
+    void getStockLevel_inactiveProduct_throwsProductNotFound() {
+        I_CAtoPU api = new CAtoPUImpl();
+
+        assertThrows(ProductNotFoundException.class,
+            () -> api.getStockLevel(TestDatabaseHelper.PRODUCT_INACTIVE));
+    }
+
+    @Test
     void getStockLevel_nullId_throwsIllegalArgument() {
         I_CAtoPU api = new CAtoPUImpl();
 
@@ -100,6 +108,14 @@ public class CAtoPUImplIT {
 
         assertThrows(IllegalArgumentException.class,
             () -> api.deductStock(TestDatabaseHelper.PRODUCT_OK, -1));
+    }
+
+    @Test
+    void deductStock_inactiveProduct_throwsProductNotFound() {
+        I_CAtoPU api = new CAtoPUImpl();
+
+        assertThrows(ProductNotFoundException.class,
+            () -> api.deductStock(TestDatabaseHelper.PRODUCT_INACTIVE, 1));
     }
 
     @Test

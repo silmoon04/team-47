@@ -33,7 +33,8 @@ public class CAtoPUImpl implements I_CAtoPU {
 
         try {
             Product product = productDAO.findBySaProductId(productId);
-            if (product == null) {
+            // hide inactive products from team c
+            if (product == null || !product.isActive()) {
                 throw new ProductNotFoundException("Product not found: " + productId);
             }
 
@@ -55,7 +56,7 @@ public class CAtoPUImpl implements I_CAtoPU {
 
         try {
             Product product = productDAO.findBySaProductId(productId);
-            if (product == null) {
+            if (product == null || !product.isActive()) {
                 throw new ProductNotFoundException("Product not found: " + productId);
             }
 
