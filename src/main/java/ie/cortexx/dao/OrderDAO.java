@@ -5,6 +5,7 @@ import ie.cortexx.enums.OrderStatus;
 import ie.cortexx.model.OrderItem;
 import ie.cortexx.util.DBConnection;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,9 +54,8 @@ public class OrderDAO {
         return order;
     }
 
-    // TODO: return all persisted SA orders for the Orders screen instead of placeholder rows.
     public List<Order> findAll() throws SQLException {
-        String sql = "SELECT * FROM orders ORDER BY ordered_at DESC";
+        String sql = "SELECT * FROM orders ORDER BY ordered_at DESC, order_id DESC";
         List<Order> orders = new ArrayList<>();
 
         try (var c = DBConnection.getConnection();
@@ -68,8 +68,68 @@ public class OrderDAO {
         return orders;
     }
 
-    // TODO: save order + items in a transaction
     public void save(Order order) throws SQLException {
+        String orderSql = "INSERT INTO orders (sa_order_id, merchant_id, order_status, "
+            + "total_amount, ordered_at, delivered_at, ordered_by) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String itemSql = "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)";
+
+        try (var c = DBConnection.getConnection()) {
+            boolean previousAutoCommit = c.getAutoCommit();
+            c.setAutoCommit(false);
+
+            try {
+                try (var ps = c.prepareStatement(orderSql, Statement.RETURN_GENERATED_KEYS)) {
+                    order.setOrderedAt(order.getOrderedAt() != null ? order.getOrderedAt() : LocalDateTime.now());
+                    order.setOrderStatus(order.getOrderStatus() != null ? order.getOrderStatus() : OrderStatus.ACCEPTED);
+                    order.setMerchantId(order.getMerchantId() > 0 ? order.getMerchantId() : 1);
+
+                    ps.setString(1, order.getSaOrderId());
+                    ps.setInt(2, order.getMerchantId());
+                    ps.setString(3, order.getOrderStatus().name());
+                    ps.setBigDecimal(4, order.getTotalAmount());
+                    ps.setTimestamp(5, Timestamp.valueOf(order.getOrderedAt()));
+
+                    if (order.getDeliveredAt() != null) {
+                        ps.setTimestamp(6, Timestamp.valueOf(order.getDeliveredAt()));
+                    } else {
+                        ps.setNull(6, Types.TIMESTAMP);
+                    }
+
+                    ps.setInt(7, order.getOrderedBy());
+                    ps.executeUpdate();
+
+                    try (var keys = ps.getGeneratedKeys()) {
+                        if (!keys.next()) {
+                            throw new SQLException("saving order failed, no id obtained");
+                        }
+                        order.setOrderId(keys.getInt(1));
+                    }
+                }
+
+                List<OrderItem> items = order.getItems();
+                if (items != null && !items.isEmpty()) {
+                    try (var ps = c.prepareStatement(itemSql)) {
+                        for (var item : items) {
+                            item.setOrderId(order.getOrderId());
+                            ps.setInt(1, order.getOrderId());
+                            ps.setInt(2, item.getProductId());
+                            ps.setInt(3, item.getQuantity());
+                            ps.setBigDecimal(4, item.getUnitPrice());
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
+                    }
+                }
+
+                c.commit();
+            } catch (SQLException error) {
+                c.rollback();
+                throw error;
+            } finally {
+                c.setAutoCommit(previousAutoCommit);
+            }
+        }
     }
 
     // -- example method --

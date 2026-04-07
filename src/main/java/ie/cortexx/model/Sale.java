@@ -102,6 +102,14 @@ public class Sale {
         this.saleDate = saleDate;
     }
 
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
     public boolean isWalkIn() {
         return walkIn;
     }
