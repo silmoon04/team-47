@@ -145,11 +145,11 @@ public class Customer {
         c.discountType = DiscountType.valueOf(rs.getString("discount_type"));
         c.fixedDiscountRate = rs.getBigDecimal("fixed_discount_rate");
         c.flexibleTierId = rs.getInt("flexible_tier_id");
-        c.date1stReminder = rs.getDate("date_1st_reminder");
+        c.date1stReminder = rs.getDate("date_1st_reminder").toLocalDate( );
         c.status1stReminder = ReminderStatus.valueOf(rs.getString("status_1st_reminder"));
-        c.date2ndReminder = rs.getDate("date_2nd_reminder");
+        c.date2ndReminder = rs.getDate("date_2nd_reminder").toLocalDate( );
         c.status2ndReminder = ReminderStatus.valueOf(rs.getString("status_2nd_reminder"));
-        c.createdAt = rs.getDate("created_at");
+        c.createdAt = rs.getTimestamp("created_at").toLocalDateTime();
         c.createdBy = rs.getInt("created_by");
 
 
