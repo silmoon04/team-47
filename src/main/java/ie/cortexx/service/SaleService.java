@@ -1,11 +1,18 @@
 package ie.cortexx.service;
 
 import ie.cortexx.enums.PaymentType;
-import ie.cortexx.model.Customer;
-import ie.cortexx.model.SaleItem;
+import ie.cortexx.model.*;
+import ie.cortexx.dao.SaleDAO;
+import ie.cortexx.dao.StockDAO;
+import ie.cortexx.dao.PaymentDAO;
+import ie.cortexx.dao.CustomerDAO;
+import ie.cortexx.enums.AccountStatus;
+
 
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +21,18 @@ public class SaleService {
 
     // TODO: add constructor, inject needed DAOs
     // TODO: implement service methods
+
+    private final SaleDAO saleDAO;
+    private final StockDAO stockDAO;
+    private final PaymentDAO paymentDAO;
+    private final CustomerDAO customerDAO;
+
+    public SaleService(SaleDAO saleDAO, StockDAO stockDAO, PaymentDAO paymentDAO, CustomerDAO customerDAO) {
+        this.saleDAO = saleDAO;
+        this.stockDAO = stockDAO;
+        this.paymentDAO = paymentDAO;
+        this.customerDAO = customerDAO;
+    }
 
    //rule 1 no stock
 
@@ -57,6 +76,96 @@ public class SaleService {
         }
         return ValidationResult.ok();
     }
+
+    public ValidationResult processSale(Sale sale, Payment payment) {
+        BigDecimal grandTotal = payment.getAmount();
+        PaymentType paymentType = payment.getPaymentType();
+
+        Map<Integer, Integer> stockLevels = new HashMap<>();
+        try{
+            for (SaleItem item : sale.getItems()) {
+                StockItem stock = stockDAO.findByProductId(item.getProductId());
+                int quanity = 0;
+                if (stock != null) {
+                    quanity = stock.getQuantity();
+                }
+                stockLevels.put(item.getProductId(), quanity);
+            }
+        } catch(SQLException error) {
+            return ValidationResult.fail(error.getMessage());
+        }
+
+        ValidationResult stockCheck = validateStock(sale.getItems(), stockLevels);
+        if (!stockCheck.isValid()) {
+            return stockCheck;
+        }
+
+        ValidationResult walkInCheck = validateWalkIn(sale.isWalkIn(), paymentType);
+        if (!walkInCheck.isValid()) {
+            return walkInCheck;
+        }
+// get customer if not walkin
+        Customer customer = null;
+        if (!sale.isWalkIn() && sale.getCustomerId() != null) {
+            try{
+                customer= customerDAO.findById(sale.getCustomerId());
+            } catch(SQLException error) {
+                return ValidationResult.fail(error.getMessage());
+            }
+        }
+
+        //block banned
+        if (customer != null) {
+            if(customer.getAccountStatus() == AccountStatus.SUSPENDED){
+                return ValidationResult.fail("Account is suspended");
+            }
+            if (customer.getAccountStatus() ==AccountStatus.IN_DEFAULT){
+                return ValidationResult.fail("Account is in default");
+            }
+        }
+
+        //validate payment type
+
+        ValidationResult paymentCheck = validatePaymentType(customer, paymentType, sale.isWalkIn());
+        if (!paymentCheck.isValid()) {
+            return paymentCheck;
+        }
+
+        //validate credit
+
+        if (customer != null) {
+            ValidationResult creditCheck = validateCreditLimit(customer, paymentType, grandTotal);
+            if (!creditCheck.isValid()) {
+                return creditCheck;
+            }
+        }
+
+
+        try{
+            saleDAO.save(sale);
+            payment.setSaleId(sale.getSaleId());
+
+            for(SaleItem item : sale.getItems()) {
+                int deduct = -item.getQuantity();
+                stockDAO.updateQuantity(item.getProductId(), deduct);
+            }
+            paymentDAO.save(payment);
+
+            if (paymentType == PaymentType.ON_CREDIT && customer != null) {
+                BigDecimal newBalance = customer.getOutstandingBalance().add(grandTotal);
+                customerDAO.updateBalance(customer.getCustomerId(), newBalance);
+            }
+
+        } catch(SQLException error) {
+            return ValidationResult.fail(error.getMessage());
+        }
+        return ValidationResult.ok();
+
+
+
+    }
+
+
 
 
 
