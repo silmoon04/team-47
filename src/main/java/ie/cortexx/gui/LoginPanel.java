@@ -1,31 +1,24 @@
 package ie.cortexx.gui;
 
 import ie.cortexx.gui.util.UI;
+import ie.cortexx.model.User;
+import ie.cortexx.service.AuthService;
+import ie.cortexx.util.SessionManager;
 
 import javax.swing.*;
 import java.awt.*;
 
-/*
-why this panel is built like this
-
-UI.centeredPanel() centers the card in the window (GridBagLayout).
-UI.vcard() creates a vertical BoxLayout card with custom padding + size.
-UI.inputField() / UI.passwordField() handle placeholder + sizing in one call.
-UI.primaryButtonWide() makes a full width accent button.
-UI.title() / UI.subtitle() / UI.errorLabel() replace 3-4 lines each.
-
-mock role assignment for now, swap with AuthService later.
-*/
-
 // centered login card: username, password, sign in
 public class LoginPanel extends JPanel {
     private final MainFrame mainFrame;
+    private final AuthService authService;
     private final JTextField usernameField = UI.inputField("Username");
     private final JPasswordField passwordField = UI.passwordField("Password");
     private final JLabel errorLabel = UI.errorLabel();
 
-    public LoginPanel(MainFrame mainFrame) {
+    public LoginPanel(MainFrame mainFrame, AuthService authService) {
         this.mainFrame = mainFrame;
+        this.authService = authService;
         setLayout(new BorderLayout());
         add(buildTopBar(), BorderLayout.NORTH);
         add(buildContent(), BorderLayout.CENTER);
@@ -67,11 +60,17 @@ public class LoginPanel extends JPanel {
             return;
         }
 
-        // TODO: swap with AuthService.authenticate(user, password)
-        String role = user.equalsIgnoreCase("sysdba")
-            ? "admin"
-            : user.equalsIgnoreCase("manager") ? "manager" : "pharmacist";
+        if (!authService.authenticate(user, new String(passwordField.getPassword()))) {
+            errorLabel.setText("Invalid username or password.");
+            return;
+        }
 
-        mainFrame.login(user, role);
+        User currentUser = SessionManager.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            errorLabel.setText("Unable to load session.");
+            return;
+        }
+
+        mainFrame.login(currentUser.getUsername(), currentUser.getRole().name().toLowerCase());
     }
 }

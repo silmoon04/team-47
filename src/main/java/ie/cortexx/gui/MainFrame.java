@@ -1,5 +1,6 @@
 package ie.cortexx.gui;
 
+import ie.cortexx.dao.UserDAO;
 import ie.cortexx.gui.customer.CustomerListPanel;
 import ie.cortexx.gui.order.CataloguePanel;
 import ie.cortexx.gui.order.OrderPanel;
@@ -8,6 +9,7 @@ import ie.cortexx.gui.sales.POSPanel;
 import ie.cortexx.gui.settings.SettingsPanel;
 import ie.cortexx.gui.stock.StockPanel;
 import ie.cortexx.gui.user.UserManagementPanel;
+import ie.cortexx.service.AuthService;
 
 import javax.swing.*;
 import java.awt.BorderLayout;
@@ -20,7 +22,7 @@ import java.util.List;
 // shows login first, then switches to tabs based on user role
 
 public class MainFrame extends JFrame {
-    // TODO: replace this GUI-local session snapshot with SessionManager/AuthService once real auth is wired.
+    private final AuthService authService = new AuthService(new UserDAO());
     private UserSession session = UserSession.anonymous();
     private String activePageTitle;
     private boolean showingLogin = true;
@@ -33,7 +35,7 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         showLoginPanel();
     }
-    // manages main frame
+
     public void showMainFrame(String role) {
         session = session.withRole(role);
         showMainFrame();
@@ -68,11 +70,10 @@ public class MainFrame extends JFrame {
         repaint();
     }
 
-    // manages login panel
     public void showLoginPanel() {
         showingLogin = true;
         getContentPane().removeAll();
-        setContentPane(new LoginPanel(this));
+        setContentPane(new LoginPanel(this, authService));
         revalidate();
         repaint();
     }
@@ -125,7 +126,7 @@ public class MainFrame extends JFrame {
     }
 
     private void logout() {
-        // TODO: call AuthService.logout() and clear SessionManager when the real auth flow replaces mock login.
+        authService.logout();
         JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA.");
         session = UserSession.anonymous();
         activePageTitle = null;
