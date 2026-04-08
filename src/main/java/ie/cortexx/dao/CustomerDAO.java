@@ -10,7 +10,6 @@ import java.util.List;
 
 // handles SQL for `customers` table
 // important for the whole debt cycle feature
-// owner: Fatimah
 public class CustomerDAO {
 
     public Customer findById(int customerId) throws SQLException {

@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 // handles SQL for `payments` table
-// owner: Shakeel
 public class PaymentDAO {
 
     // -- example method --

@@ -1,19 +1,29 @@
 package ie.cortexx.gui.customer;
 
+import ie.cortexx.enums.DiscountType;
+import ie.cortexx.enums.PaymentType;
 import ie.cortexx.gui.util.UI;
+import ie.cortexx.model.Customer;
+import ie.cortexx.model.DiscountTier;
+import ie.cortexx.service.CustomerService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
-// Customer list on the left with a denser profile card and discount tiers on the right.
+// customer list on the left with a denser profile card and discount tiers on the right.
 public class CustomerListPanel extends JPanel {
     private final JPanel detailPanel = UI.transparentPanel(0);
+    private final CustomerService customerService = new CustomerService();
+    private final List<CustomerRow> rows = new ArrayList<>();
 
     private record DiscountTierRow(String tier, String minSpend, String rate) {}
 
     private record CustomerRow(
+        int customerId,
         String account,
         String name,
         String status,
@@ -29,40 +39,13 @@ public class CustomerListPanel extends JPanel {
 
     public CustomerListPanel() {
         UI.applyPanel(this);
+        reload();
+    }
 
-        // TODO: replace demo rows with CustomerDAO + discount-tier queries so customer balances/status stay live.
-        List<CustomerRow> rows = List.of(
-            new CustomerRow(
-                "ACC0001",
-                "Ms Eva Bauyer",
-                "NORMAL",
-                "£0.00",
-                "£500.00",
-                "FIXED 3%",
-                "Ms Eva Bauyer",
-                "0207 321 8001",
-                "1, Liverpool Street, London EC2V 8NS",
-                "-",
-                List.of(new DiscountTierRow("Standard", "£0.00", "3%"))
-            ),
-            new CustomerRow(
-                "ACC0002",
-                "Mr Glynne Morrison",
-                "NORMAL",
-                "£0.00",
-                "£500.00",
-                "FLEXIBLE",
-                "Ms Glynne Morrison",
-                "0207 321 8001",
-                "1, Liverpool Street, London EC2V 8NS",
-                "2026-03-29",
-                List.of(
-                    new DiscountTierRow("Under £100", "£0.00", "0%"),
-                    new DiscountTierRow("£100 - £300", "£100.00", "1%"),
-                    new DiscountTierRow("Over £300", "£300.00", "2%")
-                )
-            )
-        );
+    private void reload() {
+        removeAll();
+        rows.clear();
+        rows.addAll(loadRows());
 
         var customers = UI.table(
             UI.col("Account", CustomerRow::account, 96),
@@ -73,8 +56,10 @@ public class CustomerListPanel extends JPanel {
             UI.badgeCol("Discount", CustomerRow::discount, 92)
         ).rows(rows).onSelect(this::showDetail);
 
+        JButton newCustomer = UI.primaryButton("+ New Customer");
+        newCustomer.addActionListener(e -> createCustomer());
         JPanel left = UI.toolbarAndTable(
-            UI.toolbar("Search customers...", customers.table(), "+ New Customer"),
+            UI.toolbar("Search customers...", customers.table(), newCustomer),
             customers.scroll()
         );
 
@@ -86,6 +71,8 @@ public class CustomerListPanel extends JPanel {
         } else {
             UI.swap(detailPanel, UI.emptyState("Select a customer to view details"));
         }
+        revalidate();
+        repaint();
     }
 
     private void showDetail(CustomerRow row) {
@@ -140,7 +127,9 @@ public class CustomerListPanel extends JPanel {
         JButton edit = UI.button("Edit");
         JButton receivePayment = UI.button("Receive Payment");
         JButton delete = UI.dangerButton("Delete");
-        // TODO: wire edit/payment/delete actions through CustomerService + Payment/Reminder flows instead of static buttons.
+        edit.addActionListener(e -> editCustomer(row.customerId()));
+        receivePayment.addActionListener(e -> receivePayment(row.customerId()));
+        delete.addActionListener(e -> deleteCustomer(row.customerId()));
         edit.setFont(UI.FONT_MONO_BOLD);
         receivePayment.setFont(UI.FONT_MONO_BOLD);
         delete.setFont(UI.FONT_MONO_BOLD);
@@ -163,6 +152,178 @@ public class CustomerListPanel extends JPanel {
         tiers.scroll().setPreferredSize(new Dimension(400, height));
         tiers.scroll().setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
         return tiers.scroll();
+    }
+
+    private List<CustomerRow> loadRows() {
+        try {
+            return customerService.findAll().stream().map(this::toRow).toList();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
+            return List.of();
+        }
+    }
+
+    private CustomerRow toRow(Customer customer) {
+        return new CustomerRow(
+            customer.getCustomerId(),
+            text(customer.getAccountNo()),
+            text(customer.getName()),
+            customer.getAccountStatus().name(),
+            money(customer.getOutstandingBalance()),
+            money(customer.getCreditLimit()),
+            discountLabel(customer),
+            text(customer.getContactName()),
+            text(customer.getPhone()),
+            text(customer.getAddress()),
+            customer.getLastPaymentDate() != null ? customer.getLastPaymentDate().toString() : "-",
+            loadTiers(customer)
+        );
+    }
+
+    private List<DiscountTierRow> loadTiers(Customer customer) {
+        if (customer.getDiscountType() == DiscountType.FIXED) {
+            BigDecimal rate = customer.getFixedDiscountRate() != null ? customer.getFixedDiscountRate() : BigDecimal.ZERO;
+            return List.of(new DiscountTierRow("Standard", "£0.00", percent(rate)));
+        }
+
+        try {
+            List<DiscountTier> tiers = customerService.findTiers(customer.getCustomerId());
+            if (tiers.isEmpty()) {
+                return List.of(new DiscountTierRow("Default", "£0.00", "0%"));
+            }
+            return tiers.stream()
+                .map(tier -> new DiscountTierRow(tier.getTierName(), money(tier.getMinMonthlySpend()), percent(tier.getDiscountRate())))
+                .toList();
+        } catch (Exception error) {
+            return List.of();
+        }
+    }
+
+    private String discountLabel(Customer customer) {
+        if (customer.getDiscountType() == DiscountType.FIXED) {
+            BigDecimal rate = customer.getFixedDiscountRate() != null ? customer.getFixedDiscountRate() : BigDecimal.ZERO;
+            return "FIXED " + percent(rate);
+        }
+        return "FLEXIBLE";
+    }
+
+    private void createCustomer() {
+        JTextField name = new JTextField();
+        JTextField contact = new JTextField();
+        JTextField phone = new JTextField();
+        JTextField address = new JTextField();
+        JComboBox<String> discountType = new JComboBox<>(new String[]{"FIXED", "FLEXIBLE"});
+
+        JPanel form = new JPanel(new GridLayout(5, 2, 8, 8));
+        form.add(new JLabel("Name"));
+        form.add(name);
+        form.add(new JLabel("Contact"));
+        form.add(contact);
+        form.add(new JLabel("Phone"));
+        form.add(phone);
+        form.add(new JLabel("Address"));
+        form.add(address);
+        form.add(new JLabel("Discount Type"));
+        form.add(discountType);
+
+        if (JOptionPane.showConfirmDialog(this, form, "New Customer", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        try {
+            Customer customer = new Customer(name.getText().trim(), address.getText().trim(), DiscountType.valueOf(discountType.getSelectedItem().toString()));
+            customer.setAccountNo("ACC" + System.currentTimeMillis());
+            customer.setContactName(contact.getText().trim());
+            customer.setPhone(phone.getText().trim());
+            if (customer.getDiscountType() == DiscountType.FIXED) {
+                customer.setFixedDiscountRate(new BigDecimal("0.0300"));
+            }
+            customerService.save(customer);
+            reload();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Save Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void editCustomer(int customerId) {
+        try {
+            Customer customer = customerService.findById(customerId);
+            if (customer == null) {
+                return;
+            }
+
+            JTextField name = new JTextField(text(customer.getName()));
+            JTextField contact = new JTextField(text(customer.getContactName()));
+            JTextField phone = new JTextField(text(customer.getPhone()));
+            JTextField address = new JTextField(text(customer.getAddress()));
+            JTextField limit = new JTextField(customer.getCreditLimit() != null ? customer.getCreditLimit().toPlainString() : "500.00");
+
+            JPanel form = new JPanel(new GridLayout(5, 2, 8, 8));
+            form.add(new JLabel("Name"));
+            form.add(name);
+            form.add(new JLabel("Contact"));
+            form.add(contact);
+            form.add(new JLabel("Phone"));
+            form.add(phone);
+            form.add(new JLabel("Address"));
+            form.add(address);
+            form.add(new JLabel("Credit Limit"));
+            form.add(limit);
+
+            if (JOptionPane.showConfirmDialog(this, form, "Edit Customer", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) {
+                return;
+            }
+
+            customer.setName(name.getText().trim());
+            customer.setContactName(contact.getText().trim());
+            customer.setPhone(phone.getText().trim());
+            customer.setAddress(address.getText().trim());
+            customer.setCreditLimit(new BigDecimal(limit.getText().trim()));
+            customerService.update(customer);
+            reload();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Update Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void receivePayment(int customerId) {
+        String amountText = JOptionPane.showInputDialog(this, "Payment amount", "10.00");
+        if (amountText == null || amountText.isBlank()) {
+            return;
+        }
+
+        try {
+            customerService.receivePayment(customerId, new BigDecimal(amountText.trim()), PaymentType.ACCOUNT_PAYMENT);
+            reload();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Payment Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void deleteCustomer(int customerId) {
+        if (JOptionPane.showConfirmDialog(this, "Delete this customer?", "Confirm Delete", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        try {
+            customerService.delete(customerId);
+            reload();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Delete Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String money(BigDecimal value) {
+        BigDecimal safe = value != null ? value : BigDecimal.ZERO;
+        return "£" + safe.setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private String percent(BigDecimal rate) {
+        return rate.multiply(BigDecimal.valueOf(100)).stripTrailingZeros().toPlainString() + "%";
+    }
+
+    private String text(String value) {
+        return value != null ? value : "";
     }
 
 }
