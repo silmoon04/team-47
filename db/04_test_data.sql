@@ -1,9 +1,8 @@
--- extra test data (alex's original data, fixed to match schema)
-
--- for dev/testing only (not demo day)
--- run INSTEAD of 02 + 03, directly after 01_schema.sql
--- has variety of customer states, payment types, walk-in sales etc,
--- data was done by alex and readapted to match the new fixed schema
+-- test data for dev/integration work
+-- run instead of 02 + 03, directly after 01_schema.sql
+-- includes the main seeded set plus merged edge-case coverage
+-- has customer/account edges, low-stock rows, order status variety,
+-- null-field cases, reminder/statement rows, and pu online-order states
 
 USE iposca_database;
 
@@ -17,6 +16,7 @@ TRUNCATE TABLE statements;
 TRUNCATE TABLE payments;
 TRUNCATE TABLE sale_items;
 TRUNCATE TABLE sales;
+TRUNCATE TABLE online_orders;
 TRUNCATE TABLE order_items;
 TRUNCATE TABLE orders;
 TRUNCATE TABLE discount_tiers;
@@ -30,8 +30,8 @@ DELETE FROM merchant_details WHERE merchant_id = 1;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- need merchant details first (users FK depends on it)
-INSERT INTO merchant_details (merchant_id, business_name, address, phone, email, sa_merchant_id) VALUES
-    (1, 'Test Pharmacy', '14 Green Lane, London EC1V 0HB', '0207 000 0001', 'info@testpharmacy.local', 'TEST001');
+INSERT INTO merchant_details (merchant_id, business_name, address, phone, email, sa_merchant_id, sa_username, sa_password) VALUES
+    (1, 'Test Pharmacy', '14 Green Lane, London EC1V 0HB', '0207 000 0001', 'info@testpharmacy.local', 'ACC-1002', 'cosymed', 'bondstreet');
 
 -- basic config
 INSERT INTO system_config (config_key, config_value) VALUES
@@ -146,8 +146,8 @@ INSERT INTO payments (sale_id, customer_id, payment_type, amount) VALUES
 
 -- orders (so order tests have data to work with)
 INSERT INTO orders (sa_order_id, merchant_id, order_status, total_amount, ordered_at, delivered_at, ordered_by) VALUES
-    ('ORD-TEST-001', 1, 'DELIVERED',  120.00, '2026-03-15 09:00:00', '2026-03-17 14:00:00', 1),
-    ('ORD-TEST-002', 1, 'PROCESSING',  85.50, '2026-03-20 10:30:00', NULL,                  2);
+    ('ORD-TEST-001', 1, 'DELIVERED',  96.00, '2026-03-15 09:00:00', '2026-03-17 14:00:00', 1),
+    ('ORD-TEST-002', 1, 'PROCESSING',  73.25, '2026-03-20 10:30:00', NULL,                  2);
 
 INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
     (1, 1, 50, 1.20),
@@ -155,7 +155,156 @@ INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
     (2, 4, 15, 2.75),
     (2, 5, 10, 3.20);
 
+INSERT INTO online_orders (merchant_id, pu_order_ref, customer_name, customer_email, customer_phone, delivery_address, status, total_amount) VALUES
+    (1, 'PU-TEST-001', 'Olivia Reed', 'olivia.reed@example.com', '07666666661', '10 Test Close, Manchester M1 1AA', 'RECEIVED', 24.50),
+    (1, 'PU-TEST-002', 'Peter Marsh', 'peter.marsh@example.com', '07666666662', '11 Test Close, Manchester M1 1AB', 'PROCESSING', 61.20),
+    (1, 'PU-TEST-003', 'Quinn Ross', 'quinn.ross@example.com', '07666666663', '12 Test Close, Manchester M1 1AC', 'DELIVERED', 15.75);
+
 -- templates (so settings panel has data)
 INSERT INTO templates (template_type, content) VALUES
     ('FIRST',  'Dear {customer_name},\n\nYour account ({account_no}) has an outstanding balance of £{amount_owed}.\n\nPlease arrange payment.\n\nRegards,\nTest Pharmacy'),
     ('SECOND', 'Dear {customer_name},\n\nFINAL NOTICE: Account ({account_no}) remains unpaid. Balance: £{amount_owed}.\n\nRegards,\nTest Pharmacy');
+
+-- merged edge-case layer (used to live in 05_edge_case_scenarios.sql)
+-- keep this in 04 so one test-db rebuild gives the full coverage set
+
+-- login and role edges
+INSERT INTO users (username, password_hash, full_name, email, phone, role, is_active, merchant_id) VALUES
+    ('edge_admin', 'edge_admin', 'Edge Admin', '', '', 'ADMIN', TRUE, 1),
+    ('edge_manager', 'edge_manager', 'Edge Manager', '', '', 'MANAGER', TRUE, 1),
+    ('edge_pharmacist', 'edge_pharmacist', 'Edge Pharmacist', '', '', 'PHARMACIST', TRUE, 1),
+    ('edge_inactive', 'edge_inactive', 'Edge Inactive', '', '', 'PHARMACIST', FALSE, 1);
+
+-- inactive product edge for active-only queries
+INSERT INTO products (sa_product_id, name, cost_price, markup_rate, vat_rate, category, is_active) VALUES
+    ('T-1099', 'Legacy Test Product', 1.10, 0.2000, 0.2000, 'Legacy', FALSE);
+
+INSERT INTO stock (product_id, quantity, reorder_level)
+SELECT product_id, 7, 5 FROM products WHERE sa_product_id = 'T-1099';
+
+-- stock edges
+UPDATE stock SET quantity = 5, reorder_level = 20 WHERE product_id = 1;
+UPDATE stock SET quantity = 0, reorder_level = 10 WHERE product_id = 4;
+UPDATE stock SET quantity = 15, reorder_level = 15 WHERE product_id = 2;
+UPDATE stock SET quantity = 50, reorder_level = 5 WHERE product_id = 9;
+
+-- customer and debt edges
+INSERT INTO customers (
+    account_no, name, contact_name, email, phone, address, account_status,
+    credit_limit, outstanding_balance, discount_type, fixed_discount_rate,
+    flexible_tier_id, debt_period_start, last_payment_date, created_by, merchant_id
+) VALUES
+    ('EDGE0001', 'Cycle Start Customer', 'Cycle Start Customer', 'edge1@example.com', '07700000001', '1 Edge Road, Manchester M1 1AA', 'NORMAL', 150.00, 149.00, 'FIXED', 0.0200, NULL, '2026-03-09', '2026-03-10', 1, 1),
+    ('EDGE0002', 'Partial Payment Customer', 'Partial Payment Customer', 'edge2@example.com', '07700000002', '2 Edge Road, Manchester M1 1AB', 'SUSPENDED', 300.00, 175.50, 'FLEXIBLE', NULL, NULL, '2026-02-15', '2026-03-01', 1, 1),
+    ('EDGE0003', 'Recovered Customer', 'Recovered Customer', 'edge3@example.com', '07700000003', '3 Edge Road, Manchester M1 1AC', 'NORMAL', 250.00, 0.00, 'FIXED', 0.0500, NULL, NULL, '2026-04-01', 1, 1),
+    ('EDGE0004', 'Default Edge Customer', 'Default Edge Customer', 'edge4@example.com', '07700000004', '4 Edge Road, Manchester M1 1AD', 'IN_DEFAULT', 100.00, 95.00, 'FIXED', 0.0000, NULL, '2026-02-01', '2026-02-05', 1, 1),
+    ('EDGE0005', 'No Contact Customer', NULL, NULL, NULL, '5 Edge Road, Manchester M1 1AE', 'SUSPENDED', 80.00, 79.50, 'FIXED', 0.0000, NULL, '2026-02-20', '2026-03-05', 1, 1);
+
+INSERT INTO discount_tiers (customer_id, tier_name, min_monthly_spend, discount_rate)
+SELECT customer_id, 'Edge Bronze', 0.00, 0.0000 FROM customers WHERE account_no = 'EDGE0002';
+INSERT INTO discount_tiers (customer_id, tier_name, min_monthly_spend, discount_rate)
+SELECT customer_id, 'Edge Silver', 100.00, 0.0200 FROM customers WHERE account_no = 'EDGE0002';
+INSERT INTO discount_tiers (customer_id, tier_name, min_monthly_spend, discount_rate)
+SELECT customer_id, 'Edge Gold', 250.00, 0.0400 FROM customers WHERE account_no = 'EDGE0002';
+
+UPDATE customers
+SET flexible_tier_id = (
+    SELECT MIN(tier_id) FROM discount_tiers WHERE customer_id = customers.customer_id
+)
+WHERE account_no = 'EDGE0002';
+
+UPDATE customers
+SET date_1st_reminder = '2026-04-03', status_1st_reminder = 'SENT'
+WHERE account_no = 'EDGE0001';
+
+UPDATE customers
+SET date_1st_reminder = '2026-03-18', status_1st_reminder = 'SENT'
+WHERE account_no = 'EDGE0002';
+
+UPDATE customers
+SET date_1st_reminder = '2026-03-22', status_1st_reminder = 'SENT',
+    date_2nd_reminder = '2026-04-05', status_2nd_reminder = 'DUE'
+WHERE account_no = 'EDGE0004';
+
+UPDATE customers
+SET date_1st_reminder = '2026-04-06', status_1st_reminder = 'DUE'
+WHERE account_no = 'EDGE0005';
+
+-- extra sales and payments
+INSERT INTO sales (customer_id, sold_by, subtotal, discount_amount, vat_amount, total_amount, sale_date, payment_method, is_walk_in)
+SELECT customer_id, 3, 9.99, 0.20, 0.00, 9.79, '2026-04-02 10:15:00', 'ON_CREDIT', FALSE
+FROM customers WHERE account_no = 'EDGE0001';
+
+INSERT INTO sale_items (sale_id, product_id, product_name, quantity, unit_price, discount_rate, line_total)
+SELECT MAX(sale_id), 1, 'Paracetamol 500mg Tablets', 1, 9.99, 0.0200, 9.79 FROM sales;
+
+INSERT INTO payments (sale_id, customer_id, payment_type, amount)
+SELECT (SELECT MAX(sale_id) FROM sales), customer_id, 'ON_CREDIT', 9.79 FROM customers WHERE account_no = 'EDGE0001';
+
+INSERT INTO sales (customer_id, sold_by, subtotal, discount_amount, vat_amount, total_amount, sale_date, payment_method, is_walk_in)
+VALUES (NULL, 3, 0.99, 0.00, 0.00, 0.99, '2026-04-02 11:20:00', 'CREDIT_CARD', TRUE);
+
+INSERT INTO sale_items (sale_id, product_id, product_name, quantity, unit_price, discount_rate, line_total)
+SELECT MAX(sale_id), 15, 'Face Masks Pack of 10', 1, 0.99, 0.0000, 0.99 FROM sales;
+
+INSERT INTO payments (sale_id, customer_id, payment_type, amount, card_type, card_first4, card_last4, card_expiry)
+SELECT MAX(sale_id), NULL, 'CREDIT_CARD', 0.99, 'Visa', '0000', '1111', '12/26' FROM sales;
+
+INSERT INTO payments (sale_id, customer_id, payment_type, amount)
+SELECT NULL, customer_id, 'ACCOUNT_PAYMENT', 25.00 FROM customers WHERE account_no = 'EDGE0002';
+
+UPDATE customers
+SET outstanding_balance = 150.50, last_payment_date = '2026-04-02'
+WHERE account_no = 'EDGE0002';
+
+-- order status edges
+INSERT INTO orders (sa_order_id, merchant_id, order_status, total_amount, ordered_at, delivered_at, ordered_by) VALUES
+    ('SA-EDGE-001', 1, 'ACCEPTED', 25.00, '2026-04-01 09:00:00', NULL, 1),
+    ('SA-EDGE-002', 1, 'PACKED', 41.25, '2026-04-01 10:00:00', NULL, 1),
+    ('SA-EDGE-003', 1, 'DISPATCHED', 63.50, '2026-03-20 12:00:00', NULL, 2),
+    ('SA-EDGE-004', 1, 'CANCELLED', 12.00, '2026-04-01 13:00:00', NULL, 2);
+
+INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+SELECT order_id, 1, 10, 2.50 FROM orders WHERE sa_order_id = 'SA-EDGE-001';
+INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+SELECT order_id, 4, 15, 2.75 FROM orders WHERE sa_order_id = 'SA-EDGE-002';
+INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+SELECT order_id, 5, 10, 6.35 FROM orders WHERE sa_order_id = 'SA-EDGE-003';
+INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+SELECT order_id, 15, 4, 3.00 FROM orders WHERE sa_order_id = 'SA-EDGE-004';
+
+-- online orders from the PU path
+INSERT INTO online_orders (merchant_id, pu_order_ref, customer_name, customer_email, customer_phone, delivery_address, status, total_amount) VALUES
+    (1, 'PU-EDGE-0001', 'Sara Kent', 'sara.kent@example.com', '07800000001', '1 Web Lane, Leeds LS1 1AA', 'RECEIVED', 31.20),
+    (1, 'PU-EDGE-0002', 'Tom Wyatt', 'tom.wyatt@example.com', '07800000002', '2 Web Lane, Leeds LS1 1AB', 'PROCESSING', 54.10),
+    (1, 'PU-EDGE-0003', 'Uma Dale', 'uma.dale@example.com', '07800000003', '3 Web Lane, Leeds LS1 1AC', 'READY', 18.95),
+    (1, 'PU-EDGE-0004', 'Victor Shaw', 'victor.shaw@example.com', '07800000004', '4 Web Lane, Leeds LS1 1AD', 'DELIVERED', 72.30),
+    (1, 'PU-EDGE-0005', 'Wes Ford', 'wes.ford@example.com', '07800000005', '5 Web Lane, Leeds LS1 1AE', 'DISPATCHED', 42.90),
+    (1, 'PU-EDGE-0006', 'Casey Null', NULL, NULL, '6 Web Lane, Leeds LS1 1AF', 'CANCELLED', 11.40);
+
+-- statements and reminders for debt-cycle/doc testing
+INSERT INTO statements (customer_id, period_start, period_end, opening_balance, total_purchases, total_payments, closing_balance, generated_by)
+SELECT customer_id, '2026-03-01', '2026-03-31', 149.00, 9.79, 0.00, 158.79, 1
+FROM customers WHERE account_no = 'EDGE0001';
+
+INSERT INTO statements (customer_id, period_start, period_end, opening_balance, total_purchases, total_payments, closing_balance, generated_by)
+SELECT customer_id, '2026-02-01', '2026-02-28', 175.50, 0.00, 25.00, 150.50, 1
+FROM customers WHERE account_no = 'EDGE0002';
+
+INSERT INTO reminders (customer_id, reminder_type, amount_owed, due_date, sent_at, content)
+SELECT customer_id, 'FIRST', 149.00, '2026-04-10', '2026-04-03', 'first reminder for edge0001 balance.'
+FROM customers WHERE account_no = 'EDGE0001';
+
+INSERT INTO reminders (customer_id, reminder_type, amount_owed, due_date, sent_at, content)
+SELECT customer_id, 'FIRST', 150.50, '2026-04-08', '2026-03-18', 'first reminder for edge0002 after partial payment.'
+FROM customers WHERE account_no = 'EDGE0002';
+
+INSERT INTO reminders (customer_id, reminder_type, amount_owed, due_date, sent_at, content)
+SELECT customer_id, 'SECOND', 95.00, '2026-04-12', NULL, 'second reminder queued for default edge customer.'
+FROM customers WHERE account_no = 'EDGE0004';
+
+-- extra templates for doc/export flows
+INSERT INTO templates (template_type, content, updated_by) VALUES
+    ('EDGE_RECEIPT', 'Receipt for {customer_name}\nAddress: {address}\nItems:\n{items}\nTotal: £{total}', 1),
+    ('EDGE_REMINDER', 'Dear {contact_name},\n\nYour balance is £{amount_owed}.\nPlease pay by {due_date}.', 1),
+    ('EDGE_STATEMENT', 'Statement for {customer_name}\nPeriod: {period_start} - {period_end}\nClosing balance: £{closing_balance}', 1);

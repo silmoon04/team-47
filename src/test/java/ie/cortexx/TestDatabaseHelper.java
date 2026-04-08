@@ -2,6 +2,7 @@ package ie.cortexx;
 
 import ie.cortexx.util.DBConnection;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -27,10 +28,15 @@ public class TestDatabaseHelper {
 
     public static void cleanTestData() throws SQLException {
         try (Connection c = getConnection(); Statement s = c.createStatement()) {
-            s.execute("SET FOREIGN_KEY_CHECKS = 0");
-            s.execute("TRUNCATE TABLE stock");
-            s.execute("TRUNCATE TABLE products");
-            s.execute("SET FOREIGN_KEY_CHECKS = 1");
+            s.executeUpdate("""
+                DELETE s FROM stock s
+                JOIN products p ON p.product_id = s.product_id
+                WHERE p.sa_product_id IN ('TEST-OK-001', 'TEST-ZERO-001', 'TEST-LOW-001', 'TEST-INACTIVE-001')
+                """);
+            s.executeUpdate("""
+                DELETE FROM products
+                WHERE sa_product_id IN ('TEST-OK-001', 'TEST-ZERO-001', 'TEST-LOW-001', 'TEST-INACTIVE-001')
+                """);
         }
     }
 
@@ -49,24 +55,72 @@ public class TestDatabaseHelper {
                 """);
 
             s.executeUpdate("""
-                INSERT INTO stock (product_id, quantity, reorder_level, last_updated)
-                SELECT product_id, 10, 5, NOW() FROM products WHERE sa_product_id = 'TEST-OK-001'
+                INSERT INTO stock (product_id, quantity, reorder_level)
+                SELECT product_id, 10, 5 FROM products WHERE sa_product_id = 'TEST-OK-001'
                 """);
 
             s.executeUpdate("""
-                INSERT INTO stock (product_id, quantity, reorder_level, last_updated)
-                SELECT product_id, 0, 5, NOW() FROM products WHERE sa_product_id = 'TEST-ZERO-001'
+                INSERT INTO stock (product_id, quantity, reorder_level)
+                SELECT product_id, 0, 5 FROM products WHERE sa_product_id = 'TEST-ZERO-001'
                 """);
 
             s.executeUpdate("""
-                INSERT INTO stock (product_id, quantity, reorder_level, last_updated)
-                SELECT product_id, 2, 5, NOW() FROM products WHERE sa_product_id = 'TEST-LOW-001'
+                INSERT INTO stock (product_id, quantity, reorder_level)
+                SELECT product_id, 2, 5 FROM products WHERE sa_product_id = 'TEST-LOW-001'
                 """);
 
             s.executeUpdate("""
-                INSERT INTO stock (product_id, quantity, reorder_level, last_updated)
-                SELECT product_id, 7, 5, NOW() FROM products WHERE sa_product_id = 'TEST-INACTIVE-001'
+                INSERT INTO stock (product_id, quantity, reorder_level)
+                SELECT product_id, 7, 5 FROM products WHERE sa_product_id = 'TEST-INACTIVE-001'
                 """);
+        }
+    }
+
+    // -- shared test helpers --
+
+    public static int id(String sql) throws Exception {
+        try (var c = DBConnection.getConnection();
+             var rs = c.createStatement().executeQuery(sql)) {
+            return rs.next() ? rs.getInt(1) : 0;
+        }
+    }
+
+    public static String str(String sql) throws Exception {
+        try (var c = DBConnection.getConnection();
+             var rs = c.createStatement().executeQuery(sql)) {
+            return rs.next() ? rs.getString(1) : null;
+        }
+    }
+
+    public static String str(String table, String col, String idCol, int id) throws Exception {
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement("SELECT " + col + " FROM " + table + " WHERE " + idCol + " = ?")) {
+            ps.setInt(1, id);
+            var rs = ps.executeQuery();
+            return rs.next() ? rs.getString(1) : null;
+        }
+    }
+
+    public static void del(String table, String idCol, int id) throws Exception {
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement("DELETE FROM " + table + " WHERE " + idCol + " = ?")) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        }
+    }
+
+    public static BigDecimal bd(String value) {
+        return new BigDecimal(value);
+    }
+
+    public static int count(String table, String idCol, int id) throws Exception {
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement("SELECT COUNT(*) FROM " + table + " WHERE " + idCol + " = ?")) {
+            ps.setInt(1, id);
+            try (var rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
         }
     }
 }
