@@ -3,12 +3,7 @@ package ie.cortexx.gui.sales;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Holds POS cart state and the simple calculations derived from it.
- *
- * <p>This keeps quantity and totals logic separate from Swing event wiring so
- * the panel stays focused on rendering.</p>
- */
+// holds cart state + calc logic, separate from swing wiring
 final class SaleCart {
     private final List<Item> items = new ArrayList<>();
 
@@ -42,6 +37,10 @@ final class SaleCart {
 
     void removeItem(String name) {
         items.removeIf(item -> item.name().equals(name));
+    }
+
+    void clear() {
+        items.clear();
     }
 
     List<Item> items() {

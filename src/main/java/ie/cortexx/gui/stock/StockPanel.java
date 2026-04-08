@@ -1,10 +1,18 @@
 package ie.cortexx.gui.stock;
 
+import ie.cortexx.dao.ProductDAO;
 import ie.cortexx.gui.util.UI;
+import ie.cortexx.model.Product;
+import ie.cortexx.model.StockItem;
+import ie.cortexx.service.StockService;
 
 import javax.swing.*;
 import java.awt.*;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /*
 basically
@@ -22,14 +30,14 @@ the search field uses RowFilter internally, filters all columns case insensitive
 UI.pageWithStats() stacks stat cards in NORTH and toolbar+table in CENTER.
 saves us from manually nesting panels for this common layout.
 
-placeholder data is hardcoded for now, swap with StockDAO.findAll() loop later.
-the table, search, badges all stay the same, only the data loading changes.
-TODO: wire the stats/table/actions to StockDAO/StockService so low-stock, add-stock,
-and quantity edits are working demo features instead of static examples.
 */
 
 // shows all products and their quantities in a JTable
 public class StockPanel extends JPanel {
+    private final StockService stockService = new StockService();
+    private final ProductDAO productDAO = new ProductDAO();
+    private final List<StockItem> items = new ArrayList<>();
+
     private record StockRow(
         String saId,
         String name,
@@ -44,14 +52,16 @@ public class StockPanel extends JPanel {
 
     public StockPanel() {
         UI.applyPanel(this);
+        reload();
+    }
 
-        // TODO: compute these cards from live stock data so demo stats stay in sync with deliveries and sales.
-        JPanel stats = UI.stats(
-            UI.stat("Total Products", "14", UI.ACCENT, "icons/package.svg"),
-            UI.stat("Total Units", "786", UI.GREEN, "icons/boxes.svg"),
-            UI.stat("Stock Value", "£1,547.40", UI.PURPLE, "icons/coins.svg"),
-            UI.stat("Low Stock", "2", UI.RED, "icons/alert-triangle.svg")
-        );
+    private void reload() {
+        removeAll();
+        items.clear();
+        items.addAll(loadItems());
+        Map<Integer, String> packageTypes = loadPackageTypes();
+
+        JPanel stats = buildStats(items);
 
         var table = UI.table(
             UI.monoCol("SA ID", StockRow::saId, 110),
@@ -63,13 +73,103 @@ public class StockPanel extends JPanel {
             UI.monoCol("Reorder", StockRow::reorder, 70),
             UI.badgeCol("Status", StockRow::status, 105),
             UI.monoCol("Value", StockRow::value, 90)
-        ).rows(List.of(
-            new StockRow("100 00001", "Paracetamol", "Box", "£0.10", "£0.20", 121, 10, "IN_STOCK", "£24.20"),
-            new StockRow("100 00007", "Lipitor TB 20mg", "Box", "£15.50", "£31.00", 10, 10, "LOW_STOCK", "£310.00"),
-            new StockRow("200 00005", "Rhynol", "Bottle", "£2.50", "£5.00", 14, 15, "LOW_STOCK", "£70.00")
-        ));
+        ).rows(items.stream().map(item -> toRow(item, packageTypes.get(item.getProductId()))).toList());
 
-        JPanel toolbar = UI.toolbar("Search stock...", table.table(), "+ Add Stock");
+        JButton addStockButton = UI.primaryButton("+ Add Stock");
+        addStockButton.addActionListener(e -> addStock(table.table()));
+        JPanel toolbar = UI.toolbar("Search stock...", table.table(), addStockButton);
         add(UI.pageWithStats(stats, toolbar, table.scroll()), BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
+
+    private List<StockItem> loadItems() {
+        try {
+            return stockService.findAll();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
+            return List.of();
+        }
+    }
+
+    private Map<Integer, String> loadPackageTypes() {
+        Map<Integer, String> packageTypes = new HashMap<>();
+        try {
+            for (Product product : productDAO.findAll()) {
+                packageTypes.put(product.getProductId(), product.getPackageType());
+            }
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
+        }
+        return packageTypes;
+    }
+
+    private JPanel buildStats(List<StockItem> loadedItems) {
+        int totalUnits = loadedItems.stream().mapToInt(StockItem::getQuantity).sum();
+        long lowStock = loadedItems.stream().filter(StockItem::isLowStock).count();
+        BigDecimal totalValue = loadedItems.stream()
+            .map(this::retailValue)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return UI.stats(
+            UI.stat("Total Products", String.valueOf(loadedItems.size()), UI.ACCENT, "icons/package.svg"),
+            UI.stat("Total Units", String.valueOf(totalUnits), UI.GREEN, "icons/boxes.svg"),
+            UI.stat("Stock Value", money(totalValue), UI.PURPLE, "icons/coins.svg"),
+            UI.stat("Low Stock", String.valueOf(lowStock), UI.RED, "icons/alert-triangle.svg")
+        );
+    }
+
+    private StockRow toRow(StockItem item, String packageType) {
+        BigDecimal retailPrice = retailPrice(item);
+        return new StockRow(
+            item.getSaProductId(),
+            item.getProductName(),
+            packageType != null ? packageType : "",
+            money(item.getCostPrice()),
+            money(retailPrice),
+            item.getQuantity(),
+            item.getReorderLevel(),
+            item.isLowStock() ? "LOW_STOCK" : "IN_STOCK",
+            money(retailValue(item))
+        );
+    }
+
+    private BigDecimal retailPrice(StockItem item) {
+        return item.getCostPrice().multiply(BigDecimal.ONE.add(item.getMarkupRate()));
+    }
+
+    private BigDecimal retailValue(StockItem item) {
+        return retailPrice(item).multiply(BigDecimal.valueOf(item.getQuantity()));
+    }
+
+    private String money(BigDecimal amount) {
+        return "£" + amount.setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private void addStock(JTable jTable) {
+        int viewRow = jTable.getSelectedRow();
+        if (viewRow < 0) {
+            JOptionPane.showMessageDialog(this, "Select a stock row first.");
+            return;
+        }
+
+        int modelRow = jTable.convertRowIndexToModel(viewRow);
+        StockItem item = items.get(modelRow);
+        String qtyText = JOptionPane.showInputDialog(this, "Add quantity for " + item.getProductName(), "10");
+        if (qtyText == null || qtyText.isBlank()) {
+            return;
+        }
+
+        try {
+            int quantity = Integer.parseInt(qtyText.trim());
+            if (quantity <= 0) {
+                JOptionPane.showMessageDialog(this, "Enter a positive quantity.");
+                return;
+            }
+            stockService.addStock(item.getProductId(), quantity);
+            reload();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Update Failed", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }

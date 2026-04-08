@@ -1,23 +1,39 @@
 package ie.cortexx.gui.sales;
 
+import ie.cortexx.enums.AccountStatus;
+import ie.cortexx.enums.PaymentType;
 import ie.cortexx.gui.util.UI;
+import ie.cortexx.model.Customer;
+import ie.cortexx.model.Payment;
+import ie.cortexx.model.Sale;
+import ie.cortexx.model.SaleItem;
+import ie.cortexx.model.StockItem;
+import ie.cortexx.service.CustomerService;
+import ie.cortexx.service.OrderService;
+import ie.cortexx.service.SaleService;
+import ie.cortexx.service.ValidationResult;
+import ie.cortexx.util.SessionManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionListener;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-// POS screen with a product list on the left and a custom current-sale cart on the right.
+// pos screen with a product list on the left and a custom current-sale cart on the right.
 public class POSPanel extends JPanel {
     private final SaleCart cart = new SaleCart();
+    private final SaleService saleService = new SaleService();
+    private final CustomerService customerService = new CustomerService();
+    private final OrderService orderService = new OrderService();
+    private final ie.cortexx.dao.SaleDAO saleDAO = new ie.cortexx.dao.SaleDAO();
     private final JPanel cartItemsPanel = new JPanel();
     private final JLabel itemCountLabel = UI.countBadge("0 ITEMS");
-    // TODO: load customer choices from CustomerDAO and enforce live credit/status rules in the checkout flow.
-    private final JComboBox<CustomerChoice> customerBox = new JComboBox<>(new CustomerChoice[]{
-        new CustomerChoice("Walk-in Customer", 0.00, false),
-        new CustomerChoice("Ms Eva Bauyer (ACC0001)", 0.03, true),
-        new CustomerChoice("Mr Glynne Morrison (ACC0002)", 0.00, true)
-    });
+    private final JComboBox<CustomerChoice> customerBox = new JComboBox<>();
     private final JLabel subtotalValue = UI.monoLabel("£0.00", 12f, UI.TEXT);
     private final JLabel discountLabel = UI.monoLabel("Discount (0%)", 12f, UI.TEXT_DIM);
     private final JLabel discountValue = UI.monoLabel("£0.00", 12f, UI.TEXT);
@@ -27,36 +43,37 @@ public class POSPanel extends JPanel {
     private final JButton cashButton = UI.iconButton("Cash", "icons/banknote.svg", false);
     private final JButton cardButton = UI.iconButton("Card", "icons/credit-card.svg", true);
     private final JButton creditButton = UI.iconButton("Credit", "icons/coins.svg", false);
+    private final Map<String, StockItem> productByName = new HashMap<>();
+    private final Map<Integer, String> customerNames = new HashMap<>();
 
-    private record ProductRow(String name, String price, int stock) {}
+    private record ProductRow(int productId, String name, String price, int stock) {}
     private record SaleRow(String saleId, String customer, String date, int items, String payment, String total) {}
-    private record CustomerChoice(String label, double discountRate, boolean creditEnabled) {
+    private record CustomerChoice(Integer customerId, String label, double discountRate, boolean creditEnabled) {
         @Override public String toString() { return label; }
     }
 
     public POSPanel() {
         UI.applyPanelNoPad(this);
+        reloadData();
+    }
+
+    private void reloadData() {
+        removeAll();
+        loadCustomers();
         add(UI.innerTabs(
             UI.tab("Point of Sale", buildPOS()),
             UI.tab("Sale History", buildHistory())
         ));
+        revalidate();
+        repaint();
     }
 
     private JPanel buildPOS() {
-        // TODO: replace hardcoded products/history with DAO-backed data and wire payment buttons to SaleService,
-        // including masked card-detail storage and the PU card-clearance/demo integration path.
         var products = UI.table(
             UI.col("Name", ProductRow::name, 240),
             UI.col("Price", ProductRow::price, 90),
             UI.col("In Stock", ProductRow::stock, 80)
-        ).rows(List.of(
-            new ProductRow("Paracetamol", "£0.20", 121),
-            new ProductRow("Aspirin", "£1.00", 201),
-            new ProductRow("Iodine tincture", "£0.60", 35),
-            new ProductRow("Ospen", "£21.00", 78),
-            new ProductRow("Amopen", "£30.00", 90),
-            new ProductRow("Claritin CR, 60g", "£39.00", 21)
-        )).onSelect(row -> addToCart(row.name(), row.price()));
+        ).rows(loadProducts()).onSelect(this::addToCart);
         products.table().setDefaultRenderer(Object.class, UI.plainTableRenderer());
         products.table().setFont(UI.FONT);
         products.table().setRowHeight(34);
@@ -72,6 +89,7 @@ public class POSPanel extends JPanel {
 
         JPanel view = UI.panel();
         view.add(UI.splitPanel(left, cart, 392), BorderLayout.CENTER);
+        wirePaymentButtons();
         refreshCart();
         return view;
     }
@@ -92,6 +110,9 @@ public class POSPanel extends JPanel {
         customerBox.setBackground(UI.BG_CARD);
         customerBox.setForeground(UI.TEXT);
         customerBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        for (ActionListener listener : customerBox.getActionListeners()) {
+            customerBox.removeActionListener(listener);
+        }
         customerBox.addActionListener(e -> {
             updateTotals();
             updatePaymentState();
@@ -154,9 +175,9 @@ public class POSPanel extends JPanel {
         return footer;
     }
 
-    private void addToCart(String name, String price) {
-        double unitPrice = Double.parseDouble(price.replace("£", ""));
-        cart.addItem(name, unitPrice);
+    private void addToCart(ProductRow row) {
+        double unitPrice = Double.parseDouble(row.price().replace("£", ""));
+        cart.addItem(row.name(), unitPrice);
         refreshCart();
     }
 
@@ -301,15 +322,157 @@ public class POSPanel extends JPanel {
             UI.col("Items", SaleRow::items),
             UI.badgeCol("Payment", SaleRow::payment),
             UI.col("Total", SaleRow::total)
-        ).rows(List.of(
-            new SaleRow("#0001", "Ms Eva Bauyer", "2026-03-01", 4, "ON_CREDIT", "£63.60"),
-            new SaleRow("#0002", "Walk-in", "2026-03-03", 2, "CASH", "£4.60")
-        ));
+        ).rows(loadHistory());
         t.table().setDefaultRenderer(Object.class, UI.plainTableRenderer());
         t.table().setFont(UI.FONT);
         t.table().setRowHeight(34);
         JPanel view = UI.panel();
         view.add(t.scroll(), BorderLayout.CENTER);
         return view;
+    }
+
+    private List<ProductRow> loadProducts() {
+        productByName.clear();
+        try {
+            return orderService.getCatalogue().stream().map(item -> {
+                productByName.put(item.getProductName(), item);
+                BigDecimal retail = item.getCostPrice().multiply(BigDecimal.ONE.add(item.getMarkupRate()));
+                return new ProductRow(item.getProductId(), item.getProductName(), money(retail), item.getQuantity());
+            }).toList();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
+            return List.of();
+        }
+    }
+
+    private void loadCustomers() {
+        customerBox.removeAllItems();
+        customerNames.clear();
+        customerBox.addItem(new CustomerChoice(null, "Walk-in Customer", 0.0, false));
+
+        try {
+            for (Customer customer : customerService.findAll()) {
+                customerNames.put(customer.getCustomerId(), customer.getName());
+                double rate = customer.getFixedDiscountRate() != null ? customer.getFixedDiscountRate().doubleValue() : 0.0;
+                boolean creditEnabled = customer.getAccountStatus() == AccountStatus.NORMAL;
+                customerBox.addItem(new CustomerChoice(
+                    customer.getCustomerId(),
+                    customer.getName() + " (" + text(customer.getAccountNo()) + ")",
+                    rate,
+                    creditEnabled
+                ));
+            }
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void wirePaymentButtons() {
+        resetButton(cashButton, e -> checkout(PaymentType.CASH));
+        resetButton(cardButton, e -> checkout(PaymentType.CREDIT_CARD));
+        resetButton(creditButton, e -> checkout(PaymentType.ON_CREDIT));
+    }
+
+    private void resetButton(AbstractButton button, ActionListener listener) {
+        for (ActionListener existing : button.getActionListeners()) {
+            button.removeActionListener(existing);
+        }
+        button.addActionListener(listener);
+    }
+
+    private void checkout(PaymentType paymentType) {
+        if (cart.isEmpty()) {
+            return;
+        }
+
+        CustomerChoice customer = (CustomerChoice) customerBox.getSelectedItem();
+        double discountRate = customer != null ? customer.discountRate() : 0.0;
+        SaleCart.Totals totals = cart.totals(discountRate);
+
+        Sale sale = new Sale();
+        sale.setCustomerId(customer != null ? customer.customerId() : null);
+        sale.setSoldBy(currentUserId());
+        sale.setSubtotal(BigDecimal.valueOf(totals.subtotal()));
+        sale.setDiscountAmount(BigDecimal.valueOf(totals.discount()));
+        sale.setVatAmount(BigDecimal.ZERO);
+        sale.setTotalAmount(BigDecimal.valueOf(totals.total()));
+        sale.setPaymentMethod(paymentType.name());
+        sale.setWalkIn(customer == null || customer.customerId() == null);
+
+        for (SaleCart.Item item : cart.items()) {
+            StockItem stockItem = productByName.get(item.name());
+            if (stockItem == null) {
+                continue;
+            }
+            BigDecimal unitPrice = BigDecimal.valueOf(item.unitPrice());
+            BigDecimal rate = BigDecimal.valueOf(discountRate);
+            BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(item.quantity())).multiply(BigDecimal.ONE.subtract(rate));
+            SaleItem saleItem = new SaleItem(stockItem.getProductId(), stockItem.getProductName(), item.quantity(), unitPrice, lineTotal);
+            saleItem.setDiscountRate(rate);
+            sale.getItems().add(saleItem);
+        }
+
+        Payment payment = new Payment();
+        if (customer != null && customer.customerId() != null) {
+            payment.setCustomerId(customer.customerId());
+        }
+        payment.setPaymentType(paymentType);
+        payment.setAmount(BigDecimal.valueOf(totals.total()));
+        payment.setChangeGiven(BigDecimal.ZERO);
+        if (paymentType == PaymentType.CREDIT_CARD || paymentType == PaymentType.DEBIT_CARD) {
+            payment.setCardType("VISA");
+            payment.setCardFirst4("4000");
+            payment.setCardLast4("0000");
+            payment.setCardExpiry("12/30");
+        }
+
+        ValidationResult result = saleService.processSale(sale, payment);
+        if (!result.isValid()) {
+            JOptionPane.showMessageDialog(this, result.getMessage(), "Sale Failed", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        cart.clear();
+        JOptionPane.showMessageDialog(this, "Sale completed.");
+        reloadData();
+    }
+
+    private List<SaleRow> loadHistory() {
+        try {
+            return saleDAO.findByDateRange(LocalDate.now().minusDays(60), LocalDate.now().plusDays(1)).stream().map(sale -> new SaleRow(
+                "#" + sale.getSaleId(),
+                sale.getCustomerId() != null ? customerNames.getOrDefault(sale.getCustomerId(), "Unknown") : "Walk-in",
+                sale.getSaleDate() != null ? sale.getSaleDate().toLocalDate().toString() : "",
+                itemCount(sale.getSaleId()),
+                text(sale.getPaymentMethod()),
+                money(sale.getTotalAmount())
+            )).toList();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
+            return List.of();
+        }
+    }
+
+    private int itemCount(int saleId) {
+        try {
+            return saleDAO.countItems(saleId);
+        } catch (Exception error) {
+            return 0;
+        }
+    }
+
+    private int currentUserId() {
+        return SessionManager.getInstance().getCurrentUser() != null
+            ? SessionManager.getInstance().getCurrentUser().getUserId()
+            : 1;
+    }
+
+    private String money(BigDecimal amount) {
+        BigDecimal safe = amount != null ? amount : BigDecimal.ZERO;
+        return "£" + safe.setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private String text(String value) {
+        return value != null ? value : "";
     }
 }

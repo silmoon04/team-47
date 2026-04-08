@@ -19,13 +19,14 @@ import java.util.Map;
 
 public class SaleService {
 
-    // TODO: add constructor, inject needed DAOs
-    // TODO: implement service methods
-
     private final SaleDAO saleDAO;
     private final StockDAO stockDAO;
     private final PaymentDAO paymentDAO;
     private final CustomerDAO customerDAO;
+
+    public SaleService() {
+        this(new SaleDAO(), new StockDAO(), new PaymentDAO(), new CustomerDAO());
+    }
 
     public SaleService(SaleDAO saleDAO, StockDAO stockDAO, PaymentDAO paymentDAO, CustomerDAO customerDAO) {
         this.saleDAO = saleDAO;
@@ -34,45 +35,37 @@ public class SaleService {
         this.customerDAO = customerDAO;
     }
 
-   //rule 1 no stock
-
     public ValidationResult validateStock(List<SaleItem> items, Map<Integer, Integer> stockLevels){
         for (SaleItem item : items) {
             int available = stockLevels.getOrDefault(item.getProductId(), 0);
             if (available < item.getQuantity()) {
-                return ValidationResult.fail( "Item"+item.getProductName()+"is out of stock" );
+                return ValidationResult.fail("Item " + item.getProductName() + " is out of stock");
             }
         }
         return ValidationResult.ok();
 
     }
 
-    //rule 2 only walk in cash
-
     public ValidationResult validatePaymentType(Customer customer, PaymentType paymentType, boolean isWalkIn) {
         if (!isWalkIn && customer != null && paymentType == PaymentType.CASH) {
-            return ValidationResult.fail("YOu cant pay with cash if you have an account.");
+            return ValidationResult.fail("You cannot pay cash for an account sale.");
         }
         return ValidationResult.ok();
     }
-
-    //rule 3 cant exceed credit limti
 
     public ValidationResult validateCreditLimit(Customer customer, PaymentType paymentType, BigDecimal grandTotal) {
         if (paymentType == PaymentType.ON_CREDIT) {
             BigDecimal newBalance = customer.getOutstandingBalance().add(grandTotal);
             if (newBalance.compareTo(customer.getCreditLimit()) > 0) {
-                return ValidationResult.fail("exceeds credit limit of £" + customer.getCreditLimit());
+                return ValidationResult.fail("Exceeds credit limit of £" + customer.getCreditLimit());
             }
         }
         return ValidationResult.ok();
     }
 
-    //rule4 walk in has to pay in full
     public ValidationResult validateWalkIn(boolean isWalkIn, PaymentType paymentType) {
         if (isWalkIn && paymentType == PaymentType.ON_CREDIT) {
-            return ValidationResult.fail("walk ins have to pay in full"
-            );
+            return ValidationResult.fail("Walk-ins have to pay in full");
         }
         return ValidationResult.ok();
     }
@@ -105,7 +98,6 @@ public class SaleService {
         if (!walkInCheck.isValid()) {
             return walkInCheck;
         }
-// get customer if not walkin
         Customer customer = null;
         if (!sale.isWalkIn() && sale.getCustomerId() != null) {
             try{
@@ -115,12 +107,10 @@ public class SaleService {
             }
         }
 
-        // account sales need a customer
         if (!sale.isWalkIn() && customer == null) {
-            return ValidationResult.fail("account sale needs a customer");
+            return ValidationResult.fail("Account sale needs a customer");
         }
 
-        //block banned
         if (customer != null) {
             if(customer.getAccountStatus() == AccountStatus.SUSPENDED){
                 return ValidationResult.fail("Account is suspended");
@@ -130,14 +120,10 @@ public class SaleService {
             }
         }
 
-        //validate payment type
-
         ValidationResult paymentCheck = validatePaymentType(customer, paymentType, sale.isWalkIn());
         if (!paymentCheck.isValid()) {
             return paymentCheck;
         }
-
-        //validate credit
 
         if (customer != null) {
             ValidationResult creditCheck = validateCreditLimit(customer, paymentType, grandTotal);
@@ -170,13 +156,5 @@ public class SaleService {
             return ValidationResult.fail(error.getMessage());
         }
         return ValidationResult.ok();
-
-
-
     }
-
-
-
-
-
 }
