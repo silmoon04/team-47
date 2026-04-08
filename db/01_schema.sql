@@ -90,37 +90,55 @@ CREATE TABLE stock (
 -- added customer_id so tiers link to specific customer,
 -- discount_rate precision increase, added CHECK on rate range
 CREATE TABLE discount_tiers (
-                                tier_id           INT NOT NULL AUTO_INCREMENT,
-                                customer_id       INT NULL,
-                                tier_name         VARCHAR(255) NOT NULL,
-                                min_monthly_spend DECIMAL(10, 2) NOT NULL,
-                                discount_rate     DECIMAL(10, 4) NOT NULL,
-                                PRIMARY KEY (tier_id),
-                                CONSTRAINT chk_rate_range CHECK (discount_rate >= 0 AND discount_rate <= 1)
+                tier_id           INT NOT NULL AUTO_INCREMENT,
+                customer_id       INT NULL,
+                tier_name         VARCHAR(255) NOT NULL,
+                min_monthly_spend DECIMAL(10, 2) NOT NULL,
+                discount_rate     DECIMAL(10, 4) NOT NULL,
+                PRIMARY KEY (tier_id),
+                CONSTRAINT chk_rate_range CHECK (discount_rate >= 0 AND discount_rate <= 1)
 );
-        -- direct-DB online orders written by Team C / PU for the demo path
-        CREATE TABLE online_orders (
-                                       online_order_id  INT NOT NULL AUTO_INCREMENT,
-                                       merchant_id      INT NOT NULL DEFAULT 1,
-                                       pu_order_ref     VARCHAR(50) NOT NULL UNIQUE,
-                                       customer_name    VARCHAR(255) NOT NULL,
-                                       customer_email   VARCHAR(255) NULL,
-                                       customer_phone   VARCHAR(30) NULL,
-                                       delivery_address VARCHAR(255) NOT NULL,
-                                       status           ENUM('RECEIVED','PROCESSING','READY','DISPATCHED','DELIVERED','CANCELLED') NOT NULL DEFAULT 'RECEIVED',
-                                       total_amount     DECIMAL(10, 2) NOT NULL,
-                                       created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                       updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                       PRIMARY KEY (online_order_id)
-        );
+
+-- PU orders are mirrored separately so they do not collide with CA's own SA procurement orders.
+-- shape follows Team C's real order header as closely as possible, while keeping a CA-local table name.
+CREATE TABLE online_orders (
+                   online_order_id    INT NOT NULL AUTO_INCREMENT,
+                   merchant_id        INT NOT NULL DEFAULT 1,
+                   member_id          VARCHAR(36) NULL,
+                   order_reference    VARCHAR(36) NOT NULL UNIQUE,
+                   total_price        DECIMAL(10, 2) NOT NULL,
+                   discount_applied   DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+                   status             ENUM('CONFIRMED','RECEIVED','PROCESSING','READY','DISPATCHED','DELIVERED','CANCELLED') NOT NULL DEFAULT 'CONFIRMED',
+                   payment_method     VARCHAR(50) NULL,
+                   transaction_id     VARCHAR(100) NULL,
+                   delivery_address   TEXT NULL,
+                   created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                   updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                   PRIMARY KEY (online_order_id)
+);
+
+-- cart state stays in PU; CA only mirrors completed online-order line items it needs to view/manage.
+CREATE TABLE online_order_items (
+                    online_order_item_id INT NOT NULL AUTO_INCREMENT,
+                    online_order_id      INT NOT NULL,
+                    product_id           INT NOT NULL,
+                    quantity             INT NOT NULL,
+                    unit_price           DECIMAL(10, 2) NOT NULL,
+                    PRIMARY KEY (online_order_item_id),
+                    CONSTRAINT chk_online_order_qty CHECK (quantity > 0)
+);
 
 
 -- lots of fixes here:
 -- merchant_id had UNIQUE (only 1 customer per merchant??) removed
 -- flexible_tier_id was NOT NULL, FIXED customers dont have a tier
 
-        ALTER TABLE online_orders ADD CONSTRAINT fk_online_orders_merchant
-            FOREIGN KEY (merchant_id) REFERENCES merchant_details (merchant_id);
+ALTER TABLE online_orders ADD CONSTRAINT fk_online_orders_merchant
+    FOREIGN KEY (merchant_id) REFERENCES merchant_details (merchant_id);
+ALTER TABLE online_order_items ADD CONSTRAINT fk_online_order_items_order
+    FOREIGN KEY (online_order_id) REFERENCES online_orders (online_order_id) ON DELETE CASCADE;
+ALTER TABLE online_order_items ADD CONSTRAINT fk_online_order_items_product
+    FOREIGN KEY (product_id) REFERENCES products (product_id);
 -- fixed_discount_rate was NOT NULL, FLEXIBLE customers dont have one
 -- debt_period_start was NOT NULL, new customers have no debt
 -- reminder_dates (single DATE) split into date_1st/2nd_reminder
@@ -221,9 +239,6 @@ CREATE TABLE orders (
                         ordered_by   INT NOT NULL,
                         PRIMARY KEY (order_id)
 );
-
--- TODO: add an online_orders table (or extend orders cleanly) for the demo PU direct-DB path,
--- including delivery address and fulfilment status fields for online orders written by Team C.
 
 -- renamed from ordered_items to match java model OrderItem
 -- added CHECK on quantity
@@ -344,3 +359,4 @@ CREATE INDEX idx_payment_date ON payments(payment_date);
 CREATE INDEX idx_stock_product ON stock(product_id);
 CREATE INDEX idx_product_sa_id ON products(sa_product_id);
 CREATE INDEX idx_online_order_status ON online_orders(status);
+CREATE INDEX idx_online_order_member ON online_orders(member_id);

@@ -6,7 +6,6 @@ import java.sql.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 // db schema + connection integration tests
-// see context/JDBC_AND_DAO_GUIDE.md for how to write dao methods and tests
 //
 // run with:  mvn verify  or  mvn test -Dtest=DBTestIT
 // prereq:    mysql running, db/01_schema.sql executed
@@ -15,7 +14,7 @@ public class DBTestIT {
     static final String[] TABLES = {
         "system_config", "users", "merchant_details", "products", "stock",
         "discount_tiers", "customers", "sales", "sale_items", "payments",
-        "orders", "online_orders", "order_items", "statements", "reminders", "templates"
+        "orders", "online_orders", "online_order_items", "order_items", "statements", "reminders", "templates"
     };
 
     // helper: query information_schema and return first column of first row
@@ -156,6 +155,18 @@ public class DBTestIT {
                  + "HAVING o.total_amount != SUM(oi.quantity * oi.unit_price)")) {
             assertFalse(rs.next(), "order total mismatch found");
             System.out.println("[ok] order totals match items");
+        }
+    }
+
+    @Test void onlineOrderTotalsMatchItems() throws Exception {
+        try (var c = DBConnection.getConnection();
+             var rs = c.createStatement().executeQuery(
+                 "SELECT o.online_order_id FROM online_orders o "
+                 + "JOIN online_order_items oi ON o.online_order_id = oi.online_order_id "
+                 + "GROUP BY o.online_order_id, o.total_price, o.discount_applied "
+                 + "HAVING o.total_price != SUM(oi.quantity * oi.unit_price) - COALESCE(o.discount_applied, 0)")) {
+            assertFalse(rs.next(), "online order total mismatch found");
+            System.out.println("[ok] online order totals match items");
         }
     }
 

@@ -16,6 +16,7 @@ TRUNCATE TABLE statements;
 TRUNCATE TABLE payments;
 TRUNCATE TABLE sale_items;
 TRUNCATE TABLE sales;
+TRUNCATE TABLE online_order_items;
 TRUNCATE TABLE online_orders;
 TRUNCATE TABLE order_items;
 TRUNCATE TABLE orders;
@@ -155,10 +156,19 @@ INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
     (2, 4, 15, 2.75),
     (2, 5, 10, 3.20);
 
-INSERT INTO online_orders (merchant_id, pu_order_ref, customer_name, customer_email, customer_phone, delivery_address, status, total_amount) VALUES
-    (1, 'PU-TEST-001', 'Olivia Reed', 'olivia.reed@example.com', '07666666661', '10 Test Close, Manchester M1 1AA', 'RECEIVED', 24.50),
-    (1, 'PU-TEST-002', 'Peter Marsh', 'peter.marsh@example.com', '07666666662', '11 Test Close, Manchester M1 1AB', 'PROCESSING', 61.20),
-    (1, 'PU-TEST-003', 'Quinn Ross', 'quinn.ross@example.com', '07666666663', '12 Test Close, Manchester M1 1AC', 'DELIVERED', 15.75);
+INSERT INTO online_orders (merchant_id, member_id, order_reference, total_price, discount_applied, status, payment_method, transaction_id, delivery_address) VALUES
+    (1, 'MEM-TEST-001', 'PU-TEST-001', 24.50, 2.50, 'CONFIRMED', 'ONLINE_CARD', 'TXN-TEST-001', '10 Test Close, Manchester M1 1AA'),
+    (1, 'MEM-TEST-002', 'PU-TEST-002', 61.20, 0.80, 'PROCESSING', 'ONLINE_CARD', 'TXN-TEST-002', '11 Test Close, Manchester M1 1AB'),
+    (1, NULL,           'PU-TEST-003', 15.75, 0.25, 'DELIVERED', 'ONLINE_CARD', 'TXN-TEST-003', '12 Test Close, Manchester M1 1AC');
+
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 1, 1, 12.00 FROM online_orders WHERE order_reference = 'PU-TEST-001';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 4, 1, 15.00 FROM online_orders WHERE order_reference = 'PU-TEST-001';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 5, 2, 31.00 FROM online_orders WHERE order_reference = 'PU-TEST-002';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 15, 1, 16.00 FROM online_orders WHERE order_reference = 'PU-TEST-003';
 
 -- templates (so settings panel has data)
 INSERT INTO templates (template_type, content) VALUES
@@ -274,13 +284,26 @@ INSERT INTO order_items (order_id, product_id, quantity, unit_price)
 SELECT order_id, 15, 4, 3.00 FROM orders WHERE sa_order_id = 'SA-EDGE-004';
 
 -- online orders from the PU path
-INSERT INTO online_orders (merchant_id, pu_order_ref, customer_name, customer_email, customer_phone, delivery_address, status, total_amount) VALUES
-    (1, 'PU-EDGE-0001', 'Sara Kent', 'sara.kent@example.com', '07800000001', '1 Web Lane, Leeds LS1 1AA', 'RECEIVED', 31.20),
-    (1, 'PU-EDGE-0002', 'Tom Wyatt', 'tom.wyatt@example.com', '07800000002', '2 Web Lane, Leeds LS1 1AB', 'PROCESSING', 54.10),
-    (1, 'PU-EDGE-0003', 'Uma Dale', 'uma.dale@example.com', '07800000003', '3 Web Lane, Leeds LS1 1AC', 'READY', 18.95),
-    (1, 'PU-EDGE-0004', 'Victor Shaw', 'victor.shaw@example.com', '07800000004', '4 Web Lane, Leeds LS1 1AD', 'DELIVERED', 72.30),
-    (1, 'PU-EDGE-0005', 'Wes Ford', 'wes.ford@example.com', '07800000005', '5 Web Lane, Leeds LS1 1AE', 'DISPATCHED', 42.90),
-    (1, 'PU-EDGE-0006', 'Casey Null', NULL, NULL, '6 Web Lane, Leeds LS1 1AF', 'CANCELLED', 11.40);
+INSERT INTO online_orders (merchant_id, member_id, order_reference, total_price, discount_applied, status, payment_method, transaction_id, delivery_address) VALUES
+    (1, 'MEM-EDGE-0001', 'PU-EDGE-0001', 31.20, 1.80, 'RECEIVED',   'ONLINE_CARD', 'TXN-EDGE-0001', '1 Web Lane, Leeds LS1 1AA'),
+    (1, 'MEM-EDGE-0002', 'PU-EDGE-0002', 54.10, 0.90, 'READY',      'ONLINE_CARD', 'TXN-EDGE-0002', '2 Web Lane, Leeds LS1 1AB'),
+    (1, 'MEM-EDGE-0003', 'PU-EDGE-0003', 18.95, 1.05, 'DISPATCHED', 'ONLINE_CARD', 'TXN-EDGE-0003', '3 Web Lane, Leeds LS1 1AC'),
+    (1, 'MEM-EDGE-0004', 'PU-EDGE-0004', 72.30, 2.70, 'DELIVERED',  'ONLINE_CARD', 'TXN-EDGE-0004', '4 Web Lane, Leeds LS1 1AD'),
+    (1, 'MEM-EDGE-0005', 'PU-EDGE-0005', 42.90, 2.10, 'CANCELLED',  NULL,          NULL,            '5 Web Lane, Leeds LS1 1AE'),
+    (1, NULL,            'PU-EDGE-0006', 11.40, 0.00, 'PROCESSING', 'ONLINE_CARD', 'TXN-EDGE-0006', '6 Web Lane, Leeds LS1 1AF');
+
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 1, 2, 16.50 FROM online_orders WHERE order_reference = 'PU-EDGE-0001';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 5, 1, 55.00 FROM online_orders WHERE order_reference = 'PU-EDGE-0002';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 15, 2, 10.00 FROM online_orders WHERE order_reference = 'PU-EDGE-0003';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 9, 3, 25.00 FROM online_orders WHERE order_reference = 'PU-EDGE-0004';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 10, 5, 9.00 FROM online_orders WHERE order_reference = 'PU-EDGE-0005';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 7, 1, 11.40 FROM online_orders WHERE order_reference = 'PU-EDGE-0006';
 
 -- statements and reminders for debt-cycle/doc testing
 INSERT INTO statements (customer_id, period_start, period_end, opening_balance, total_purchases, total_payments, closing_balance, generated_by)

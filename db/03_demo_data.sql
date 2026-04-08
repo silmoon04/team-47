@@ -36,8 +36,15 @@ INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
                                                                          (2, 11, 10, 10.50),   -- Ospen x10 = £105.00
                                                                          (2, 12, 20, 15.00);   -- Amopen x20 = £300.00  total = £430
 
-INSERT INTO online_orders (merchant_id, pu_order_ref, customer_name, customer_email, customer_phone, delivery_address, status, total_amount) VALUES
-    (1, 'PU-WEB-2026-0001', 'Martha Cole', 'martha.cole@example.com', '07111000001', '17 Beacon Road, London N1 4AB', 'RECEIVED', 42.80),
-    (1, 'PU-WEB-2026-0002', 'Neil Harper', 'neil.harper@example.com', '07111000002', '88 Market Street, London E1 6NN', 'DISPATCHED', 18.40);
+INSERT INTO online_orders (merchant_id, member_id, order_reference, total_price, discount_applied, status, payment_method, transaction_id, delivery_address) VALUES
+    (1, 'MEM-DEMO-0001', 'PU-WEB-2026-0001', 42.80, 4.20, 'CONFIRMED', 'ONLINE_CARD', 'TXN-DEMO-0001', '17 Beacon Road, London N1 4AB'),
+    (1, NULL,            'PU-WEB-2026-0002', 18.40, 0.00, 'DISPATCHED', 'ONLINE_CARD', 'TXN-DEMO-0002', '88 Market Street, London E1 6NN');
+
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 1, 4, 5.00 FROM online_orders WHERE order_reference = 'PU-WEB-2026-0001';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 4, 2, 13.50 FROM online_orders WHERE order_reference = 'PU-WEB-2026-0001';
+INSERT INTO online_order_items (online_order_id, product_id, quantity, unit_price)
+SELECT online_order_id, 10, 2, 9.20 FROM online_orders WHERE order_reference = 'PU-WEB-2026-0002';
 
 -- rest of the scenarios im pretty sure that we need to do live, can double check later
