@@ -1,13 +1,23 @@
 package ie.cortexx.gui.settings;
 
 import ie.cortexx.gui.util.UI;
+import ie.cortexx.model.MerchantDetails;
+import ie.cortexx.service.SettingsService;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.SQLException;
 
 // edit merchant details, VAT rate, templates
 public class SettingsPanel extends JPanel {
+    private final SettingsService settingsService;
+
     public SettingsPanel() {
+        this(new SettingsService());
+    }
+
+    SettingsPanel(SettingsService settingsService) {
+        this.settingsService = settingsService;
         UI.applyPanelNoPad(this);
         add(UI.innerTabs(
             UI.tab("Merchant Details", buildMerchant()),
@@ -17,58 +27,112 @@ public class SettingsPanel extends JPanel {
     }
 
     private JPanel buildMerchant() {
-        // TODO: load/save merchant identity + SA credentials through MerchantDetailsDAO instead of static fields.
-        JPanel form = UI.formCard();
+        var details = settingsService.loadMerchantDetails();
+        var businessName = new JTextField(text(details.getBusinessName()));
+        var email = new JTextField(text(details.getEmail()));
+        var phone = new JTextField(text(details.getPhone()));
+        var address = new JTextField(text(details.getAddress()));
+        var saUsername = new JTextField(text(details.getSaUsername()));
+        var saPassword = new JPasswordField(text(details.getSaPassword()));
+
+        var form = UI.formCard();
         form.add(UI.formRow(
-            UI.field("Business Name", new JTextField("Cosymed Ltd")),
-            UI.field("Contact Name", new JTextField("Alex Wright"))
+            UI.field("Business Name", businessName),
+            UI.field("Email", email)
         ));
         form.add(UI.gap(8));
         form.add(UI.formRow(
-            UI.field("Phone", new JTextField("0207 321 8001")),
-            UI.field("Address", new JTextField("25 Bond Street, London WC1V 8LS"))
+            UI.field("Phone", phone),
+            UI.field("Address", address)
         ));
         form.add(UI.gap(8));
         form.add(UI.formRow(
-            UI.field("SA Username", new JTextField("cosymed")),
-            UI.field("SA Password", new JPasswordField("bondstreet"))
+            UI.field("SA Username", saUsername),
+            UI.field("SA Password", saPassword)
         ));
         form.add(UI.gap(8));
 
-        var saveBtn =UI.primaryButton("Save Changes");
+        var saveBtn = UI.primaryButton("Save Changes");
+        saveBtn.addActionListener(e -> {
+            details.setBusinessName(businessName.getText().trim());
+            details.setEmail(email.getText().trim());
+            details.setPhone(phone.getText().trim());
+            details.setAddress(address.getText().trim());
+            details.setSaUsername(saUsername.getText().trim());
+            details.setSaPassword(new String(saPassword.getPassword()));
+
+            try {
+                settingsService.saveMerchantDetails(details);
+                JOptionPane.showMessageDialog(this, "Merchant details saved.");
+            } catch (SQLException error) {
+                showSaveError(error);
+            }
+        });
         form.add(saveBtn);
         return UI.formPage(form);
     }
 
     private JPanel buildConfig() {
-        // TODO: persist VAT/system settings once a system_config DAO/service exists.
-        JPanel form = UI.formCard();
-        form.add(UI.field("VAT Rate (%)", new JTextField("0.00")));
+        var config = settingsService.loadConfigValues();
+        var vatRate = new JTextField(config.vatRate());
+        var markupRate = new JTextField(config.markupRatePercent());
+        var currency = new JTextField(config.currencyCode());
+
+        var form = UI.formCard();
+        form.add(UI.field("VAT Rate (%)", vatRate));
         form.add(UI.gap(20));
-        form.add(UI.field("Markup Rate (%)", new JTextField("100.00")));
+        form.add(UI.field("Markup Rate (%)", markupRate));
         form.add(UI.gap(20));
-        form.add(UI.field("Currency", new JTextField("GBP")));
+        form.add(UI.field("Currency", currency));
         form.add(UI.gap(20));
-        form.add(UI.primaryButton("Save"));
+        var saveButton = UI.primaryButton("Save");
+        saveButton.addActionListener(e -> {
+            try {
+                settingsService.saveConfigValues(new SettingsService.ConfigValues(
+                    vatRate.getText().trim(),
+                    markupRate.getText().trim(),
+                    currency.getText().trim()
+                ));
+                JOptionPane.showMessageDialog(this, "System config saved.");
+            } catch (SQLException error) {
+                showSaveError(error);
+            }
+        });
+        form.add(saveButton);
         return UI.formPage(form);
     }
 
     private JPanel buildTemplates() {
-        // TODO: load/update templates via TemplateDAO and add preview/print verification for reminder/receipt docs.
-        JPanel form = UI.formCard();
-        form.add(UI.textAreaField(
-            "1st Reminder Template",
-            "Dear {customer_name},\n\nYour account ({account_no}) has an outstanding balance of £{amount_owed}.\n\nPlease arrange payment.\n\nRegards,\nCosymed Ltd",
-            6
-        ));
+        var templates = settingsService.loadReminderTemplateValues();
+        var firstArea = UI.textArea(templates.firstReminder(), 6);
+        var secondArea = UI.textArea(templates.secondReminder(), 6);
+
+        var form = UI.formCard();
+        form.add(UI.field("1st Reminder Template", new JScrollPane(firstArea)));
         form.add(UI.gap(12));
-        form.add(UI.textAreaField(
-            "2nd Reminder Template",
-            "Dear {customer_name},\n\nFINAL NOTICE: Account ({account_no}) remains unpaid. Balance: £{amount_owed}.\n\nRegards,\nCosymed Ltd",
-            6
-        ));
+        form.add(UI.field("2nd Reminder Template", new JScrollPane(secondArea)));
         form.add(UI.gap(12));
-        form.add(UI.primaryButton("Save Templates"));
+        var saveButton = UI.primaryButton("Save Templates");
+        saveButton.addActionListener(e -> {
+            try {
+                settingsService.saveReminderTemplateValues(new SettingsService.ReminderTemplateValues(
+                    firstArea.getText(),
+                    secondArea.getText()
+                ));
+                JOptionPane.showMessageDialog(this, "Templates saved.");
+            } catch (SQLException error) {
+                showSaveError(error);
+            }
+        });
+        form.add(saveButton);
         return UI.formPage(form);
+    }
+
+    private String text(String value) {
+        return value != null ? value : "";
+    }
+
+    private void showSaveError(SQLException error) {
+        JOptionPane.showMessageDialog(this, error.getMessage(), "Save Failed", JOptionPane.ERROR_MESSAGE);
     }
 }
