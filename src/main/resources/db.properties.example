@@ -3,6 +3,7 @@
 # db.properties is gitignored so your password stays local
 
 db.url=jdbc:mysql://localhost:3306/iposca_database
+db.sa.url=jdbc:mysql://localhost:3306/ipos_sa_db
 db.user=root
 db.password=YOUR_PASSWORD_HERE
 

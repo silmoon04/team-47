@@ -15,7 +15,7 @@ public class DBTestIT {
     static final String[] TABLES = {
         "system_config", "users", "merchant_details", "products", "stock",
         "discount_tiers", "customers", "sales", "sale_items", "payments",
-        "orders", "order_items", "statements", "reminders", "templates"
+        "orders", "online_orders", "order_items", "statements", "reminders", "templates"
     };
 
     // helper: query information_schema and return first column of first row
@@ -23,6 +23,10 @@ public class DBTestIT {
         try (var rs = c.createStatement().executeQuery(sql)) {
             return rs.next() ? rs.getString(1) : null;
         }
+    }
+
+    String activeSchema() {
+        return DBConnection.isUsingTestDatabase() ? "iposca_test" : "iposca_database";
     }
 
     // ---- connection ----
@@ -36,34 +40,35 @@ public class DBTestIT {
     }
 
     @Test void correctDb() throws Exception {
-        // make sure we're not accidentally hitting some other db
+        String expected = activeSchema();
         try (var c = DBConnection.getConnection();
              var rs = c.createStatement().executeQuery("SELECT DATABASE()")) {
             rs.next();
-            assertEquals("iposca_database", rs.getString(1));
-            System.out.println("[ok] database = iposca_database");
+            assertEquals(expected, rs.getString(1));
+            System.out.println("[ok] database = " + expected);
         }
     }
 
     // ---- schema structure ----
 
     @Test void allTablesExist() throws Exception {
+        String schema = activeSchema();
         try (var c = DBConnection.getConnection()) {
             var meta = c.getMetaData();
             for (String t : TABLES) {
-                try (var rs = meta.getTables(null, "iposca_database", t, null)) {
+                try (var rs = meta.getTables(null, schema, t, null)) {
                     assertTrue(rs.next(), "missing table: " + t);
                 }
             }
-            System.out.println("[ok] all 15 tables exist");
+            System.out.println("[ok] all tables exist");
         }
     }
 
     @Test void columnFixes() throws Exception {
-        // spot checks the critical schema bugs fixed on 26 mar
+        String schema = activeSchema();
         try (var c = DBConnection.getConnection()) {
             String base = "SELECT %s FROM information_schema.columns "
-                + "WHERE table_schema='iposca_database' AND table_name='%s' AND column_name='%s'";
+                + "WHERE table_schema='" + schema + "' AND table_name='%s' AND column_name='%s'";
 
             // merchant_details.merchant_id not auto_increment (THE bug that broke everything)
             assertFalse(schemaInfo(c, String.format(base, "EXTRA", "merchant_details", "merchant_id"))
@@ -85,7 +90,7 @@ public class DBTestIT {
             var meta = c.getMetaData();
             for (String col : new String[]{"date_1st_reminder", "status_1st_reminder",
                                            "date_2nd_reminder", "status_2nd_reminder"}) {
-                try (var rs = meta.getColumns(null, "iposca_database", "customers", col)) {
+                try (var rs = meta.getColumns(null, schema, "customers", col)) {
                     assertTrue(rs.next(), "customers." + col + " missing");
                 }
             }
@@ -96,14 +101,13 @@ public class DBTestIT {
     // ---- cascades (worth 2 marks in demo) ----
 
     @Test void cascadeDeletes() throws Exception {
-        // deleting a sale should auto-delete its sale_items + payments
-        // deleting an order should auto-delete its order_items
         String[] fks = {"fk_sale_items_sale", "fk_order_items_order", "fk_payments_sale"};
+        String schema = activeSchema();
         try (var c = DBConnection.getConnection()) {
             for (String fk : fks) {
                 var rs = c.createStatement().executeQuery(
                     "SELECT DELETE_RULE FROM information_schema.referential_constraints "
-                    + "WHERE constraint_schema='iposca_database' AND constraint_name='" + fk + "'");
+                    + "WHERE constraint_schema='" + schema + "' AND constraint_name='" + fk + "'");
                 assertTrue(rs.next(), fk + " not found");
                 assertEquals("CASCADE", rs.getString(1), fk + " should cascade");
                 rs.close();

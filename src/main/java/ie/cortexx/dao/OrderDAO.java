@@ -11,10 +11,8 @@ import java.util.List;
 
 // handles SQL for `orders` + `order_items` tables
 // owner: Shakeel
-// TODO: extend this DAO for PU direct-DB online orders once the online_orders schema lands.
 public class OrderDAO {
 
-    // TODO: load one SA order with its item rows for order-history drilldown and invoice viewing.
     public Order findById(int orderId) throws SQLException {
         Order order = null;
         String sql = "SELECT * FROM orders WHERE order_id = ?";
@@ -55,7 +53,7 @@ public class OrderDAO {
     }
 
     public List<Order> findAll() throws SQLException {
-        String sql = "SELECT * FROM orders ORDER BY ordered_at DESC, order_id DESC";
+        String sql = "SELECT * FROM orders ORDER BY ordered_at DESC";
         List<Order> orders = new ArrayList<>();
 
         try (var c = DBConnection.getConnection();

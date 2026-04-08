@@ -13,7 +13,7 @@ public class DBConnection {
     private static String user;
     private static String password;
     private static String testUrl;
-    private static boolean useTestDatabase = false;
+    private static boolean useTestDatabase = Boolean.getBoolean("db.use.test");
 
     static {
         try (InputStream in = DBConnection.class.getClassLoader()
@@ -41,11 +41,15 @@ public class DBConnection {
     }
 
     public static Connection getConnection() throws SQLException {
-        String activeUrl = useTestDatabase ? testUrl : url;
+        String activeUrl = isUsingTestDatabase() ? testUrl : url;
         return DriverManager.getConnection(activeUrl, user, password);
     }
 
     public static Connection getTestConnection() throws SQLException {
         return DriverManager.getConnection(testUrl, user, password);
+    }
+
+    public static boolean isUsingTestDatabase() {
+        return useTestDatabase || Boolean.getBoolean("db.use.test");
     }
 }

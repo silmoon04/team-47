@@ -98,10 +98,29 @@ CREATE TABLE discount_tiers (
                                 PRIMARY KEY (tier_id),
                                 CONSTRAINT chk_rate_range CHECK (discount_rate >= 0 AND discount_rate <= 1)
 );
+        -- direct-DB online orders written by Team C / PU for the demo path
+        CREATE TABLE online_orders (
+                                       online_order_id  INT NOT NULL AUTO_INCREMENT,
+                                       merchant_id      INT NOT NULL DEFAULT 1,
+                                       pu_order_ref     VARCHAR(50) NOT NULL UNIQUE,
+                                       customer_name    VARCHAR(255) NOT NULL,
+                                       customer_email   VARCHAR(255) NULL,
+                                       customer_phone   VARCHAR(30) NULL,
+                                       delivery_address VARCHAR(255) NOT NULL,
+                                       status           ENUM('RECEIVED','PROCESSING','READY','DISPATCHED','DELIVERED','CANCELLED') NOT NULL DEFAULT 'RECEIVED',
+                                       total_amount     DECIMAL(10, 2) NOT NULL,
+                                       created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                       updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                       PRIMARY KEY (online_order_id)
+        );
+
 
 -- lots of fixes here:
 -- merchant_id had UNIQUE (only 1 customer per merchant??) removed
 -- flexible_tier_id was NOT NULL, FIXED customers dont have a tier
+
+        ALTER TABLE online_orders ADD CONSTRAINT fk_online_orders_merchant
+            FOREIGN KEY (merchant_id) REFERENCES merchant_details (merchant_id);
 -- fixed_discount_rate was NOT NULL, FLEXIBLE customers dont have one
 -- debt_period_start was NOT NULL, new customers have no debt
 -- reminder_dates (single DATE) split into date_1st/2nd_reminder
@@ -324,3 +343,4 @@ CREATE INDEX idx_payment_customer ON payments(customer_id);
 CREATE INDEX idx_payment_date ON payments(payment_date);
 CREATE INDEX idx_stock_product ON stock(product_id);
 CREATE INDEX idx_product_sa_id ON products(sa_product_id);
+CREATE INDEX idx_online_order_status ON online_orders(status);

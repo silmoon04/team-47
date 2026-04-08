@@ -30,3 +30,8 @@ logs/
 # === Temp ===
 *.swp
 *~
+
+*.json
+*.xml
+*.yaml
+*.iml

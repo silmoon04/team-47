@@ -144,6 +144,16 @@ public class CustomerDAO {
         }
     }
 
+    public void delete(int customerId) throws SQLException {
+        String sql = "DELETE FROM customers WHERE customer_id = ?";
+
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement(sql)) {
+            ps.setInt(1, customerId);
+            ps.executeUpdate();
+        }
+    }
+
     // helper for the common customer fields for INSERT / UPDATE
     private void bindCustomerFields(PreparedStatement ps, Customer customer) throws SQLException {
         ps.setString(1, customer.getAccountNo());

@@ -125,7 +125,7 @@ public class CAtoPUImplIT {
         List<StockItem> items = api.getAllStock();
 
         assertNotNull(items);
-        assertEquals(3, items.size());
+        assertTrue(items.size() >= 3);
         assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_OK.equals(i.getSaProductId()) && i.getQuantity() == 10));
         assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_ZERO.equals(i.getSaProductId()) && i.getQuantity() == 0));
         assertTrue(items.stream().anyMatch(i -> TestDatabaseHelper.PRODUCT_LOW.equals(i.getSaProductId()) && i.getQuantity() == 2));

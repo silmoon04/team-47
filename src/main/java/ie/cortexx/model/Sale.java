@@ -125,5 +125,4 @@ public class Sale {
     public void setItems(List<SaleItem> items) {
         this.items = items;
     }
-// TODO: generate getters & setters
 }

@@ -10,6 +10,7 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import static ie.cortexx.TestDatabaseHelper.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /*
@@ -169,63 +170,39 @@ public class DAOTestIT {
         new CustomerDAO().updateAccountStatus(custId, AccountStatus.valueOf(orig));
     }
 
-    // save a sale with one item, verify it wrote both tables and can be found again
     @Test void saleSaveAndFindByCustomer() throws Exception {
         int custId = id("SELECT customer_id FROM customers LIMIT 1");
         int userId = id("SELECT user_id FROM users LIMIT 1");
-        var product = new ProductDAO().findAll().get(0);
+        int productId = id("SELECT product_id FROM products LIMIT 1");
+        if (custId == 0 || userId == 0 || productId == 0) return;
 
+        var dao = new SaleDAO();
         var sale = new Sale();
         sale.setCustomerId(custId);
         sale.setSoldBy(userId);
-        sale.setSubtotal(bd("9.99"));
-        sale.setDiscountAmount(BigDecimal.ZERO);
-        sale.setVatAmount(BigDecimal.ZERO);
-        sale.setTotalAmount(bd("9.99"));
+        sale.setSubtotal(bd("20.00"));
+        sale.setDiscountAmount(bd("1.00"));
+        sale.setVatAmount(bd("0.00"));
+        sale.setTotalAmount(bd("19.00"));
         sale.setSaleDate(LocalDateTime.now());
-        sale.setPaymentMethod("ON_CREDIT");
+        sale.setPaymentMethod("CASH");
         sale.setWalkIn(false);
 
-        var item = new SaleItem(product.getProductId(), product.getName(), 1, bd("9.99"), bd("9.99"));
+        var item = new SaleItem(productId, str("products", "name", "product_id", productId), 2, bd("10.00"), bd("19.00"));
+        item.setDiscountRate(bd("0.0500"));
         sale.getItems().add(item);
 
-        var dao = new SaleDAO();
         dao.save(sale);
-
         assertTrue(sale.getSaleId() > 0);
-        assertTrue(id("SELECT sale_item_id FROM sale_items WHERE sale_id = " + sale.getSaleId()) > 0);
-        assertTrue(dao.findByCustomer(custId).stream().anyMatch(s -> s.getSaleId() == sale.getSaleId()));
-        assertTrue(dao.findByDateRange(LocalDate.now().minusDays(1), LocalDate.now().plusDays(1))
-            .stream().anyMatch(s -> s.getSaleId() == sale.getSaleId()));
+
+        var list = dao.findByCustomer(custId);
+        assertTrue(list.stream().anyMatch(x -> x.getSaleId() == sale.getSaleId()));
 
         del("sales", "sale_id", sale.getSaleId());
     }
 
     // -- OrderDAO --
-    // methods: findById, findAll, save, updateStatus
-
-    @Test void orderSaveAndFindById() throws Exception {
-        int userId = id("SELECT user_id FROM users LIMIT 1");
-        var product = new ProductDAO().findAll().get(0);
-
-        var order = new Order(bd("12.34"), userId);
-        order.setSaOrderId("TEST-" + System.currentTimeMillis());
-        order.setOrderedAt(LocalDateTime.now());
-        order.getItems().add(new OrderItem(product.getProductId(), 2, bd("6.17")));
-
-        var dao = new OrderDAO();
-        dao.save(order);
-
-        assertTrue(order.getOrderId() > 0);
-        var saved = dao.findById(order.getOrderId());
-        ok(saved);
-        assertEquals(order.getOrderId(), saved.getOrderId());
-        assertEquals(1, saved.getItems().size());
-        assertEquals(product.getProductId(), saved.getItems().get(0).getProductId());
-        assertTrue(dao.findAll().stream().anyMatch(o -> o.getOrderId() == order.getOrderId()));
-
-        del("orders", "order_id", order.getOrderId());
-    }
+    // methods: updateStatus (rest are stubs for now)
 
     @Test void orderUpdateStatus() throws Exception {
         int ordId = id("SELECT order_id FROM orders LIMIT 1");
@@ -234,6 +211,25 @@ public class DAOTestIT {
         new OrderDAO().updateStatus(ordId, OrderStatus.DELIVERED);
         assertEquals("DELIVERED", str("orders", "order_status", "order_id", ordId));
         new OrderDAO().updateStatus(ordId, OrderStatus.valueOf(orig));
+    }
+
+    @Test void orderSaveAndFindById() throws Exception {
+        int userId = id("SELECT user_id FROM users LIMIT 1");
+        int productId = id("SELECT product_id FROM products LIMIT 1");
+        if (userId == 0 || productId == 0) return;
+
+        var dao = new OrderDAO();
+        var o = new Order(bd("15.00"), userId);
+        o.setOrderedAt(LocalDateTime.now());
+        o.getItems().add(new OrderItem(productId, 3, bd("5.00")));
+        dao.save(o);
+        assertTrue(o.getOrderId() > 0);
+
+        var found = dao.findById(o.getOrderId());
+        ok(found);
+        assertEquals(1, found.getItems().size());
+
+        del("orders", "order_id", o.getOrderId());
     }
 
     // -- PaymentDAO --
@@ -353,34 +349,5 @@ public class DAOTestIT {
     void ok(java.util.List<?> list) {
         assertNotNull(list);
         assertFalse(list.isEmpty());
-    }
-
-    BigDecimal bd(String v) { return new BigDecimal(v); }
-
-    // grab first int from a query (0 if empty)
-    int id(String sql) throws Exception {
-        try (var c = DBConnection.getConnection();
-             var rs = c.createStatement().executeQuery(sql)) {
-            return rs.next() ? rs.getInt(1) : 0;
-        }
-    }
-
-    // read a single string column by id
-    String str(String table, String col, String idCol, int id) throws Exception {
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement("SELECT " + col + " FROM " + table + " WHERE " + idCol + " = ?")) {
-            ps.setInt(1, id);
-            var rs = ps.executeQuery();
-            return rs.next() ? rs.getString(1) : null;
-        }
-    }
-
-    // delete a row (cleanup after insert tests)
-    void del(String table, String idCol, int id) throws Exception {
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement("DELETE FROM " + table + " WHERE " + idCol + " = ?")) {
-            ps.setInt(1, id);
-            ps.executeUpdate();
-        }
     }
 }

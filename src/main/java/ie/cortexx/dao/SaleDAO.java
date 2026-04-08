@@ -125,6 +125,18 @@ public class SaleDAO {
         return sales;
     }
 
+    public int countItems(int saleId) throws SQLException {
+        String sql = "SELECT COALESCE(SUM(quantity), 0) FROM sale_items WHERE sale_id = ?";
+
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement(sql)) {
+            ps.setInt(1, saleId);
+            try (var rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
     private Sale mapSale(ResultSet rs) throws SQLException {
         Sale sale = new Sale();
         sale.setSaleId(rs.getInt("sale_id"));

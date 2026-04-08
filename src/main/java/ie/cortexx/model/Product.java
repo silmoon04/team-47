@@ -22,6 +22,8 @@ public class Product {
     // 0.0000 for demo
     private BigDecimal vatRate;
     private String category;
+    private int availability;
+    private int stockLimit;
     private boolean active;
     private LocalDateTime lastSynced;
 
@@ -68,6 +70,12 @@ public class Product {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public int getAvailability() { return availability; }
+    public void setAvailability(int availability) { this.availability = availability; }
+
+    public int getStockLimit() { return stockLimit; }
+    public void setStockLimit(int stockLimit) { this.stockLimit = stockLimit; }
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
