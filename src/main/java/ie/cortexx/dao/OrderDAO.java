@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 // handles SQL for `orders` + `order_items` tables
-// owner: Shakeel
 public class OrderDAO {
 
     public Order findById(int orderId) throws SQLException {
