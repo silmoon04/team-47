@@ -34,7 +34,7 @@ class SAProxyServiceTest {
 
     @Test
     void place_order_rejects_empty_items_after_auth_check() {
-        assertThrows(AuthenticationRequiredException.class, () -> service.placeOrder("ACC-1002", java.util.List.of()));
+        assertThrows(AuthenticationRequiredException.class, () -> service.placeOrder("ACC-0001", java.util.List.of()));
     }
 
     @Test

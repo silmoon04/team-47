@@ -38,7 +38,7 @@ class SettingsServiceTest {
 
         assertNotNull(details);
         assertEquals(1, details.getMerchantId());
-        assertEquals("ACC-1002", details.getSaMerchantId());
+        assertEquals("ACC-0001", details.getSaMerchantId());
     }
 
     @Test

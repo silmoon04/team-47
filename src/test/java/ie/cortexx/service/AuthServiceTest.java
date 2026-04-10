@@ -13,6 +13,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
+import java.sql.SQLException;
+
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
@@ -29,8 +31,9 @@ class AuthServiceTest {
 
     @Test
     void authenticate_logs_user_into_session() throws Exception {
-        User user = new User("sysdba", "masterkey", "System Admin", UserRole.ADMIN);
-        when(userDAO.authenticate("sysdba", "masterkey")).thenReturn(user);
+        String hash = AuthService.hashPassword("masterkey");
+        User user = new User("sysdba", hash, "System Admin", UserRole.ADMIN);
+        when(userDAO.authenticate("sysdba", hash)).thenReturn(user);
 
         assertTrue(authService.authenticate("sysdba", "masterkey"));
         assertSame(user, SessionManager.getInstance().getCurrentUser());
@@ -38,7 +41,24 @@ class AuthServiceTest {
 
     @Test
     void authenticate_rejects_bad_credentials() throws Exception {
-        when(userDAO.authenticate("bad", "pw")).thenReturn(null);
+        when(userDAO.authenticate("bad", AuthService.hashPassword("pw"))).thenReturn(null);
+
+        assertFalse(authService.authenticate("bad", "pw"));
+        assertFalse(SessionManager.getInstance().isLoggedIn());
+    }
+
+    @Test
+    void authenticate_returns_false_when_dao_fails() throws Exception {
+        when(userDAO.authenticate("bad", AuthService.hashPassword("pw"))).thenThrow(new SQLException("db down"));
+
+        assertFalse(authService.authenticate("bad", "pw"));
+        assertFalse(SessionManager.getInstance().isLoggedIn());
+    }
+
+    @Test
+    void authenticate_clears_existing_session_when_credentials_fail() throws Exception {
+        SessionManager.getInstance().login(new User("manager", "pw", "Manager", UserRole.MANAGER));
+        when(userDAO.authenticate("bad", AuthService.hashPassword("pw"))).thenReturn(null);
 
         assertFalse(authService.authenticate("bad", "pw"));
         assertFalse(SessionManager.getInstance().isLoggedIn());
@@ -55,6 +75,6 @@ class AuthServiceTest {
 
     @Test
     void hash_password_is_stable() {
-        assertEquals("demo", AuthService.hashPassword("demo"));
+        assertEquals("2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea", AuthService.hashPassword("demo"));
     }
 }
