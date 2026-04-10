@@ -61,34 +61,41 @@ public class UserManagementPanel extends JPanel {
 
     private void createUser() {
         JDialog createUserDialogue = new JDialog((Frame) null, "Create User Account", true);
-        createUserDialogue.setSize(325, 200);
+        createUserDialogue.setSize(360, 240);
         createUserDialogue.setLocationRelativeTo(this);
         createUserDialogue.setLayout(new BorderLayout(10, 10));
         JPanel bottomPanel = new JPanel(new BorderLayout(5, 5));
         JTextField username = new JTextField();
         JTextField fullName = new JTextField();
+        JPasswordField password = new JPasswordField();
         JComboBox<String> role = new JComboBox<>(new String[]{"MANAGER", "PHARMACIST"});
         JLabel errorLabel = new JLabel(" ", SwingConstants.CENTER);
         errorLabel.setForeground(Color.RED);
-        JPanel fields = new JPanel(new GridLayout(3, 2, -50, 10));
+        JPanel fields = new JPanel(new GridLayout(4, 2, -50, 10));
         fields.add(new JLabel("Username", SwingConstants.CENTER));
         fields.add(username);
         fields.add(new JLabel("Full Name", SwingConstants.CENTER));
         fields.add(fullName);
+        fields.add(new JLabel("Password", SwingConstants.CENTER));
+        fields.add(password);
         fields.add(new JLabel("Role", SwingConstants.CENTER));
         fields.add(role);
         JButton createButton = new JButton("Create User");
         createUserDialogue.add(fields, BorderLayout.CENTER);
         createButton.addActionListener(e -> {
-            if (username.getText().isEmpty() || fullName.getText().isEmpty()) {
-                errorLabel.setText("Please enter both username and full name.");
+            String trimmedUsername = username.getText().trim();
+            String trimmedFullName = fullName.getText().trim();
+            String rawPassword = new String(password.getPassword()).trim();
+
+            if (trimmedUsername.isEmpty() || trimmedFullName.isEmpty() || rawPassword.isEmpty()) {
+                errorLabel.setText("Please enter username, full name, and password.");
                 return;
             }
             try {
                 User user = new User(
-                    username.getText().trim(),
-                    AuthService.hashPassword(username.getText().trim()),
-                    fullName.getText().trim(),
+                    trimmedUsername,
+                    AuthService.hashPassword(rawPassword),
+                    trimmedFullName,
                     UserRole.valueOf(role.getSelectedItem().toString())
                 );
                 userDAO.save(user);

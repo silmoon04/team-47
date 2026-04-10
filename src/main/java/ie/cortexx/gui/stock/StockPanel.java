@@ -1,6 +1,7 @@
 package ie.cortexx.gui.stock;
 
 import ie.cortexx.dao.ProductDAO;
+import ie.cortexx.gui.RefreshablePage;
 import ie.cortexx.gui.util.UI;
 import ie.cortexx.model.Product;
 import ie.cortexx.model.StockItem;
@@ -33,7 +34,7 @@ saves us from manually nesting panels for this common layout.
 */
 
 // shows all products and their quantities in a JTable
-public class StockPanel extends JPanel {
+public class StockPanel extends JPanel implements RefreshablePage {
     private final StockService stockService = new StockService();
     private final ProductDAO productDAO = new ProductDAO();
     private final List<StockItem> items = new ArrayList<>();
@@ -52,6 +53,11 @@ public class StockPanel extends JPanel {
 
     public StockPanel() {
         UI.applyPanel(this);
+        reload();
+    }
+
+    @Override
+    public void refreshPage() {
         reload();
     }
 

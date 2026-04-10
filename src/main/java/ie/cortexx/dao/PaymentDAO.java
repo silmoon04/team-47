@@ -13,12 +13,17 @@ public class PaymentDAO {
     // inserts a payment record. card fields are nullable (null for cash payments)
     // tested in: DAOExampleIT.savePaymentCash
     public void save(Payment payment) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            save(c, payment);
+        }
+    }
+
+    public void save(Connection c, Payment payment) throws SQLException {
         String sql = "INSERT INTO payments (sale_id, customer_id, payment_type, amount, "
                    + "card_type, card_first4, card_last4, card_expiry, change_given) "
                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             // sale_id can be null for standalone account payments
             if (payment.getSaleId() > 0) ps.setInt(1, payment.getSaleId());

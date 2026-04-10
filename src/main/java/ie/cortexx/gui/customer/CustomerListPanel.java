@@ -2,6 +2,7 @@ package ie.cortexx.gui.customer;
 
 import ie.cortexx.enums.DiscountType;
 import ie.cortexx.enums.PaymentType;
+import ie.cortexx.gui.RefreshablePage;
 import ie.cortexx.gui.util.UI;
 import ie.cortexx.model.Customer;
 import ie.cortexx.model.DiscountTier;
@@ -15,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 // customer list on the left with a denser profile card and discount tiers on the right.
-public class CustomerListPanel extends JPanel {
+public class CustomerListPanel extends JPanel implements RefreshablePage {
     private final JPanel detailPanel = UI.transparentPanel(0);
     private final CustomerService customerService = new CustomerService();
     private final List<CustomerRow> rows = new ArrayList<>();
@@ -39,6 +40,11 @@ public class CustomerListPanel extends JPanel {
 
     public CustomerListPanel() {
         UI.applyPanel(this);
+        reload();
+    }
+
+    @Override
+    public void refreshPage() {
         reload();
     }
 

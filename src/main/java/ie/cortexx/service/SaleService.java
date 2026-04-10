@@ -7,6 +7,7 @@ import ie.cortexx.dao.StockDAO;
 import ie.cortexx.dao.PaymentDAO;
 import ie.cortexx.dao.CustomerDAO;
 import ie.cortexx.enums.AccountStatus;
+import ie.cortexx.util.DBConnection;
 
 
 
@@ -19,24 +20,41 @@ import java.util.Map;
 
 public class SaleService {
 
+    @FunctionalInterface
+    public interface TransactionRunner {
+        <T> T execute(DBConnection.TransactionWork<T> work) throws SQLException;
+    }
+
     private final SaleDAO saleDAO;
     private final StockDAO stockDAO;
     private final PaymentDAO paymentDAO;
     private final CustomerDAO customerDAO;
+    private final TransactionRunner transactionRunner;
 
     public SaleService() {
-        this(new SaleDAO(), new StockDAO(), new PaymentDAO(), new CustomerDAO());
+        this(new SaleDAO(), new StockDAO(), new PaymentDAO(), new CustomerDAO(), DBConnection::withTransaction);
     }
 
     public SaleService(SaleDAO saleDAO, StockDAO stockDAO, PaymentDAO paymentDAO, CustomerDAO customerDAO) {
+        this(saleDAO, stockDAO, paymentDAO, customerDAO, DBConnection::withTransaction);
+    }
+
+    public SaleService(SaleDAO saleDAO, StockDAO stockDAO, PaymentDAO paymentDAO, CustomerDAO customerDAO, TransactionRunner transactionRunner) {
         this.saleDAO = saleDAO;
         this.stockDAO = stockDAO;
         this.paymentDAO = paymentDAO;
         this.customerDAO = customerDAO;
+        this.transactionRunner = transactionRunner;
     }
 
     public ValidationResult validateStock(List<SaleItem> items, Map<Integer, Integer> stockLevels){
+        if (items == null || items.isEmpty()) {
+            return ValidationResult.fail("Sale needs at least one item");
+        }
         for (SaleItem item : items) {
+            if (item.getQuantity() <= 0) {
+                return ValidationResult.fail("Item " + item.getProductName() + " has invalid qty");
+            }
             int available = stockLevels.getOrDefault(item.getProductId(), 0);
             if (available < item.getQuantity()) {
                 return ValidationResult.fail("Item " + item.getProductName() + " is out of stock");
@@ -70,10 +88,35 @@ public class SaleService {
         return ValidationResult.ok();
     }
 
+    public ValidationResult validatePayment(Payment payment) {
+        if (payment == null || payment.getPaymentType() == null) {
+            return ValidationResult.fail("Payment type is required");
+        }
+        if (payment.getPaymentType() == PaymentType.ACCOUNT_PAYMENT) {
+            return ValidationResult.fail("Account payment is not valid for checkout");
+        }
+        if (payment.getPaymentType() != PaymentType.ON_CREDIT
+            && (payment.getAmount() == null || payment.getAmount().compareTo(BigDecimal.ZERO) <= 0)) {
+            return ValidationResult.fail("Payment amount must be greater than 0");
+        }
+        return ValidationResult.ok();
+    }
+
     public ValidationResult processSale(Sale sale, Payment payment) {
+        ValidationResult paymentValidation = validatePayment(payment);
+        if (!paymentValidation.isValid()) {
+            return paymentValidation;
+        }
+
         // use the sale total for credit
         BigDecimal grandTotal = sale.getTotalAmount() != null ? sale.getTotalAmount() : payment.getAmount();
         PaymentType paymentType = payment.getPaymentType();
+
+        if (paymentType != PaymentType.ON_CREDIT
+            && payment.getAmount() != null
+            && payment.getAmount().compareTo(grandTotal) < 0) {
+            return ValidationResult.fail("Payment amount must cover sale total");
+        }
 
         Map<Integer, Integer> stockLevels = new HashMap<>();
         try{
@@ -132,27 +175,42 @@ public class SaleService {
             }
         }
 
+        Customer resolvedCustomer = customer;
+        BigDecimal resolvedGrandTotal = grandTotal;
+        PaymentType resolvedPaymentType = paymentType;
+
 
         try{
-            saleDAO.save(sale);
-            payment.setSaleId(sale.getSaleId());
+            transactionRunner.execute(connection -> {
+                saleDAO.save(connection, sale);
+                payment.setSaleId(sale.getSaleId());
 
-            for(SaleItem item : sale.getItems()) {
-                int deduct = -item.getQuantity();
-                stockDAO.updateQuantity(item.getProductId(), deduct);
-            }
+                for (SaleItem item : sale.getItems()) {
+                    boolean deducted = stockDAO.tryDeductQuantity(connection, item.getProductId(), item.getQuantity());
+                    if (!deducted) {
+                        throw new SQLException("Item " + item.getProductName() + " is out of stock");
+                    }
+                }
 
-            if (paymentType == PaymentType.ON_CREDIT) {
-                payment.setAmount(grandTotal);
-            }
-            paymentDAO.save(payment);
+                if (resolvedPaymentType == PaymentType.ON_CREDIT) {
+                    payment.setAmount(resolvedGrandTotal);
+                }
+                if (resolvedCustomer != null) {
+                    payment.setCustomerId(resolvedCustomer.getCustomerId());
+                }
+                paymentDAO.save(connection, payment);
 
-            if (paymentType == PaymentType.ON_CREDIT && customer != null) {
-                BigDecimal newBalance = customer.getOutstandingBalance().add(grandTotal);
-                customerDAO.updateBalance(customer.getCustomerId(), newBalance);
-            }
+                if (resolvedPaymentType == PaymentType.ON_CREDIT && resolvedCustomer != null) {
+                    BigDecimal newBalance = resolvedCustomer.getOutstandingBalance().add(resolvedGrandTotal);
+                    customerDAO.updateBalance(connection, resolvedCustomer.getCustomerId(), newBalance);
+                }
 
+                return null;
+            });
         } catch(SQLException error) {
+            sale.setSaleId(0);
+            payment.setSaleId(0);
+            payment.setPaymentId(0);
             return ValidationResult.fail(error.getMessage());
         }
         return ValidationResult.ok();

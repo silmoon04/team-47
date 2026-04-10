@@ -16,7 +16,9 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Image;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 // main application window
 // shows login first, then switches to tabs based on user role
@@ -49,10 +51,12 @@ public class MainFrame extends JFrame {
 
         CardLayout cardLayout = new CardLayout();
         JPanel content = new JPanel(cardLayout);
+        Map<String, JComponent> pageComponents = new LinkedHashMap<>();
 
-        List<SidePanel.Page> pages = buildPages(role, content);
+        List<SidePanel.Page> pages = buildPages(role, content, pageComponents);
         SidePanel sidePanel = new SidePanel(this, pages, page -> {
                 activePageTitle = page.title();
+            refreshPage(pageComponents.get(page.title()));
                 cardLayout.show(content, page.title());
             },
             session.username(),
@@ -64,6 +68,7 @@ public class MainFrame extends JFrame {
         root.add(content, BorderLayout.CENTER);
         if (!pages.isEmpty()) {
             String target = activePageTitle != null ? activePageTitle : pages.get(0).title();
+            refreshPage(pageComponents.get(target));
             cardLayout.show(content, target);
         }
         revalidate();
@@ -93,31 +98,38 @@ public class MainFrame extends JFrame {
         setIconImage(image);
     }
 
-    private List<SidePanel.Page> buildPages(String role, JPanel content) {
+    private List<SidePanel.Page> buildPages(String role, JPanel content, Map<String, JComponent> pageComponents) {
         List<SidePanel.Page> pages = new ArrayList<>();
 
         // admin tabs
         if ("admin".equalsIgnoreCase(role)) {
-            addPage(content, pages, "User Management", "icons/user-cog.svg", new UserManagementPanel());
+            addPage(content, pages, pageComponents, "User Management", "icons/user-cog.svg", new UserManagementPanel());
             return pages;
         }
         // pharmacist tabs
-        addPage(content, pages, "Sales", "icons/shopping-cart.svg", new POSPanel());
-        addPage(content, pages, "Stock", "icons/package.svg", new StockPanel());
-        addPage(content, pages, "Customers", "icons/users.svg", new CustomerListPanel());
-        addPage(content, pages, "Catalogue", "icons/book-open.svg", new CataloguePanel());
-        addPage(content, pages, "Orders", "icons/truck.svg", new OrderPanel());
+        addPage(content, pages, pageComponents, "Sales", "icons/shopping-cart.svg", new POSPanel());
+        addPage(content, pages, pageComponents, "Stock", "icons/package.svg", new StockPanel());
+        addPage(content, pages, pageComponents, "Customers", "icons/users.svg", new CustomerListPanel());
+        addPage(content, pages, pageComponents, "Catalogue", "icons/book-open.svg", new CataloguePanel());
+        addPage(content, pages, pageComponents, "Orders", "icons/truck.svg", new OrderPanel());
         // manager tabs
         if ("manager".equalsIgnoreCase(role)) {
-            addPage(content, pages, "Reports", "icons/bar-chart-3.svg", new ReportPanel());
-            addPage(content, pages, "Settings", "icons/settings.svg", new SettingsPanel());
+            addPage(content, pages, pageComponents, "Reports", "icons/bar-chart-3.svg", new ReportPanel());
+            addPage(content, pages, pageComponents, "Settings", "icons/settings.svg", new SettingsPanel());
         }
         return pages;
     }
 
-    private void addPage(JPanel content, List<SidePanel.Page> pages, String title, String iconPath, JComponent page) {
+    private void addPage(JPanel content, List<SidePanel.Page> pages, Map<String, JComponent> pageComponents, String title, String iconPath, JComponent page) {
         pages.add(new SidePanel.Page(title, iconPath));
+        pageComponents.put(title, page);
         content.add(page, title);
+    }
+
+    private void refreshPage(JComponent page) {
+        if (page instanceof RefreshablePage refreshablePage) {
+            refreshablePage.refreshPage();
+        }
     }
 
     public void login(String username, String role) {

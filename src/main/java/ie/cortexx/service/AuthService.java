@@ -13,7 +13,11 @@ import ie.cortexx.dao.UserDAO;
 import ie.cortexx.model.User;
 import ie.cortexx.util.SessionManager;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
+import java.util.HexFormat;
 
 public class AuthService {
     private final UserDAO userDAO;
@@ -27,12 +31,14 @@ public class AuthService {
             String passwordHash = hashPassword(password);
             User user = userDAO.authenticate(username, passwordHash);
             if (user == null) {
+                SessionManager.getInstance().logout();
                 return false;
             }
             SessionManager.getInstance().login(user);
             return true;
         } catch (SQLException error) {
             System.out.println(error.getMessage());
+            SessionManager.getInstance().logout();
             return false;
         }
     }
@@ -42,6 +48,16 @@ public class AuthService {
     }
 
     public static String hashPassword(String password) {
-        return password;
+        if (password == null) {
+            throw new IllegalArgumentException("password is required");
+        }
+
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(bytes);
+        } catch (NoSuchAlgorithmException error) {
+            throw new IllegalStateException("sha-256 not available", error);
+        }
     }
 }
