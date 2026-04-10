@@ -9,6 +9,11 @@ import java.io.IOException;
 
 public class DBConnection {
 
+    @FunctionalInterface
+    public interface TransactionWork<T> {
+        T run(Connection connection) throws SQLException;
+    }
+
     private static String url;
     private static String user;
     private static String password;
@@ -47,6 +52,24 @@ public class DBConnection {
 
     public static Connection getTestConnection() throws SQLException {
         return DriverManager.getConnection(testUrl, user, password);
+    }
+
+    public static <T> T withTransaction(TransactionWork<T> work) throws SQLException {
+        try (Connection connection = getConnection()) {
+            boolean previousAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+
+            try {
+                T result = work.run(connection);
+                connection.commit();
+                return result;
+            } catch (SQLException | RuntimeException error) {
+                connection.rollback();
+                throw error;
+            } finally {
+                connection.setAutoCommit(previousAutoCommit);
+            }
+        }
     }
 
     public static boolean isUsingTestDatabase() {

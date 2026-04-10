@@ -29,13 +29,18 @@ public class StockDAO {
 
     // find stock for a specific product (add WHERE s.product_id = ?)
     public StockItem findByProductId(int productId) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            return findByProductId(c, productId);
+        }
+    }
+
+    public StockItem findByProductId(Connection c, int productId) throws SQLException {
         String sql = "SELECT s.stock_id, s.product_id, s.quantity, s.reorder_level, "
             + "p.name, p.sa_product_id, p.cost_price, p.markup_rate "
             + "FROM stock s JOIN products p ON s.product_id = p.product_id "
             + "WHERE s.product_id = ?";
 
-        try (var c = DBConnection.getConnection();
-            var ps = c.prepareStatement(sql)){
+        try (var ps = c.prepareStatement(sql)){
             ps.setInt(1, productId);
 
             try (var rs = ps.executeQuery()){
@@ -50,12 +55,33 @@ public class StockDAO {
     // the CHECK (quantity >= 0) in the schema will reject if it goes negative
     // tested in: DAOExampleIT.updateQuantityDeductsStock
     public void updateQuantity(int productId, int delta) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            updateQuantity(c, productId, delta);
+        }
+    }
+
+    public void updateQuantity(Connection c, int productId, int delta) throws SQLException {
         String sql = "UPDATE stock SET quantity = quantity + ? WHERE product_id = ?";
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql)) {
+        try (var ps = c.prepareStatement(sql)) {
             ps.setInt(1, delta);
             ps.setInt(2, productId);
             ps.executeUpdate();
+        }
+    }
+
+    public boolean tryDeductQuantity(int productId, int quantity) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            return tryDeductQuantity(c, productId, quantity);
+        }
+    }
+
+    public boolean tryDeductQuantity(Connection c, int productId, int quantity) throws SQLException {
+        String sql = "UPDATE stock SET quantity = quantity - ? WHERE product_id = ? AND quantity >= ?";
+        try (var ps = c.prepareStatement(sql)) {
+            ps.setInt(1, quantity);
+            ps.setInt(2, productId);
+            ps.setInt(3, quantity);
+            return ps.executeUpdate() == 1;
         }
     }
 

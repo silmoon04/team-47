@@ -13,7 +13,7 @@ USE iposca_database;
 
 -- only sysdba is actually pre-seeded, we need to create others live during demo
 INSERT INTO users (username, password_hash, full_name, role, merchant_id) VALUES
-    ('sysdba', 'masterkey', 'System Administrator', 'ADMIN', 1);
+    ('sysdba', '48c5a1d217fe85082464d2ca1e90a16d15464fabe20f8610d79b63aa58797b9b', 'System Administrator', 'ADMIN', 1);
 
 -- added historical orders
 -- scenario 2: 25 feb, cosymed ordered from SA, £376, delivered 26 feb

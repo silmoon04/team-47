@@ -13,10 +13,15 @@ import java.util.List;
 public class CustomerDAO {
 
     public Customer findById(int customerId) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            return findById(c, customerId);
+        }
+    }
+
+    public Customer findById(Connection c, int customerId) throws SQLException {
         String sql = "SELECT * FROM customers WHERE customer_id = ?";
 
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql)) {
+        try (var ps = c.prepareStatement(sql)) {
             ps.setInt(1, customerId);
             try (var rs = ps.executeQuery()) {
                 if (!rs.next()) return null;
@@ -36,6 +41,12 @@ public class CustomerDAO {
     }
 
     public void save(Customer customer) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            save(c, customer);
+        }
+    }
+
+    public void save(Connection c, Customer customer) throws SQLException {
         String sql = "INSERT INTO customers (" +
             "account_no, name, contact_name, email, phone, address, " +
             "account_status, credit_limit, outstanding_balance, discount_type, " +
@@ -56,8 +67,7 @@ public class CustomerDAO {
             customer.setAccountStatus(AccountStatus.NORMAL);
         }
 
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             bindCustomerFields(ps, customer);
             ps.executeUpdate();
@@ -71,6 +81,12 @@ public class CustomerDAO {
     }
 
     public void update(Customer customer) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            update(c, customer);
+        }
+    }
+
+    public void update(Connection c, Customer customer) throws SQLException {
         String sql = "UPDATE customers SET " +
             "account_no = ?, name = ?, contact_name = ?, email = ?, phone = ?, address = ?, " +
             "account_status = ?, credit_limit = ?, outstanding_balance = ?, discount_type = ?, " +
@@ -81,8 +97,7 @@ public class CustomerDAO {
             "created_at = ?, created_by = ?, merchant_id = ? " +
             "WHERE customer_id = ?";
 
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql)) {
+        try (var ps = c.prepareStatement(sql)) {
 
             bindCustomerFields(ps, customer);
             ps.setInt(22, customer.getCustomerId());
@@ -96,10 +111,15 @@ public class CustomerDAO {
     // used by DebtCycleService for auto-suspend/restore/default
     // tested in: DAOExampleIT.updateAccountStatusWorks
     public void updateAccountStatus(int customerId, AccountStatus status) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            updateAccountStatus(c, customerId, status);
+        }
+    }
+
+    public void updateAccountStatus(Connection c, int customerId, AccountStatus status) throws SQLException {
         String sql = "UPDATE customers SET account_status = ? WHERE customer_id = ?";
 
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql)) {
+        try (var ps = c.prepareStatement(sql)) {
 
             ps.setString(1, status.name());
             ps.setInt(2, customerId);
@@ -109,9 +129,14 @@ public class CustomerDAO {
 
     // updates outstanding balance (needed for sales + payments)
     public void updateBalance(int customerId, BigDecimal newBalance) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            updateBalance(c, customerId, newBalance);
+        }
+    }
+
+    public void updateBalance(Connection c, int customerId, BigDecimal newBalance) throws SQLException {
         String sql = "UPDATE customers SET outstanding_balance = ? WHERE customer_id = ?";
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql)) {
+        try (var ps = c.prepareStatement(sql)) {
             ps.setBigDecimal(1, newBalance);
             ps.setInt(2, customerId);
             ps.executeUpdate();

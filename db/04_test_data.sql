@@ -32,7 +32,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- need merchant details first (users FK depends on it)
 INSERT INTO merchant_details (merchant_id, business_name, address, phone, email, sa_merchant_id, sa_username, sa_password) VALUES
-    (1, 'Test Pharmacy', '14 Green Lane, London EC1V 0HB', '0207 000 0001', 'info@testpharmacy.local', 'ACC-1002', 'cosymed', 'bondstreet');
+    (1, 'Test Pharmacy', '14 Green Lane, London EC1V 0HB', '0207 000 0001', 'info@testpharmacy.local', 'ACC-0001', 'admin', 'admin123');
 
 -- basic config
 INSERT INTO system_config (config_key, config_value) VALUES
@@ -43,10 +43,10 @@ INSERT INTO system_config (config_key, config_value) VALUES
 
 -- fixed columns, added random hash
 INSERT INTO users (username, password_hash, full_name, role, merchant_id) VALUES
-    ('admin',       'ipos_sys',   'System Administrator', 'ADMIN',      1),
-    ('manager1',    'ipos_mg',  'Shakira Patel',       'MANAGER',    1),
-    ('pharmacist1', 'ipos_pharma',  'Daniel Craig',        'PHARMACIST', 1),
-    ('pharmacist2', 'ipos_pharma',  'Hannah May',          'PHARMACIST', 1);
+    ('admin',       '5cf9422de300411c28f198aff3e9efc4d7e3ae08bf73d0ca1310f0d1cee37782',   'System Administrator', 'ADMIN',      1),
+    ('manager1',    'de4bb6065808183cd09377f85570f40941c840bef475d7fd7e8fe657cfc789de',  'Shakira Patel',       'MANAGER',    1),
+    ('pharmacist1', '9feacbadee4eebd665ab123c06af28ed19c694a249f95d4a7bd4a2ff021840c3',  'Daniel Craig',        'PHARMACIST', 1),
+    ('pharmacist2', '9feacbadee4eebd665ab123c06af28ed19c694a249f95d4a7bd4a2ff021840c3',  'Hannah May',          'PHARMACIST', 1);
 
 -- fixed columns and types differences, kept her original products for testing variety
 INSERT INTO products (sa_product_id, name, cost_price, markup_rate, vat_rate, category, is_active) VALUES
@@ -180,10 +180,10 @@ INSERT INTO templates (template_type, content) VALUES
 
 -- login and role edges
 INSERT INTO users (username, password_hash, full_name, email, phone, role, is_active, merchant_id) VALUES
-    ('edge_admin', 'edge_admin', 'Edge Admin', '', '', 'ADMIN', TRUE, 1),
-    ('edge_manager', 'edge_manager', 'Edge Manager', '', '', 'MANAGER', TRUE, 1),
-    ('edge_pharmacist', 'edge_pharmacist', 'Edge Pharmacist', '', '', 'PHARMACIST', TRUE, 1),
-    ('edge_inactive', 'edge_inactive', 'Edge Inactive', '', '', 'PHARMACIST', FALSE, 1);
+    ('edge_admin', '301186de8a02763fef5a28c9f5ff82d921c987ac8d08cc36e34a4fb686b72bdd', 'Edge Admin', '', '', 'ADMIN', TRUE, 1),
+    ('edge_manager', 'c7223d47958d9f31b09eaf954d74ea45b8eaf88d63122d72a1732d9fea43176a', 'Edge Manager', '', '', 'MANAGER', TRUE, 1),
+    ('edge_pharmacist', 'b7abdac3ac749dcd392169eceb54e084ba49ab6e7bf45532608447d3ad44f8f4', 'Edge Pharmacist', '', '', 'PHARMACIST', TRUE, 1),
+    ('edge_inactive', '70f6aaec84ed3db3f58d78bfad878bc67b04c10a6aa6c6d9a6c52621dd8fb2cd', 'Edge Inactive', '', '', 'PHARMACIST', FALSE, 1);
 
 -- inactive product edge for active-only queries
 INSERT INTO products (sa_product_id, name, cost_price, markup_rate, vat_rate, category, is_active) VALUES
