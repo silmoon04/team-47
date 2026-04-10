@@ -26,9 +26,19 @@ import java.util.List;
 // places orders through Team A, tracks delivery status
 public class OrderService {
     public enum RemoteSource {
-        LIVE_SA,
-        LOCAL_CACHE,
-        NONE
+        LIVE_SA("LIVE SA"),
+        LOCAL_CACHE("LOCAL CACHE"),
+        NONE("SA ISSUE");
+
+        private final String label;
+
+        RemoteSource(String label) {
+            this.label = label;
+        }
+
+        public String label() {
+            return label;
+        }
     }
 
     public enum RemoteIssue {

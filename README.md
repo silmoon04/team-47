@@ -27,6 +27,8 @@ cp src/main/resources/db.properties.example src/main/resources/db.properties
 mvn clean compile exec:java -Dexec.mainClass="ie.cortexx.Main"
 ```
 
+Report PDF export works after cloning with the normal Maven build. No separate Typst installation is required.
+
 ### Run Tests
 ```bash
 mvn test

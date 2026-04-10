@@ -45,6 +45,37 @@ class SaleDAOIT {
         }
     }
 
+    @Test
+    void findByDateRange_includes_same_day_sales_after_midnight() throws Exception {
+        SaleDAO dao = new SaleDAO();
+        Sale sale = sale();
+        sale.setSaleDate(LocalDateTime.of(2026, 4, 10, 18, 30));
+
+        dao.save(sale);
+
+        try {
+            assertTrue(dao.findByDateRange(LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10))
+                .stream().anyMatch(x -> x.getSaleId() == sale.getSaleId()));
+        } finally {
+            del("sales", "sale_id", sale.getSaleId());
+        }
+    }
+
+    @Test
+    void find_items_by_sale_id_returns_saved_items() throws Exception {
+        SaleDAO dao = new SaleDAO();
+        Sale sale = sale();
+
+        dao.save(sale);
+
+        try {
+            assertEquals(1, dao.findItemsBySaleId(sale.getSaleId()).size());
+            assertEquals(sale.getItems().get(0).getProductName(), dao.findItemsBySaleId(sale.getSaleId()).get(0).getProductName());
+        } finally {
+            del("sales", "sale_id", sale.getSaleId());
+        }
+    }
+
     private Sale sale() throws Exception {
         int userId = id("SELECT user_id FROM users LIMIT 1");
         int productId = id("SELECT product_id FROM products LIMIT 1");

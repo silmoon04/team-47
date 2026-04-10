@@ -24,6 +24,7 @@
         <slf4j.version>2.0.16</slf4j.version>
         <logback.version>1.5.15</logback.version>
         <flatlaf.version>3.5.4</flatlaf.version>
+        <pdfbox.version>3.0.3</pdfbox.version>
         <jacoco.version>0.8.12</jacoco.version>
     </properties>
 
@@ -86,6 +87,12 @@
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf-extras</artifactId>
             <version>${flatlaf.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
         </dependency>
     </dependencies>
 

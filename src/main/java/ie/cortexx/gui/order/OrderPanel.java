@@ -71,16 +71,8 @@ public class OrderPanel extends JPanel implements RefreshablePage {
             order.getDeliveredAt() != null ? order.getDeliveredAt().toLocalDate().toString() : "-"
         )).toList());
 
-        JComponent content = orders.isEmpty() ? UI.emptyState(emptyOrdersMessage(state)) : table.scroll();
-        JPanel header = toolbar;
-        if (!state.message().isBlank()) {
-            JPanel top = UI.panel();
-            top.add(buildStatusBanner(state), BorderLayout.NORTH);
-            top.add(toolbar, BorderLayout.SOUTH);
-            header = top;
-        }
-
-        return UI.pageWithStats(stats, header, content);
+        JComponent content = orders.isEmpty() ? UI.emptyState(emptyOrdersMessage()) : table.scroll();
+        return UI.pageWithStats(stats, toolbar, UI.withFooter(content, statusBanner(state)));
     }
 
     private JComponent buildOnlineOrders() {
@@ -125,22 +117,19 @@ public class OrderPanel extends JPanel implements RefreshablePage {
     }
 
     private JComponent buildStatusBanner(OrderService.RemoteView<?> view) {
-        JPanel banner = UI.paddedPanel(0, 0, 8, 0);
-        banner.setOpaque(false);
-        String badge = switch (view.source()) {
-            case LIVE_SA -> "LIVE SA";
-            case LOCAL_CACHE -> "LOCAL CACHE";
-            case NONE -> "SA ISSUE";
+        Color tone = switch (view.source()) {
+            case LIVE_SA -> UI.ACCENT;
+            case LOCAL_CACHE -> UI.ORANGE;
+            case NONE -> UI.RED;
         };
-        banner.add(UI.badge(badge), BorderLayout.WEST);
-        banner.add(UI.monoLabel(view.message(), 11f, view.isLive() ? UI.TEXT_DIM : UI.ORANGE), BorderLayout.CENTER);
-        return banner;
+        return UI.fullWidth(UI.statusBanner(view.source().label(), view.message(), tone));
     }
 
-    private String emptyOrdersMessage(OrderService.RemoteView<Order> view) {
-        if (!view.message().isBlank()) {
-            return view.message();
-        }
+    private JComponent statusBanner(OrderService.RemoteView<?> state) {
+        return state.message().isBlank() ? null : buildStatusBanner(state);
+    }
+
+    private String emptyOrdersMessage() {
         return "No SA orders yet";
     }
 

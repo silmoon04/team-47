@@ -45,7 +45,7 @@ public class CataloguePanel extends JPanel implements RefreshablePage {
         var toolbar = UI.toolbar("Search catalogue...", table.table(), syncButton, placeOrder);
 
         JComponent body = currentView.rows().isEmpty() ? UI.emptyState(emptyMessage()) : table.scroll();
-        add(UI.toolbarAndTable(buildHeader(toolbar), body), BorderLayout.CENTER);
+        add(UI.toolbarAndTable(toolbar, UI.withFooter(body, statusBanner())), BorderLayout.CENTER);
         revalidate();
         repaint();
     }
@@ -99,34 +99,20 @@ public class CataloguePanel extends JPanel implements RefreshablePage {
         }
     }
 
-    private JPanel buildHeader(JPanel toolbar) {
-        if (currentView.message().isBlank()) {
-            return toolbar;
-        }
-
-        JPanel header = UI.panel();
-        header.add(buildStatusBanner(currentView), BorderLayout.NORTH);
-        header.add(toolbar, BorderLayout.SOUTH);
-        return header;
+    private JComponent statusBanner() {
+        return currentView.message().isBlank() ? null : buildStatusBanner(currentView);
     }
 
     private JComponent buildStatusBanner(OrderService.RemoteView<?> view) {
-        JPanel banner = UI.paddedPanel(0, 0, 8, 0);
-        banner.setOpaque(false);
-        String badge = switch (view.source()) {
-            case LIVE_SA -> "LIVE SA";
-            case LOCAL_CACHE -> "LOCAL CACHE";
-            case NONE -> "SA ISSUE";
+        Color tone = switch (view.source()) {
+            case LIVE_SA -> UI.ACCENT;
+            case LOCAL_CACHE -> UI.ORANGE;
+            case NONE -> UI.RED;
         };
-        banner.add(UI.badge(badge), BorderLayout.WEST);
-        banner.add(UI.monoLabel(view.message(), 11f, view.isLive() ? UI.TEXT_DIM : UI.ORANGE), BorderLayout.CENTER);
-        return banner;
+        return UI.fullWidth(UI.statusBanner(view.source().label(), view.message(), tone));
     }
 
     private String emptyMessage() {
-        if (!currentView.message().isBlank()) {
-            return currentView.message();
-        }
         return "No catalogue rows available";
     }
 

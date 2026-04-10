@@ -142,6 +142,18 @@ final class UILayouts {
         return panel;
     }
 
+    static JComponent withFooter(JComponent content, JComponent footer) {
+        if (footer == null) {
+            return content;
+        }
+
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        panel.setOpaque(false);
+        panel.add(content, BorderLayout.CENTER);
+        panel.add(footer, BorderLayout.SOUTH);
+        return panel;
+    }
+
     static JPanel pageWithStats(JPanel stats, JPanel toolbar, JComponent tableContent) {
         JPanel panel = new JPanel(new BorderLayout(0, 16));
         panel.setBackground(UI.BG);

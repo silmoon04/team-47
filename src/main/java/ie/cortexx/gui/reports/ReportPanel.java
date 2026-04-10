@@ -1,38 +1,32 @@
 package ie.cortexx.gui.reports;
 
+import ie.cortexx.enums.AccountStatus;
 import ie.cortexx.gui.util.UI;
 import ie.cortexx.model.Customer;
-import ie.cortexx.model.Sale;
-import ie.cortexx.model.StockItem;
+import ie.cortexx.model.ReportDocument;
 import ie.cortexx.service.CustomerService;
+import ie.cortexx.service.ReportExportService;
 import ie.cortexx.service.ReportService;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/*
-
-custom toolbar since we need combo + date fields + buttons.
-flowRow() keeps controls in a horizontal row.
-
-content area swaps tables based on selected report type.
-each show*() builds a fresh table (simpler than reusing one and swapping cols).
-
-*/
-
-// date range picker + report type, generates different report tables
 public class ReportPanel extends JPanel {
     private final ReportService reportService = new ReportService();
     private final CustomerService customerService = new CustomerService();
+    private final ReportExportService reportExportService = new ReportExportService();
     private JPanel contentArea;
     private JComboBox<String> reportType;
     private JTextField fromField;
     private JTextField toField;
+    private ReportDocument currentReport;
 
     private record TurnoverRow(String saleId, String customer, String date, String payment, String total) {}
     private record StockRow(String product, int qty, String cost, String retail, String value, String status) {}
@@ -53,7 +47,9 @@ public class ReportPanel extends JPanel {
         toolbar.add(left, BorderLayout.WEST);
         JButton generate = UI.primaryButton("Generate");
         generate.addActionListener(e -> refreshReport());
-        toolbar.add(UI.buttonRow(generate, UI.button("Export")), BorderLayout.EAST);
+        JButton export = UI.button("Export");
+        export.addActionListener(e -> exportCurrentReport());
+        toolbar.add(UI.buttonRow(generate, export), BorderLayout.EAST);
         add(toolbar, BorderLayout.NORTH);
 
         contentArea = UI.transparentPanel(0);
@@ -69,11 +65,17 @@ public class ReportPanel extends JPanel {
                 case "Turnover" -> showTurnover();
                 case "Stock" -> showStock();
                 case "Debt Summary" -> showDebt();
-                default -> UI.swap(contentArea, UI.emptyState("No data"));
+                case "Late Customers" -> showLateCustomers();
+                default -> clearReport("No data");
             }
         } catch (Exception error) {
-            UI.swap(contentArea, UI.emptyState(error.getMessage()));
+            clearReport(error.getMessage());
         }
+    }
+
+    private void clearReport(String message) {
+        currentReport = null;
+        UI.swap(contentArea, UI.emptyState(message));
     }
 
     private void showTurnover() throws Exception {
@@ -99,6 +101,12 @@ public class ReportPanel extends JPanel {
             UI.badgeCol("Payment", TurnoverRow::payment),
             UI.monoCol("Total", TurnoverRow::total)
         ).rows(rows);
+        currentReport = new ReportDocument(
+            "Turnover Report",
+            fromField.getText().trim() + " to " + toField.getText().trim(),
+            List.of("Sale #", "Customer", "Date", "Payment", "Total"),
+            rows.stream().map(row -> List.of(row.saleId(), row.customer(), row.date(), row.payment(), row.total())).toList()
+        );
         UI.swap(contentArea, rows.isEmpty() ? UI.emptyState("No turnover data") : table.scroll());
     }
 
@@ -124,11 +132,31 @@ public class ReportPanel extends JPanel {
             UI.monoCol("Value", StockRow::value),
             UI.badgeCol("Status", StockRow::status)
         ).rows(rows);
+        currentReport = new ReportDocument(
+            "Stock Report",
+            "Generated " + LocalDate.now(),
+            List.of("Product", "Qty", "Cost", "Retail", "Value", "Status"),
+            rows.stream().map(row -> List.of(row.product(), String.valueOf(row.qty()), row.cost(), row.retail(), row.value(), row.status())).toList()
+        );
         UI.swap(contentArea, rows.isEmpty() ? UI.emptyState("No stock data") : table.scroll());
     }
 
     private void showDebt() throws Exception {
-        List<DebtRow> rows = reportService.getDebtSummary().stream().map(customer -> new DebtRow(
+        showDebtReport("Debt Summary Report", "No debt data", reportService.getDebtSummary());
+    }
+
+    private void showLateCustomers() throws Exception {
+        showDebtReport(
+            "Late Customers Report",
+            "No late customers",
+            reportService.getDebtSummary().stream()
+                .filter(customer -> customer.getAccountStatus() == AccountStatus.SUSPENDED || customer.getAccountStatus() == AccountStatus.IN_DEFAULT)
+                .toList()
+        );
+    }
+
+    private void showDebtReport(String title, String emptyMessage, List<Customer> customers) {
+        List<DebtRow> rows = customers.stream().map(customer -> new DebtRow(
             customer.getName(),
             text(customer.getAccountNo()),
             customer.getAccountStatus().name(),
@@ -143,7 +171,37 @@ public class ReportPanel extends JPanel {
             UI.monoCol("Balance", DebtRow::balance),
             UI.monoCol("Limit", DebtRow::limit)
         ).rows(rows);
-        UI.swap(contentArea, rows.isEmpty() ? UI.emptyState("No debt data") : table.scroll());
+        currentReport = new ReportDocument(
+            title,
+            "Generated " + LocalDate.now(),
+            List.of("Customer", "Account", "Status", "Balance", "Limit"),
+            rows.stream().map(row -> List.of(row.customer(), row.account(), row.status(), row.balance(), row.limit())).toList()
+        );
+        UI.swap(contentArea, rows.isEmpty() ? UI.emptyState(emptyMessage) : table.scroll());
+    }
+
+    private void exportCurrentReport() {
+        if (currentReport == null || currentReport.rows().isEmpty()) {
+            UI.notifyInfo(this, "Generate a report before exporting.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new File(slug(currentReport.title()) + "-" + LocalDate.now() + ".pdf"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        try {
+            ReportExportService.ExportResult result = reportExportService.export(currentReport, chooser.getSelectedFile().toPath());
+            UI.notifySuccess(this, result.message() + " Saved to " + result.filePath());
+        } catch (IOException error) {
+            UI.notifyError(this, error.getMessage());
+        }
+    }
+
+    private String slug(String value) {
+        return value.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
     }
 
     private String money(BigDecimal amount) {

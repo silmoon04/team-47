@@ -36,4 +36,14 @@ public class ProductDAOIT {
         assertTrue(products.stream().anyMatch(p -> TestDatabaseHelper.PRODUCT_LOW.equals(p.getSaProductId())));
         assertFalse(products.stream().anyMatch(p -> TestDatabaseHelper.PRODUCT_INACTIVE.equals(p.getSaProductId())));
     }
+
+    @Test
+    void findBySaProductId_matches_legacy_spaced_id_against_hyphenated_seed() throws Exception {
+        var dao = new ProductDAO();
+
+        Product product = dao.findBySaProductId("TEST OK 001");
+
+        assertNotNull(product);
+        assertEquals(TestDatabaseHelper.PRODUCT_OK, product.getSaProductId());
+    }
 }

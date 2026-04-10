@@ -363,6 +363,10 @@ public final class UI {
         return UILayouts.toolbarAndTable(toolbar, content);
     }
 
+    public static JComponent withFooter(JComponent content, JComponent footer) {
+        return UILayouts.withFooter(content, footer);
+    }
+
     public static JPanel pageWithStats(JPanel stats, JPanel toolbar, JComponent tableContent) {
         return UILayouts.pageWithStats(stats, toolbar, tableContent);
     }
@@ -608,5 +612,49 @@ public final class UI {
 
     public static TableCellRenderer plainTableRenderer() {
         return UIControls.plainTableRenderer();
+    }
+
+    public static void notifyInfo(Component owner, String message) {
+        UINotifier.notifyInfo(owner, message);
+    }
+
+    public static void notifySuccess(Component owner, String message) {
+        UINotifier.notifySuccess(owner, message);
+    }
+
+    public static void notifyError(Component owner, String message) {
+        UINotifier.notifyError(owner, message);
+    }
+
+    public static JComponent statusBanner(String labelText, String message, Color tone) {
+        Color border = mix(BORDER, tone, isDarkTheme() ? 0.55f : 0.35f);
+        Color fill = mix(BG, tone, isDarkTheme() ? 0.18f : 0.08f);
+
+        JPanel banner = new JPanel(new BorderLayout(10, 0)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(fill);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), FIELD_ARC, FIELD_ARC);
+                g2.setColor(border);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, FIELD_ARC, FIELD_ARC);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        banner.setOpaque(false);
+        banner.setBorder(new EmptyBorder(8, 12, 8, 12));
+        banner.add(monoLabelBold(labelText, 11f, tone), BorderLayout.WEST);
+        banner.add(monoLabel(message == null ? "" : message, 11f, isDarkTheme() ? TEXT_DIM : TEXT_MUTED), BorderLayout.CENTER);
+        return banner;
+    }
+
+    private static Color mix(Color base, Color accent, float ratio) {
+        float clamped = Math.max(0f, Math.min(1f, ratio));
+        int red = Math.round(base.getRed() + (accent.getRed() - base.getRed()) * clamped);
+        int green = Math.round(base.getGreen() + (accent.getGreen() - base.getGreen()) * clamped);
+        int blue = Math.round(base.getBlue() + (accent.getBlue() - base.getBlue()) * clamped);
+        return new Color(red, green, blue);
     }
 }
