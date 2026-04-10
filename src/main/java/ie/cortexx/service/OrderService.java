@@ -5,12 +5,16 @@ import ie.cortexx.dao.OnlineOrderDAO;
 import ie.cortexx.dao.OrderDAO;
 import ie.cortexx.dao.ProductDAO;
 import ie.cortexx.dao.StockDAO;
+import ie.cortexx.exception.AuthenticationRequiredException;
+import ie.cortexx.exception.ServiceUnavailableException;
 import ie.cortexx.model.OnlineOrder;
 import ie.cortexx.model.Order;
 import ie.cortexx.model.OrderConfirmation;
 import ie.cortexx.model.OrderItem;
+import ie.cortexx.model.MerchantDetails;
 import ie.cortexx.model.Product;
 import ie.cortexx.model.StockItem;
+import ie.cortexx.util.ProductIdNormalizer;
 import ie.cortexx.util.SessionManager;
 
 import java.math.BigDecimal;
@@ -21,6 +25,35 @@ import java.util.List;
 
 // places orders through Team A, tracks delivery status
 public class OrderService {
+    public enum RemoteSource {
+        LIVE_SA,
+        LOCAL_CACHE,
+        NONE
+    }
+
+    public enum RemoteIssue {
+        NONE,
+        AUTH_FAILED,
+        UNREACHABLE,
+        NOT_CONFIGURED
+    }
+
+    public record RemoteView<T>(List<T> rows, RemoteSource source, RemoteIssue issue, String message) {
+        public RemoteView {
+            rows = rows == null ? List.of() : List.copyOf(rows);
+            message = message == null ? "" : message;
+        }
+
+        public boolean isLive() {
+            return source == RemoteSource.LIVE_SA;
+        }
+    }
+
+    @FunctionalInterface
+    private interface RemoteRows<T> {
+        List<T> load() throws SQLException;
+    }
+
     private final OrderDAO orderDAO;
     private final StockDAO stockDAO;
     private final OnlineOrderDAO onlineOrderDAO;
@@ -59,9 +92,13 @@ public class OrderService {
     }
 
     public Order placeOrder(int productId, int quantity) throws SQLException {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than 0");
+        }
+
         StockItem item = stockDAO.findByProductId(productId);
         if (item == null) {
-            return null;
+            throw new IllegalArgumentException("Unknown product id: " + productId);
         }
 
         int orderedBy = SessionManager.getInstance().getCurrentUser() != null
@@ -80,45 +117,29 @@ public class OrderService {
     }
 
     public List<Product> getSaCatalogue() throws SQLException {
-        try {
-            authenticateSa();
-            return saProxyService.getCatalogue();
-        } catch (RuntimeException error) {
-            return productDAO.findAll();
-        }
+        authenticateSa();
+        return saProxyService.getCatalogue();
+    }
+
+    public RemoteView<Product> loadSaCatalogueView() throws SQLException {
+        return loadRemoteView(this::getSaCatalogue, productDAO::findAll,
+            "Showing live SA catalogue.", "Showing local cached catalogue");
     }
 
     public void syncCatalogue() throws SQLException {
         authenticateSa();
         for (Product remote : saProxyService.getCatalogue()) {
-            Product local = productDAO.findBySaProductId(remote.getSaProductId());
-            if (local == null) {
-                Product copy = new Product(remote.getSaProductId(), remote.getName(), remote.getCostPrice(), BigDecimal.ZERO);
-                copy.setDescription(remote.getDescription());
-                copy.setPackageType(remote.getPackageType());
-                copy.setUnitType(remote.getUnitType());
-                copy.setUnitsPerPack(remote.getUnitsPerPack());
-                copy.setCategory(remote.getCategory());
-                copy.setVatRate(BigDecimal.ZERO);
-                copy.setActive(remote.isActive());
-                productDAO.save(copy);
-            } else {
-                local.setName(remote.getName());
-                local.setDescription(remote.getDescription());
-                local.setPackageType(remote.getPackageType());
-                local.setUnitType(remote.getUnitType());
-                local.setUnitsPerPack(remote.getUnitsPerPack());
-                local.setCostPrice(remote.getCostPrice());
-                local.setCategory(remote.getCategory());
-                local.setActive(remote.isActive());
-                productDAO.update(local);
-            }
+            upsertRemoteProduct(remote);
         }
     }
 
     public OrderConfirmation placeSaOrder(String saProductId, int quantity) throws SQLException {
-        Product product = ensureLocalProduct(saProductId);
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than 0");
+        }
+
         authenticateSa();
+        Product product = ensureLocalProduct(saProductId);
 
         OrderItem item = new OrderItem(product.getProductId(), quantity, product.getCostPrice());
         OrderConfirmation confirmation = saProxyService.placeOrder(resolveMerchantId(), List.of(item));
@@ -126,49 +147,40 @@ public class OrderService {
         Order localOrder = new Order(product.getCostPrice().multiply(BigDecimal.valueOf(quantity)), currentUserId());
         localOrder.setSaOrderId(confirmation.getSaOrderId());
         localOrder.getItems().add(item);
-        orderDAO.save(localOrder);
+        try {
+            orderDAO.save(localOrder);
+        } catch (SQLException error) {
+            throw new SQLException("SA order already accepted as " + confirmation.getSaOrderId() + " but local mirror save failed: " + error.getMessage(), error);
+        }
         return confirmation;
     }
 
     public List<Order> findSaOrders() throws SQLException {
-        try {
-            authenticateSa();
-            return saProxyService.getOrderHistory(LocalDate.now().minusYears(1), LocalDate.now().plusDays(1));
-        } catch (RuntimeException error) {
-            return findOrders();
-        }
+        authenticateSa();
+        return saProxyService.getOrderHistory(LocalDate.now().minusYears(1), LocalDate.now().plusDays(1));
+    }
+
+    public RemoteView<Order> loadSaOrdersView() throws SQLException {
+        return loadRemoteView(this::findSaOrders, this::findOrders,
+            "Showing live SA order history.", "Showing local order history only");
     }
 
     private void authenticateSa() throws SQLException {
-        var merchantDetails = merchantDetailsDAO.get();
+        MerchantDetails merchantDetails = merchantDetailsDAO.get();
         if (merchantDetails == null) {
             throw new IllegalStateException("Merchant details not configured");
         }
         if (!saProxyService.authenticateMerchant(merchantDetails.getSaUsername(), merchantDetails.getSaPassword())) {
-            throw new IllegalStateException("SA authentication failed for configured merchant");
+            throw new AuthenticationRequiredException("SA authentication failed for configured merchant");
         }
     }
 
     private Product ensureLocalProduct(String saProductId) throws SQLException {
-        Product product = productDAO.findBySaProductId(saProductId);
-        if (product != null) {
-            return product;
-        }
-
-        for (Product remote : getSaCatalogue()) {
-            if (!saProductId.equals(remote.getSaProductId())) {
+        for (Product remote : saProxyService.getCatalogue()) {
+            if (!ProductIdNormalizer.matches(saProductId, remote.getSaProductId())) {
                 continue;
             }
-            Product copy = new Product(remote.getSaProductId(), remote.getName(), remote.getCostPrice(), BigDecimal.ZERO);
-            copy.setDescription(remote.getDescription());
-            copy.setPackageType(remote.getPackageType());
-            copy.setUnitType(remote.getUnitType());
-            copy.setUnitsPerPack(remote.getUnitsPerPack());
-            copy.setCategory(remote.getCategory());
-            copy.setVatRate(BigDecimal.ZERO);
-            copy.setActive(remote.isActive());
-            productDAO.save(copy);
-            return copy;
+            return upsertRemoteProduct(remote);
         }
 
         throw new IllegalArgumentException("Unknown SA product id: " + saProductId);
@@ -183,5 +195,59 @@ public class OrderService {
         return SessionManager.getInstance().getCurrentUser() != null
             ? SessionManager.getInstance().getCurrentUser().getUserId()
             : 1;
+    }
+
+    private Product copyRemoteProduct(Product remote) {
+        Product copy = new Product(remote.getSaProductId(), remote.getName(), remote.getCostPrice(), BigDecimal.ZERO);
+        applyRemoteProduct(copy, remote);
+        return copy;
+    }
+
+    private Product upsertRemoteProduct(Product remote) throws SQLException {
+        Product local = productDAO.findBySaProductId(remote.getSaProductId());
+        if (local == null) {
+            Product copy = copyRemoteProduct(remote);
+            productDAO.save(copy);
+            return copy;
+        }
+
+        applyRemoteProduct(local, remote);
+        productDAO.update(local);
+        return local;
+    }
+
+    private void applyRemoteProduct(Product target, Product remote) {
+        target.setSaProductId(remote.getSaProductId());
+        target.setName(remote.getName());
+        target.setDescription(remote.getDescription());
+        target.setPackageType(remote.getPackageType());
+        target.setUnitType(remote.getUnitType());
+        target.setUnitsPerPack(remote.getUnitsPerPack());
+        target.setCostPrice(remote.getCostPrice());
+        target.setCategory(remote.getCategory());
+        target.setActive(remote.isActive());
+        target.setVatRate(BigDecimal.ZERO);
+    }
+
+    private <T> RemoteView<T> loadRemoteView(RemoteRows<T> liveRows, RemoteRows<T> fallbackRows,
+                                             String liveMessage, String fallbackMessage) throws SQLException {
+        try {
+            return new RemoteView<>(liveRows.load(), RemoteSource.LIVE_SA, RemoteIssue.NONE, liveMessage);
+        } catch (AuthenticationRequiredException error) {
+            return fallbackRemoteView(fallbackRows, RemoteIssue.AUTH_FAILED, fallbackMessage, error.getMessage());
+        } catch (ServiceUnavailableException error) {
+            return fallbackRemoteView(fallbackRows, RemoteIssue.UNREACHABLE, fallbackMessage, error.getMessage());
+        } catch (IllegalStateException error) {
+            return new RemoteView<>(List.of(), RemoteSource.NONE, RemoteIssue.NOT_CONFIGURED, error.getMessage());
+        }
+    }
+
+    private <T> RemoteView<T> fallbackRemoteView(RemoteRows<T> fallbackRows, RemoteIssue issue,
+                                                 String fallbackMessage, String errorMessage) throws SQLException {
+        List<T> rows = fallbackRows.load();
+        if (rows.isEmpty()) {
+            return new RemoteView<>(List.of(), RemoteSource.NONE, issue, errorMessage);
+        }
+        return new RemoteView<>(rows, RemoteSource.LOCAL_CACHE, issue, fallbackMessage + ". " + errorMessage);
     }
 }

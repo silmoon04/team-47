@@ -1,6 +1,7 @@
 package ie.cortexx.dao;
 
 import ie.cortexx.model.Product;
+import ie.cortexx.util.ProductIdNormalizer;
 import ie.cortexx.util.DBConnection;
 
 import java.sql.*;
@@ -42,6 +43,10 @@ public class ProductDAO {
 
     // find by SA catalogue id (for syncing with team A)
     public Product findBySaProductId(String saId) throws SQLException {
+        if (saId == null || saId.isBlank()) {
+            return null;
+        }
+
         String sql = "SELECT * FROM products WHERE sa_product_id = ?";
 
         try (var c = DBConnection.getConnection();
@@ -49,10 +54,24 @@ public class ProductDAO {
             ps.setString(1, saId);
 
             try (var rs = ps.executeQuery()){
-                if (!rs.next()) return null;
-                return mapProduct(rs);
+                if (rs.next()) {
+                    return mapProduct(rs);
+                }
             }
         }
+
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement("SELECT * FROM products");
+             var rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Product product = mapProduct(rs);
+                if (ProductIdNormalizer.matches(saId, product.getSaProductId())) {
+                    return product;
+                }
+            }
+        }
+
+        return null;
     }
 
     // insert new product

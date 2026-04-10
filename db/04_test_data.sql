@@ -4,7 +4,7 @@
 -- has customer/account edges, low-stock rows, order status variety,
 -- null-field cases, reminder/statement rows, and pu online-order states
 
-USE iposca_database;
+USE iposca_test;
 
 -- CLEANUP
 -- delete in reverse FK order so nothing blocks
@@ -99,12 +99,23 @@ INSERT INTO discount_tiers (customer_id, tier_name, min_monthly_spend, discount_
     (2, 'Silver', 100.00, 0.1000),
     (2, 'Gold',   250.00, 0.1500);
 
+INSERT INTO discount_tiers (customer_id, tier_name, min_monthly_spend, discount_rate)
+SELECT customer_id, 'Bronze', 0.00, 0.0200 FROM customers WHERE name = 'David Wilson';
+INSERT INTO discount_tiers (customer_id, tier_name, min_monthly_spend, discount_rate)
+SELECT customer_id, 'Silver', 150.00, 0.0400 FROM customers WHERE name = 'David Wilson';
+INSERT INTO discount_tiers (customer_id, tier_name, min_monthly_spend, discount_rate)
+SELECT customer_id, 'Gold', 300.00, 0.0600 FROM customers WHERE name = 'David Wilson';
+
 -- update brian to point to his first tier
 UPDATE customers SET flexible_tier_id = 1 WHERE customer_id = 2;
--- david also flexible
-UPDATE customers SET flexible_tier_id = 1 WHERE customer_id = 4;
+UPDATE customers
+SET flexible_tier_id = (
+    SELECT MIN(tier_id) FROM discount_tiers WHERE customer_id = customers.customer_id
+)
+WHERE name = 'David Wilson';
 
 -- fixed column name, added is_walk_in flag, good mix of payment types
+-- SA-facing product ids in this test DB use the live hyphenated format; lookup code normalizes legacy spaced variants
 INSERT INTO sales (customer_id, sold_by, subtotal, discount_amount, vat_amount,
     total_amount, sale_date, payment_method, is_walk_in) VALUES
     (1,    3, 25.00, 1.25, 4.75, 28.50,  '2026-03-21 10:30:00', 'CASH',            FALSE),
@@ -112,7 +123,7 @@ INSERT INTO sales (customer_id, sold_by, subtotal, discount_amount, vat_amount,
     (3,    2, 18.50, 0.00, 3.70, 22.20,  '2026-03-21 11:20:00', 'ON_CREDIT',       FALSE),
     (NULL, 3, 12.00, 0.00, 2.40, 14.40,  '2026-03-21 11:45:00', 'CASH',            TRUE),
     (4,    2, 60.00, 6.00, 10.80, 64.80, '2026-03-21 12:15:00', 'CREDIT_CARD',     FALSE),
-    (5,    3, 30.00, 4.50, 5.10, 30.60,  '2026-03-21 12:40:00', 'ACCOUNT_PAYMENT', FALSE),
+    (5,    3, 30.00, 4.50, 5.10, 30.60,  '2026-03-21 12:40:00', 'ON_CREDIT',       FALSE),
     (1,    2, 15.75, 0.79, 3.00, 17.96,  '2026-03-22 09:10:00', 'DEBIT_CARD',      FALSE),
     (NULL, 3,  8.99, 0.00, 1.80, 10.79,  '2026-03-22 09:35:00', 'CASH',            TRUE);
 
@@ -142,7 +153,7 @@ INSERT INTO payments (sale_id, customer_id, payment_type, amount, card_type, car
 
 INSERT INTO payments (sale_id, customer_id, payment_type, amount) VALUES
     (3, 3, 'ON_CREDIT',        22.20),
-    (6, 5, 'ACCOUNT_PAYMENT',  30.60);
+    (6, 5, 'ON_CREDIT',        30.60);
 
 
 -- orders (so order tests have data to work with)

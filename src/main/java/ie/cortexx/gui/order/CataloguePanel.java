@@ -1,5 +1,6 @@
 package ie.cortexx.gui.order;
 
+import ie.cortexx.gui.RefreshablePage;
 import ie.cortexx.gui.util.UI;
 import ie.cortexx.model.OrderConfirmation;
 import ie.cortexx.model.Product;
@@ -8,70 +9,52 @@ import ie.cortexx.service.OrderService;
 import javax.swing.*;
 import java.awt.*;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 
-/*
-simple toolbar + table layout using UI.toolbarAndTable().
-this stacks the toolbar on top and the table below, which is the
-standard layout for panels that dont need stat cards.
-
-toolbar has search on the left and two buttons on the right.
-UI.toolbar(hint, table, buttons...) accepts varargs JButtons,
-so we pass UI.button() and UI.primaryButton() directly.
-
-the catalogue data comes from SAProxyService.getCatalogue() which
-calls the SA API.
-
-mono on ID, cost, and availability cols bc theyre numbers/prices.
-*/
-
-public class CataloguePanel extends JPanel {
+public class CataloguePanel extends JPanel implements RefreshablePage {
     private final OrderService orderService = new OrderService();
-    private final List<CatalogueRow> rows = new ArrayList<>();
-
-    private record CatalogueRow(String itemId, String productName, String packageCost, String availability) {}
+    private OrderService.RemoteView<Product> currentView = new OrderService.RemoteView<>(List.of(), OrderService.RemoteSource.NONE, OrderService.RemoteIssue.NONE, "");
 
     public CataloguePanel() {
         UI.applyPanel(this);
         reload();
     }
 
+    @Override
+    public void refreshPage() {
+        reload();
+    }
+
     private void reload() {
         removeAll();
-        rows.clear();
-        rows.addAll(loadRows());
+        currentView = loadView();
 
         var table = UI.table(
-            UI.monoCol("Item ID", CatalogueRow::itemId),
-            UI.col("Product Name", CatalogueRow::productName),
-            UI.monoCol("Package Cost", CatalogueRow::packageCost),
-            UI.monoCol("SA Availability", CatalogueRow::availability)
-        ).rows(rows);
+            UI.monoCol("Item ID", Product::getSaProductId),
+            UI.col("Product Name", Product::getName),
+            UI.monoCol("Package Cost", product -> money(product.getCostPrice())),
+            UI.monoCol("SA Availability", this::availabilityLabel)
+        ).rows(currentView.rows());
 
         JButton syncButton = UI.button("Sync Catalogue");
         syncButton.addActionListener(e -> syncCatalogue());
         JButton placeOrder = UI.primaryButton("Place Order");
-        placeOrder.addActionListener(e -> placeOrder(table.table()));
+        placeOrder.addActionListener(e -> placeOrder(table));
+        placeOrder.setEnabled(currentView.isLive() && !currentView.rows().isEmpty());
 
         var toolbar = UI.toolbar("Search catalogue...", table.table(), syncButton, placeOrder);
 
-        add(UI.toolbarAndTable(toolbar, table.scroll()), BorderLayout.CENTER);
+        JComponent body = currentView.rows().isEmpty() ? UI.emptyState(emptyMessage()) : table.scroll();
+        add(UI.toolbarAndTable(buildHeader(toolbar), body), BorderLayout.CENTER);
         revalidate();
         repaint();
     }
 
-    private List<CatalogueRow> loadRows() {
+    private OrderService.RemoteView<Product> loadView() {
         try {
-            return orderService.getSaCatalogue().stream().map(product -> new CatalogueRow(
-                product.getSaProductId(),
-                product.getName(),
-                money(product.getCostPrice()),
-                product.getAvailability() + " packs"
-            )).toList();
+            return orderService.loadSaCatalogueView();
         } catch (Exception error) {
-            JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
-            return List.of();
+            return new OrderService.RemoteView<>(List.of(), OrderService.RemoteSource.NONE, OrderService.RemoteIssue.UNREACHABLE, error.getMessage());
         }
     }
 
@@ -85,26 +68,70 @@ public class CataloguePanel extends JPanel {
         }
     }
 
-    private void placeOrder(JTable jTable) {
-        int viewRow = jTable.getSelectedRow();
+    private void placeOrder(UI.DataTable<Product> table) {
+        int viewRow = table.table().getSelectedRow();
         if (viewRow < 0) {
             JOptionPane.showMessageDialog(this, "Select a product first.");
             return;
         }
 
-        int modelRow = jTable.convertRowIndexToModel(viewRow);
-        CatalogueRow row = rows.get(modelRow);
-        String qtyText = JOptionPane.showInputDialog(this, "Order quantity", "1");
-        if (qtyText == null || qtyText.isBlank()) {
+        Product product = table.rowAtView(viewRow);
+        if (product == null || product.getAvailability() <= 0) {
+            JOptionPane.showMessageDialog(this, "No stock is currently available in SA for this item.");
+            return;
+        }
+
+        JSpinner quantity = new JSpinner(new SpinnerNumberModel(1, 1, product.getAvailability(), 1));
+        JPanel form = new JPanel(new GridLayout(2, 1, 0, 8));
+        form.add(new JLabel("Select packs to order"));
+        form.add(quantity);
+
+        if (JOptionPane.showConfirmDialog(this, form, "Place SA Order", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) {
             return;
         }
 
         try {
-            OrderConfirmation confirmation = orderService.placeSaOrder(row.itemId(), Integer.parseInt(qtyText.trim()));
+            OrderConfirmation confirmation = orderService.placeSaOrder(product.getSaProductId(), ((Number) quantity.getValue()).intValue());
+            reload();
             JOptionPane.showMessageDialog(this, "Order placed: " + confirmation.getSaOrderId());
         } catch (Exception error) {
             JOptionPane.showMessageDialog(this, error.getMessage(), "Order Failed", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private JPanel buildHeader(JPanel toolbar) {
+        if (currentView.message().isBlank()) {
+            return toolbar;
+        }
+
+        JPanel header = UI.panel();
+        header.add(buildStatusBanner(currentView), BorderLayout.NORTH);
+        header.add(toolbar, BorderLayout.SOUTH);
+        return header;
+    }
+
+    private JComponent buildStatusBanner(OrderService.RemoteView<?> view) {
+        JPanel banner = UI.paddedPanel(0, 0, 8, 0);
+        banner.setOpaque(false);
+        String badge = switch (view.source()) {
+            case LIVE_SA -> "LIVE SA";
+            case LOCAL_CACHE -> "LOCAL CACHE";
+            case NONE -> "SA ISSUE";
+        };
+        banner.add(UI.badge(badge), BorderLayout.WEST);
+        banner.add(UI.monoLabel(view.message(), 11f, view.isLive() ? UI.TEXT_DIM : UI.ORANGE), BorderLayout.CENTER);
+        return banner;
+    }
+
+    private String emptyMessage() {
+        if (!currentView.message().isBlank()) {
+            return currentView.message();
+        }
+        return "No catalogue rows available";
+    }
+
+    private String availabilityLabel(Product product) {
+        return currentView.isLive() ? product.getAvailability() + " packs" : "cached only";
     }
 
     private String money(BigDecimal amount) {

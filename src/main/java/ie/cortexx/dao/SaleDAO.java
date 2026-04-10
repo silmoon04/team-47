@@ -82,13 +82,13 @@ public class SaleDAO {
     }
 
     public List<Sale> findByDateRange(LocalDate from, LocalDate to) throws SQLException {
-        String sql = "SELECT * FROM sales WHERE sale_date BETWEEN ? AND ?";
+        String sql = "SELECT * FROM sales WHERE sale_date >= ? AND sale_date < ? ORDER BY sale_date DESC, sale_id DESC";
         List<Sale> sales = new ArrayList<>();
 
         try (var c = DBConnection.getConnection();
              var ps = c.prepareStatement(sql)) {
-            ps.setDate(1, Date.valueOf(from));
-            ps.setDate(2, Date.valueOf(to));
+            ps.setTimestamp(1, Timestamp.valueOf(from.atStartOfDay()));
+            ps.setTimestamp(2, Timestamp.valueOf(to.plusDays(1).atStartOfDay()));
 
             try (var rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -128,6 +128,32 @@ public class SaleDAO {
                 return rs.next() ? rs.getInt(1) : 0;
             }
         }
+    }
+
+    public List<SaleItem> findItemsBySaleId(int saleId) throws SQLException {
+        String sql = "SELECT * FROM sale_items WHERE sale_id = ? ORDER BY sale_item_id";
+        List<SaleItem> items = new ArrayList<>();
+
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement(sql)) {
+            ps.setInt(1, saleId);
+            try (var rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    SaleItem item = new SaleItem();
+                    item.setSaleItemId(rs.getInt("sale_item_id"));
+                    item.setSaleId(rs.getInt("sale_id"));
+                    item.setProductId(rs.getInt("product_id"));
+                    item.setProductName(rs.getString("product_name"));
+                    item.setQuantity(rs.getInt("quantity"));
+                    item.setUnitPrice(rs.getBigDecimal("unit_price"));
+                    item.setDiscountRate(rs.getBigDecimal("discount_rate"));
+                    item.setLineTotal(rs.getBigDecimal("line_total"));
+                    items.add(item);
+                }
+            }
+        }
+
+        return items;
     }
 
     private Sale mapSale(ResultSet rs) throws SQLException {

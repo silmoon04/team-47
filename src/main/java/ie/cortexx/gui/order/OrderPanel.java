@@ -1,5 +1,6 @@
 package ie.cortexx.gui.order;
 
+import ie.cortexx.gui.RefreshablePage;
 import ie.cortexx.gui.util.UI;
 import ie.cortexx.model.OnlineOrder;
 import ie.cortexx.model.Order;
@@ -10,16 +11,7 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.util.List;
 
-/*
-inner tabs split SA orders from PU online orders.
-PU tab is just emptyState for now.
-
-SA tab uses pageWithStats(): stat cards NORTH, toolbar+table CENTER.
-empty toolbar for now, can add search/filters later.
-
-*/
-
-public class OrderPanel extends JPanel {
+public class OrderPanel extends JPanel implements RefreshablePage {
     private final OrderService orderService = new OrderService();
 
     private record OrderRow(String orderId, String date, String status, int items, String total, String delivered) {}
@@ -27,17 +19,34 @@ public class OrderPanel extends JPanel {
 
     public OrderPanel() {
         UI.applyPanelNoPad(this);
+        reload();
+    }
+
+    @Override
+    public void refreshPage() {
+        reload();
+    }
+
+    private void reload() {
+        removeAll();
         add(UI.innerTabs(
             UI.tab("SA Orders", buildSAOrders()),
             UI.tab("PU Online Orders", buildOnlineOrders())
         ));
+        revalidate();
+        repaint();
     }
 
     private JPanel buildSAOrders() {
-        List<Order> orders = loadOrders();
+        OrderService.RemoteView<Order> state = loadOrders();
+        List<Order> orders = state.rows();
         long delivered = orders.stream().filter(order -> "DELIVERED".equals(order.getOrderStatus().name())).count();
         long pending = orders.stream().filter(order -> !"DELIVERED".equals(order.getOrderStatus().name())).count();
         BigDecimal totalSpent = orders.stream().map(Order::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        JButton syncButton = UI.button("Refresh Orders");
+        syncButton.addActionListener(e -> reload());
+        JPanel toolbar = UI.toolbar();
+        toolbar.add(UI.buttonRow(syncButton), BorderLayout.EAST);
 
         JPanel stats = UI.stats(
             UI.stat("Total Orders", String.valueOf(orders.size()), UI.ACCENT, "icons/truck.svg"),
@@ -62,14 +71,28 @@ public class OrderPanel extends JPanel {
             order.getDeliveredAt() != null ? order.getDeliveredAt().toLocalDate().toString() : "-"
         )).toList());
 
-        return UI.pageWithStats(stats, UI.toolbar(), orders.isEmpty() ? UI.emptyState("No orders yet") : table.scroll());
+        JComponent content = orders.isEmpty() ? UI.emptyState(emptyOrdersMessage(state)) : table.scroll();
+        JPanel header = toolbar;
+        if (!state.message().isBlank()) {
+            JPanel top = UI.panel();
+            top.add(buildStatusBanner(state), BorderLayout.NORTH);
+            top.add(toolbar, BorderLayout.SOUTH);
+            header = top;
+        }
+
+        return UI.pageWithStats(stats, header, content);
     }
 
     private JComponent buildOnlineOrders() {
+        JButton syncButton = UI.button("Refresh Online Orders");
+        syncButton.addActionListener(e -> reload());
+        JPanel toolbar = UI.toolbar();
+        toolbar.add(UI.buttonRow(syncButton), BorderLayout.EAST);
+
         try {
             List<OnlineOrder> onlineOrders = orderService.findOnlineOrders();
             if (onlineOrders.isEmpty()) {
-                return UI.emptyState("No online orders yet");
+                return UI.toolbarAndTable(toolbar, UI.emptyState("No online orders yet"));
             }
 
             var table = UI.table(
@@ -87,18 +110,38 @@ public class OrderPanel extends JPanel {
                 money(order.getTotalPrice()),
                 text(order.getDeliveryAddress())
             )).toList());
-            return table.scroll();
+            return UI.toolbarAndTable(toolbar, table.scroll());
         } catch (Exception error) {
-            return UI.emptyState("No online orders yet");
+            return UI.toolbarAndTable(toolbar, UI.emptyState(error.getMessage()));
         }
     }
 
-    private List<Order> loadOrders() {
+    private OrderService.RemoteView<Order> loadOrders() {
         try {
-            return orderService.findSaOrders();
+            return orderService.loadSaOrdersView();
         } catch (Exception error) {
-            return List.of();
+            return new OrderService.RemoteView<>(List.of(), OrderService.RemoteSource.NONE, OrderService.RemoteIssue.UNREACHABLE, error.getMessage());
         }
+    }
+
+    private JComponent buildStatusBanner(OrderService.RemoteView<?> view) {
+        JPanel banner = UI.paddedPanel(0, 0, 8, 0);
+        banner.setOpaque(false);
+        String badge = switch (view.source()) {
+            case LIVE_SA -> "LIVE SA";
+            case LOCAL_CACHE -> "LOCAL CACHE";
+            case NONE -> "SA ISSUE";
+        };
+        banner.add(UI.badge(badge), BorderLayout.WEST);
+        banner.add(UI.monoLabel(view.message(), 11f, view.isLive() ? UI.TEXT_DIM : UI.ORANGE), BorderLayout.CENTER);
+        return banner;
+    }
+
+    private String emptyOrdersMessage(OrderService.RemoteView<Order> view) {
+        if (!view.message().isBlank()) {
+            return view.message();
+        }
+        return "No SA orders yet";
     }
 
     private String money(BigDecimal amount) {

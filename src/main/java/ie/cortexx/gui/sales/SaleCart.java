@@ -7,21 +7,21 @@ import java.util.List;
 final class SaleCart {
     private final List<Item> items = new ArrayList<>();
 
-    void addItem(String name, double unitPrice) {
+    void addItem(int productId, String name, double unitPrice) {
         for (int i = 0; i < items.size(); i++) {
             Item item = items.get(i);
-            if (item.name().equals(name)) {
+            if (item.productId() == productId) {
                 items.set(i, item.withQuantity(item.quantity() + 1));
                 return;
             }
         }
-        items.add(new Item(name, unitPrice, 1));
+        items.add(new Item(productId, name, unitPrice, 1));
     }
 
-    void updateQuantity(String name, int delta) {
+    void updateQuantity(int productId, int delta) {
         for (int i = 0; i < items.size(); i++) {
             Item item = items.get(i);
-            if (!item.name().equals(name)) {
+            if (item.productId() != productId) {
                 continue;
             }
 
@@ -35,8 +35,8 @@ final class SaleCart {
         }
     }
 
-    void removeItem(String name) {
-        items.removeIf(item -> item.name().equals(name));
+    void removeItem(int productId) {
+        items.removeIf(item -> item.productId() == productId);
     }
 
     void clear() {
@@ -62,9 +62,9 @@ final class SaleCart {
         return new Totals(subtotal, discount, total);
     }
 
-    record Item(String name, double unitPrice, int quantity) {
+    record Item(int productId, String name, double unitPrice, int quantity) {
         Item withQuantity(int nextQuantity) {
-            return new Item(name, unitPrice, nextQuantity);
+            return new Item(productId, name, unitPrice, nextQuantity);
         }
 
         double lineTotal() {

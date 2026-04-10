@@ -1,6 +1,7 @@
 package ie.cortexx.gui.sales;
 
 import ie.cortexx.enums.AccountStatus;
+import ie.cortexx.enums.DiscountType;
 import ie.cortexx.enums.PaymentType;
 import ie.cortexx.gui.util.UI;
 import ie.cortexx.model.Customer;
@@ -9,6 +10,7 @@ import ie.cortexx.model.Sale;
 import ie.cortexx.model.SaleItem;
 import ie.cortexx.model.StockItem;
 import ie.cortexx.service.CustomerService;
+import ie.cortexx.service.DiscountService;
 import ie.cortexx.service.OrderService;
 import ie.cortexx.service.SaleService;
 import ie.cortexx.service.ValidationResult;
@@ -29,9 +31,12 @@ public class POSPanel extends JPanel {
     private final SaleCart cart = new SaleCart();
     private final SaleService saleService = new SaleService();
     private final CustomerService customerService = new CustomerService();
+    private final DiscountService discountService = new DiscountService();
     private final OrderService orderService = new OrderService();
     private final ie.cortexx.dao.SaleDAO saleDAO = new ie.cortexx.dao.SaleDAO();
+    private final ie.cortexx.dao.PaymentDAO paymentDAO = new ie.cortexx.dao.PaymentDAO();
     private final JPanel cartItemsPanel = new JPanel();
+    private final JPanel historyDetailPanel = UI.transparentPanel(0);
     private final JLabel itemCountLabel = UI.countBadge("0 ITEMS");
     private final JComboBox<CustomerChoice> customerBox = new JComboBox<>();
     private final JLabel subtotalValue = UI.monoLabel("£0.00", 12f, UI.TEXT);
@@ -43,14 +48,16 @@ public class POSPanel extends JPanel {
     private final JButton cashButton = UI.iconButton("Cash", "icons/banknote.svg", false);
     private final JButton cardButton = UI.iconButton("Card", "icons/credit-card.svg", true);
     private final JButton creditButton = UI.iconButton("Credit", "icons/coins.svg", false);
-    private final Map<String, StockItem> productByName = new HashMap<>();
+    private final Map<Integer, StockItem> productById = new HashMap<>();
+    private final Map<Integer, Customer> customersById = new HashMap<>();
     private final Map<Integer, String> customerNames = new HashMap<>();
 
-    private record ProductRow(int productId, String name, String price, int stock) {}
-    private record SaleRow(String saleId, String customer, String date, int items, String payment, String total) {}
-    private record CustomerChoice(Integer customerId, String label, double discountRate, boolean creditEnabled) {
+    private record ProductRow(int productId, String name, BigDecimal price, int stock) {}
+    private record SaleRow(int saleId, String saleRef, String customer, String date, String subtotal, String discount, int items, String payment, String total) {}
+    private record CustomerChoice(Integer customerId, String label, boolean creditEnabled) {
         @Override public String toString() { return label; }
     }
+    private record SalePricing(BigDecimal discountRate, SaleCart.Totals totals) {}
 
     public POSPanel() {
         UI.applyPanelNoPad(this);
@@ -71,7 +78,7 @@ public class POSPanel extends JPanel {
     private JPanel buildPOS() {
         var products = UI.table(
             UI.col("Name", ProductRow::name, 240),
-            UI.col("Price", ProductRow::price, 90),
+            UI.col("Price", row -> money(row.price()), 90),
             UI.col("In Stock", ProductRow::stock, 80)
         ).rows(loadProducts()).onSelect(this::addToCart);
         products.table().setDefaultRenderer(Object.class, UI.plainTableRenderer());
@@ -176,18 +183,17 @@ public class POSPanel extends JPanel {
     }
 
     private void addToCart(ProductRow row) {
-        double unitPrice = Double.parseDouble(row.price().replace("£", ""));
-        cart.addItem(row.name(), unitPrice);
+        cart.addItem(row.productId(), row.name(), row.price().doubleValue());
         refreshCart();
     }
 
-    private void updateQty(String name, int delta) {
-        cart.updateQuantity(name, delta);
+    private void updateQty(int productId, int delta) {
+        cart.updateQuantity(productId, delta);
         refreshCart();
     }
 
-    private void removeItem(String name) {
-        cart.removeItem(name);
+    private void removeItem(int productId) {
+        cart.removeItem(productId);
         refreshCart();
     }
 
@@ -248,7 +254,7 @@ public class POSPanel extends JPanel {
         controls.add(total);
 
         JButton remove = UI.squareButton("\u00D7");
-        remove.addActionListener(e -> removeItem(item.name()));
+        remove.addActionListener(e -> removeItem(item.productId()));
         controls.add(remove);
 
         GridBagConstraints left = new GridBagConstraints();
@@ -280,9 +286,9 @@ public class POSPanel extends JPanel {
         stepper.setMaximumSize(new Dimension(98, 30));
 
         JButton minus = UI.stepperButton("-");
-        minus.addActionListener(e -> updateQty(item.name(), -1));
+        minus.addActionListener(e -> updateQty(item.productId(), -1));
         JButton plus = UI.stepperButton("+");
-        plus.addActionListener(e -> updateQty(item.name(), 1));
+        plus.addActionListener(e -> updateQty(item.productId(), 1));
 
         JLabel qty = UI.monoLabelBold(String.valueOf(item.quantity()), 12f, UI.TEXT);
         qty.setHorizontalAlignment(SwingConstants.CENTER);
@@ -294,16 +300,41 @@ public class POSPanel extends JPanel {
     }
 
     private void updateTotals() {
-        CustomerChoice customer = (CustomerChoice) customerBox.getSelectedItem();
-        double discountRate = customer != null ? customer.discountRate() : 0.0;
-        SaleCart.Totals totals = cart.totals(discountRate);
+        applyPricing(currentPricing());
+    }
+
+    private void applyPricing(SalePricing pricing) {
+        SaleCart.Totals totals = pricing.totals();
+        BigDecimal discountRate = pricing.discountRate();
 
         subtotalValue.setText("£" + String.format("%.2f", totals.subtotal()));
-        discountLabel.setText("Discount (" + Math.round(discountRate * 100) + "%)");
+        discountLabel.setText("Discount (" + discountRate.multiply(BigDecimal.valueOf(100)).stripTrailingZeros().toPlainString() + "%)");
         discountValue.setText("-£" + String.format("%.2f", totals.discount()));
-        discountRow.setVisible(discountRate > 0);
+        discountRow.setVisible(discountRate.compareTo(BigDecimal.ZERO) > 0);
         vatValue.setText("£0.00");
         totalValue.setText("£" + String.format("%.2f", totals.total()));
+    }
+
+    private SalePricing currentPricing() {
+        BigDecimal discountRate = resolveDiscountRate((CustomerChoice) customerBox.getSelectedItem());
+        return new SalePricing(discountRate, cart.totals(discountRate.doubleValue()));
+    }
+
+    private BigDecimal resolveDiscountRate(CustomerChoice choice) {
+        if (choice == null || choice.customerId() == null || cart.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        Customer customer = customersById.get(choice.customerId());
+        if (customer == null || customer.getDiscountType() != DiscountType.FIXED) {
+            return BigDecimal.ZERO;
+        }
+
+        try {
+            return discountService.resolveRate(customer, BigDecimal.valueOf(cart.totals(0.0).subtotal()), LocalDate.now());
+        } catch (Exception error) {
+            return BigDecimal.ZERO;
+        }
     }
 
     private void updatePaymentState() {
@@ -315,29 +346,73 @@ public class POSPanel extends JPanel {
     }
 
     private JPanel buildHistory() {
+        List<SaleRow> historyRows = loadHistory();
+        if (historyRows.isEmpty()) {
+            JPanel view = UI.panel();
+            view.add(UI.emptyState("No recent sales yet"), BorderLayout.CENTER);
+            return view;
+        }
+
         var t = UI.table(
-            UI.col("Sale #", SaleRow::saleId),
+            UI.col("Sale #", SaleRow::saleRef),
             UI.col("Customer", SaleRow::customer),
             UI.col("Date", SaleRow::date),
             UI.col("Items", SaleRow::items),
             UI.badgeCol("Payment", SaleRow::payment),
             UI.col("Total", SaleRow::total)
-        ).rows(loadHistory());
+        ).rows(historyRows).onSelect(this::showSaleDetail);
         t.table().setDefaultRenderer(Object.class, UI.plainTableRenderer());
         t.table().setFont(UI.FONT);
         t.table().setRowHeight(34);
+
+        JPanel left = UI.toolbarAndTable(UI.toolbar("Search sale history...", t.table()), t.scroll());
         JPanel view = UI.panel();
-        view.add(t.scroll(), BorderLayout.CENTER);
+        view.add(UI.splitPanel(left, historyDetailPanel, 430), BorderLayout.CENTER);
+
+        showSaleDetail(historyRows.get(0));
+        t.table().setRowSelectionInterval(0, 0);
         return view;
     }
 
+    private void showSaleDetail(SaleRow row) {
+        try {
+            List<SaleItem> items = saleDAO.findItemsBySaleId(row.saleId());
+            List<Payment> payments = paymentDAO.findBySale(row.saleId());
+            Payment payment = payments.isEmpty() ? null : payments.get(0);
+
+            JPanel card = UI.formCard();
+            card.add(UI.fullWidth(UI.sectionLabel("SALE RECEIPT")));
+            card.add(UI.gap(10));
+            card.add(UI.fullWidth(UI.detailLine("SALE", row.saleRef())));
+            card.add(UI.fullWidth(UI.detailLine("CUSTOMER", row.customer())));
+            card.add(UI.fullWidth(UI.detailLine("DATE", row.date())));
+            card.add(UI.fullWidth(UI.detailLine("PAYMENT", row.payment())));
+            card.add(UI.fullWidth(UI.detailLine("SUBTOTAL", row.subtotal())));
+            card.add(UI.fullWidth(UI.detailLine("DISCOUNT", row.discount())));
+            card.add(UI.fullWidth(UI.detailLine("TOTAL", row.total())));
+            if (payment != null && payment.getCardLast4() != null) {
+                card.add(UI.fullWidth(UI.detailLine("CARD", payment.getCardType() + " ****" + payment.getCardLast4())));
+            }
+            card.add(UI.gap(12));
+            card.add(UI.fullWidth(UI.sectionLabel("ITEMS")));
+            card.add(UI.gap(8));
+            for (SaleItem item : items) {
+                String value = item.getQuantity() + " x " + money(item.getUnitPrice()) + " = " + money(item.getLineTotal());
+                card.add(UI.fullWidth(UI.detailLine(item.getProductName(), value, 180, false)));
+            }
+            UI.swap(historyDetailPanel, card);
+        } catch (Exception error) {
+            UI.swap(historyDetailPanel, UI.emptyState(error.getMessage()));
+        }
+    }
+
     private List<ProductRow> loadProducts() {
-        productByName.clear();
+        productById.clear();
         try {
             return orderService.getCatalogue().stream().map(item -> {
-                productByName.put(item.getProductName(), item);
+                productById.put(item.getProductId(), item);
                 BigDecimal retail = item.getCostPrice().multiply(BigDecimal.ONE.add(item.getMarkupRate()));
-                return new ProductRow(item.getProductId(), item.getProductName(), money(retail), item.getQuantity());
+                return new ProductRow(item.getProductId(), item.getProductName(), retail, item.getQuantity());
             }).toList();
         } catch (Exception error) {
             JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
@@ -348,17 +423,17 @@ public class POSPanel extends JPanel {
     private void loadCustomers() {
         customerBox.removeAllItems();
         customerNames.clear();
-        customerBox.addItem(new CustomerChoice(null, "Walk-in Customer", 0.0, false));
+        customersById.clear();
+        customerBox.addItem(new CustomerChoice(null, "Walk-in Customer", false));
 
         try {
             for (Customer customer : customerService.findAll()) {
                 customerNames.put(customer.getCustomerId(), customer.getName());
-                double rate = customer.getFixedDiscountRate() != null ? customer.getFixedDiscountRate().doubleValue() : 0.0;
+                customersById.put(customer.getCustomerId(), customer);
                 boolean creditEnabled = customer.getAccountStatus() == AccountStatus.NORMAL;
                 customerBox.addItem(new CustomerChoice(
                     customer.getCustomerId(),
                     customer.getName() + " (" + text(customer.getAccountNo()) + ")",
-                    rate,
                     creditEnabled
                 ));
             }
@@ -385,9 +460,12 @@ public class POSPanel extends JPanel {
             return;
         }
 
+        SalePricing pricing = currentPricing();
+        applyPricing(pricing);
+
         CustomerChoice customer = (CustomerChoice) customerBox.getSelectedItem();
-        double discountRate = customer != null ? customer.discountRate() : 0.0;
-        SaleCart.Totals totals = cart.totals(discountRate);
+        SaleCart.Totals totals = pricing.totals();
+        BigDecimal discountRate = pricing.discountRate();
 
         Sale sale = new Sale();
         sale.setCustomerId(customer != null ? customer.customerId() : null);
@@ -400,15 +478,14 @@ public class POSPanel extends JPanel {
         sale.setWalkIn(customer == null || customer.customerId() == null);
 
         for (SaleCart.Item item : cart.items()) {
-            StockItem stockItem = productByName.get(item.name());
+            StockItem stockItem = productById.get(item.productId());
             if (stockItem == null) {
                 continue;
             }
             BigDecimal unitPrice = BigDecimal.valueOf(item.unitPrice());
-            BigDecimal rate = BigDecimal.valueOf(discountRate);
-            BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(item.quantity())).multiply(BigDecimal.ONE.subtract(rate));
+            BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(item.quantity())).multiply(BigDecimal.ONE.subtract(discountRate));
             SaleItem saleItem = new SaleItem(stockItem.getProductId(), stockItem.getProductName(), item.quantity(), unitPrice, lineTotal);
-            saleItem.setDiscountRate(rate);
+            saleItem.setDiscountRate(discountRate);
             sale.getItems().add(saleItem);
         }
 
@@ -439,10 +516,13 @@ public class POSPanel extends JPanel {
 
     private List<SaleRow> loadHistory() {
         try {
-            return saleDAO.findByDateRange(LocalDate.now().minusDays(60), LocalDate.now().plusDays(1)).stream().map(sale -> new SaleRow(
+            return saleDAO.findByDateRange(LocalDate.now().minusDays(60), LocalDate.now()).stream().map(sale -> new SaleRow(
+                sale.getSaleId(),
                 "#" + sale.getSaleId(),
                 sale.getCustomerId() != null ? customerNames.getOrDefault(sale.getCustomerId(), "Unknown") : "Walk-in",
                 sale.getSaleDate() != null ? sale.getSaleDate().toLocalDate().toString() : "",
+                money(sale.getSubtotal()),
+                money(sale.getDiscountAmount()),
                 itemCount(sale.getSaleId()),
                 text(sale.getPaymentMethod()),
                 money(sale.getTotalAmount())
