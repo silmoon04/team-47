@@ -155,7 +155,7 @@ public class StockPanel extends JPanel implements RefreshablePage {
     private void addStock(JTable jTable) {
         int viewRow = jTable.getSelectedRow();
         if (viewRow < 0) {
-            JOptionPane.showMessageDialog(this, "Select a stock row first.");
+            UI.notifyInfo(this, "Select a stock row first.");
             return;
         }
 
@@ -169,13 +169,14 @@ public class StockPanel extends JPanel implements RefreshablePage {
         try {
             int quantity = Integer.parseInt(qtyText.trim());
             if (quantity <= 0) {
-                JOptionPane.showMessageDialog(this, "Enter a positive quantity.");
+                UI.notifyInfo(this, "Enter a positive quantity.");
                 return;
             }
             stockService.addStock(item.getProductId(), quantity);
             reload();
+            UI.notifySuccess(this, "Stock updated.");
         } catch (Exception error) {
-            JOptionPane.showMessageDialog(this, error.getMessage(), "Update Failed", JOptionPane.ERROR_MESSAGE);
+            UI.notifyError(this, error.getMessage());
         }
     }
 }

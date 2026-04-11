@@ -49,14 +49,13 @@ final class UIControls {
 
     static JButton stepperButton(String text) {
         JButton button = new JButton(text);
-        button.setFont(UI.FONT_MONO_BOLD.deriveFont(13f));
+        button.putClientProperty("FlatLaf.styleClass", "secondary");
+        button.setFont(UI.FONT_BOLD.deriveFont(13f));
         button.setForeground(UI.TEXT);
-        button.setBackground(UI.BG_CARD);
         button.setMargin(new Insets(0, 0, 0, 0));
-        button.setBorder(BorderFactory.createEmptyBorder());
         button.setFocusPainted(false);
-        button.setPreferredSize(new Dimension(28, 30));
-        button.setMaximumSize(new Dimension(28, 30));
+        button.setPreferredSize(new Dimension(30, 30));
+        button.setMaximumSize(new Dimension(30, 30));
         return button;
     }
 
@@ -70,6 +69,17 @@ final class UIControls {
         button.setFocusPainted(false);
         button.setPreferredSize(new Dimension(22, 22));
         button.setMaximumSize(new Dimension(22, 22));
+        return button;
+    }
+
+    static JButton iconActionButton(String iconPath, String tooltip, boolean danger) {
+        JButton button = danger ? dangerButton("") : button("");
+        button.setIcon(icon(iconPath, 15, danger ? UI.RED : UI.TEXT_DIM));
+        button.setToolTipText(tooltip);
+        button.setFocusable(false);
+        button.setMargin(new Insets(0, 0, 0, 0));
+        button.setPreferredSize(new Dimension(30, 30));
+        button.setMaximumSize(new Dimension(30, 30));
         return button;
     }
 
@@ -117,13 +127,13 @@ final class UIControls {
 
     static JLabel countBadge(String text) {
         JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setFont(UI.FONT_MONO_BOLD);
+        label.setFont(UI.FONT_BOLD.deriveFont(12f));
         label.setForeground(UI.TEXT);
         label.setOpaque(true);
         label.setBackground(UI.BG_CARD);
         label.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(UI.BORDER, 1, true),
-            new EmptyBorder(5, 10, 5, 10)
+            new EmptyBorder(5, 12, 5, 12)
         ));
         return label;
     }
@@ -230,7 +240,7 @@ final class UIControls {
         ));
 
         JLabel label = new JLabel(labelText);
-        label.setFont(UI.FONT_MONO_BOLD.deriveFont(11f));
+        label.setFont(UI.FONT_BOLD.deriveFont(11f));
         label.setForeground(UI.TEXT_DIM);
         label.setPreferredSize(new Dimension(labelWidth, wrapValue ? 34 : 18));
 
@@ -254,14 +264,14 @@ final class UIControls {
 
     static JLabel detailValue(String valueText) {
         JLabel value = new JLabel(valueText, SwingConstants.LEFT);
-        value.setFont(UI.FONT_MONO.deriveFont(12f));
+        value.setFont(UI.FONT.deriveFont(12f));
         value.setForeground(UI.TEXT);
         return value;
     }
 
     static JTextArea wrappedValue(String valueText) {
         JTextArea value = new JTextArea(valueText);
-        value.setFont(UI.FONT_MONO.deriveFont(12f));
+        value.setFont(UI.FONT.deriveFont(12f));
         value.setForeground(UI.TEXT);
         value.setOpaque(false);
         value.setEditable(false);
@@ -279,7 +289,7 @@ final class UIControls {
 
     static JLabel sectionLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(UI.FONT_MONO_BOLD);
+        label.setFont(UI.FONT_BOLD.deriveFont(11f));
         label.setForeground(UI.TEXT_DIM);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         return label;

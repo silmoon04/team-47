@@ -23,8 +23,24 @@ import java.util.function.Function;
  */
 public final class UI {
     public enum Theme {
-        DARK,
-        LIGHT
+        DARK("Dark"),
+        LIGHT("Light"),
+        GREEN("Green + White"),
+        BLUE("Blue + White");
+
+        private final String label;
+
+        Theme(String label) {
+            this.label = label;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        public boolean isDark() {
+            return this == DARK;
+        }
     }
 
     private static final String SANS = "Outfit Medium";
@@ -444,6 +460,10 @@ public final class UI {
 
     public static JButton squareButton(String text) {
         return UIControls.squareButton(text);
+    }
+
+    public static JButton iconActionButton(String iconPath, String tooltip, boolean danger) {
+        return UIControls.iconActionButton(iconPath, tooltip, danger);
     }
 
     public static JToggleButton filterPill(String text) {

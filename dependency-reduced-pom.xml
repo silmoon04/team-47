@@ -166,6 +166,7 @@
   </dependencies>
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
+    <pdfbox.version>3.0.3</pdfbox.version>
     <flatlaf.version>3.5.4</flatlaf.version>
     <slf4j.version>2.0.16</slf4j.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

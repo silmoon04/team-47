@@ -51,6 +51,14 @@ final class SaleCart {
         return items.size();
     }
 
+    int quantityOf(int productId) {
+        return items.stream()
+            .filter(item -> item.productId() == productId)
+            .mapToInt(Item::quantity)
+            .findFirst()
+            .orElse(0);
+    }
+
     boolean isEmpty() {
         return items.isEmpty();
     }

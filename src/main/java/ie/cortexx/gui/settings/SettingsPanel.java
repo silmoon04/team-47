@@ -63,7 +63,7 @@ public class SettingsPanel extends JPanel {
 
             try {
                 settingsService.saveMerchantDetails(details);
-                JOptionPane.showMessageDialog(this, "Merchant details saved.");
+                UI.notifySuccess(this, "Merchant details saved.");
             } catch (SQLException error) {
                 showSaveError(error);
             }
@@ -93,7 +93,7 @@ public class SettingsPanel extends JPanel {
                     markupRate.getText().trim(),
                     currency.getText().trim()
                 ));
-                JOptionPane.showMessageDialog(this, "System config saved.");
+                UI.notifySuccess(this, "System config saved.");
             } catch (SQLException error) {
                 showSaveError(error);
             }
@@ -119,7 +119,7 @@ public class SettingsPanel extends JPanel {
                     firstArea.getText(),
                     secondArea.getText()
                 ));
-                JOptionPane.showMessageDialog(this, "Templates saved.");
+                UI.notifySuccess(this, "Templates saved.");
             } catch (SQLException error) {
                 showSaveError(error);
             }
@@ -133,6 +133,6 @@ public class SettingsPanel extends JPanel {
     }
 
     private void showSaveError(SQLException error) {
-        JOptionPane.showMessageDialog(this, error.getMessage(), "Save Failed", JOptionPane.ERROR_MESSAGE);
+        UI.notifyError(this, error.getMessage());
     }
 }

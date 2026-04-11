@@ -45,6 +45,15 @@ public class CAtoPUImplIT {
     }
 
     @Test
+    void getStockLevel_normalizes_spaced_product_id_against_hyphenated_seed() {
+        I_CAtoPU api = new CAtoPUImpl();
+
+        int level = api.getStockLevel("TEST OK 001");
+
+        assertEquals(10, level);
+    }
+
+    @Test
     void getStockLevel_nonexistentProduct_throwsProductNotFound() {
         I_CAtoPU api = new CAtoPUImpl();
 

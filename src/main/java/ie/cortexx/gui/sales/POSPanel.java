@@ -28,6 +28,9 @@ import java.util.Map;
 
 // pos screen with a product list on the left and a custom current-sale cart on the right.
 public class POSPanel extends JPanel {
+    private static final int CART_WIDTH = 470;
+    private static final int CART_CONTROLS_WIDTH = 224;
+    private static final int CART_STEPPER_WIDTH = 104;
     private final SaleCart cart = new SaleCart();
     private final SaleService saleService = new SaleService();
     private final CustomerService customerService = new CustomerService();
@@ -39,18 +42,19 @@ public class POSPanel extends JPanel {
     private final JPanel historyDetailPanel = UI.transparentPanel(0);
     private final JLabel itemCountLabel = UI.countBadge("0 ITEMS");
     private final JComboBox<CustomerChoice> customerBox = new JComboBox<>();
-    private final JLabel subtotalValue = UI.monoLabel("£0.00", 12f, UI.TEXT);
-    private final JLabel discountLabel = UI.monoLabel("Discount (0%)", 12f, UI.TEXT_DIM);
-    private final JLabel discountValue = UI.monoLabel("£0.00", 12f, UI.TEXT);
+    private final JLabel subtotalValue = UI.label("£0.00", UI.FONT_BOLD, UI.TEXT);
+    private final JLabel discountLabel = UI.label("Discount (0%)", UI.FONT_SMALL, UI.TEXT_DIM);
+    private final JLabel discountValue = UI.label("£0.00", UI.FONT_BOLD, UI.TEXT);
     private final JPanel discountRow = new JPanel(new BorderLayout());
-    private final JLabel vatValue = UI.monoLabel("£0.00", 12f, UI.TEXT);
-    private final JLabel totalValue = UI.monoLabelBold("£0.00", 14f, UI.TEXT);
+    private final JLabel vatValue = UI.label("£0.00", UI.FONT_BOLD, UI.TEXT);
+    private final JLabel totalValue = UI.label("£0.00", UI.FONT_BOLD.deriveFont(14f), UI.TEXT);
     private final JButton cashButton = UI.iconButton("Cash", "icons/banknote.svg", false);
     private final JButton cardButton = UI.iconButton("Card", "icons/credit-card.svg", true);
     private final JButton creditButton = UI.iconButton("Credit", "icons/coins.svg", false);
     private final Map<Integer, StockItem> productById = new HashMap<>();
     private final Map<Integer, Customer> customersById = new HashMap<>();
     private final Map<Integer, String> customerNames = new HashMap<>();
+    private Integer highlightedProductId;
 
     private record ProductRow(int productId, String name, BigDecimal price, int stock) {}
     private record SaleRow(int saleId, String saleRef, String customer, String date, String subtotal, String discount, int items, String payment, String total) {}
@@ -95,7 +99,7 @@ public class POSPanel extends JPanel {
         cart.add(buildCartFooter(), BorderLayout.SOUTH);
 
         JPanel view = UI.panel();
-        view.add(UI.splitPanel(left, cart, 392), BorderLayout.CENTER);
+        view.add(UI.splitPanel(left, cart, CART_WIDTH), BorderLayout.CENTER);
         wirePaymentButtons();
         refreshCart();
         return view;
@@ -109,7 +113,7 @@ public class POSPanel extends JPanel {
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
 
-        JLabel title = UI.monoLabelBold("Current Sale", 17f, UI.TEXT);
+        JLabel title = UI.label("Current Sale", UI.FONT_TITLE.deriveFont(17f), UI.TEXT);
         top.add(title, BorderLayout.WEST);
         top.add(itemCountLabel, BorderLayout.EAST);
 
@@ -151,21 +155,21 @@ public class POSPanel extends JPanel {
         summary.setOpaque(false);
         summary.setBorder(new EmptyBorder(12, 18, 12, 18));
 
-        summary.add(UI.summaryRow(UI.monoLabel("Subtotal", 12f, UI.TEXT_DIM), subtotalValue));
+        summary.add(UI.summaryRow(UI.label("Subtotal", UI.FONT_SMALL, UI.TEXT_DIM), subtotalValue));
         discountRow.setOpaque(false);
         discountRow.add(discountLabel, BorderLayout.WEST);
         discountRow.add(discountValue, BorderLayout.EAST);
         summary.add(Box.createVerticalStrut(6));
         summary.add(discountRow);
         summary.add(Box.createVerticalStrut(6));
-        summary.add(UI.summaryRow(UI.monoLabel("VAT (0%)", 12f, UI.TEXT_DIM), vatValue));
+        summary.add(UI.summaryRow(UI.label("VAT (0%)", UI.FONT_SMALL, UI.TEXT_DIM), vatValue));
         summary.add(Box.createVerticalStrut(10));
         summary.add(new JSeparator());
         summary.add(Box.createVerticalStrut(10));
 
         JPanel totalRow = new JPanel(new BorderLayout());
         totalRow.setOpaque(false);
-        JLabel totalLabel = UI.monoLabelBold("Total", 14f, UI.TEXT);
+        JLabel totalLabel = UI.label("Total", UI.FONT_BOLD.deriveFont(14f), UI.TEXT);
         totalRow.add(totalLabel, BorderLayout.WEST);
         totalRow.add(totalValue, BorderLayout.EAST);
         summary.add(totalRow);
@@ -183,13 +187,40 @@ public class POSPanel extends JPanel {
     }
 
     private void addToCart(ProductRow row) {
+        if (!canAddQuantity(row.productId(), row.name(), row.stock())) {
+            return;
+        }
+
         cart.addItem(row.productId(), row.name(), row.price().doubleValue());
+        highlightedProductId = row.productId();
         refreshCart();
     }
 
     private void updateQty(int productId, int delta) {
+        if (delta > 0) {
+            StockItem stockItem = productById.get(productId);
+            String name = stockItem != null ? stockItem.getProductName() : "item";
+            int available = stockItem != null ? stockItem.getQuantity() : 0;
+            if (!canAddQuantity(productId, name, available)) {
+                return;
+            }
+        }
+
         cart.updateQuantity(productId, delta);
+        highlightedProductId = productId;
         refreshCart();
+    }
+
+    private boolean canAddQuantity(int productId, String name, int available) {
+        if (available <= 0) {
+            UI.notifyInfo(this, name + " is out of stock.");
+            return false;
+        }
+        if (cart.quantityOf(productId) >= available) {
+            UI.notifyInfo(this, "Only " + available + " available for " + name + ".");
+            return false;
+        }
+        return true;
     }
 
     private void removeItem(int productId) {
@@ -215,6 +246,7 @@ public class POSPanel extends JPanel {
                 cartItemsPanel.add(cartRow(items.get(i), i < items.size() - 1));
             }
         }
+        highlightedProductId = null;
 
         itemCountLabel.setText(cart.itemCount() + " ITEMS");
         updateTotals();
@@ -224,79 +256,127 @@ public class POSPanel extends JPanel {
     }
 
     private JPanel cartRow(SaleCart.Item item, boolean divider) {
-        JPanel row = new JPanel(new GridBagLayout());
+        CartRowPanel row = new CartRowPanel();
+        row.setLayout(new BorderLayout(12, 0));
         row.setOpaque(false);
         row.setBorder(BorderFactory.createCompoundBorder(
             divider ? BorderFactory.createMatteBorder(0, 0, 1, 0, UI.BORDER) : BorderFactory.createEmptyBorder(),
             new EmptyBorder(10, 16, 10, 16)
         ));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 66));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
 
         JPanel copy = new JPanel();
         copy.setLayout(new BoxLayout(copy, BoxLayout.Y_AXIS));
         copy.setOpaque(false);
+        copy.setMinimumSize(new Dimension(0, 44));
 
-        JLabel name = UI.monoLabelBold(item.name(), 13f, UI.TEXT);
-        JLabel each = UI.monoLabel("£" + String.format("%.2f", item.unitPrice()) + " each", 11f, UI.TEXT_DIM);
+        JLabel name = UI.label(item.name(), UI.FONT_BOLD, UI.TEXT);
+        JLabel each = UI.label("£" + String.format("%.2f", item.unitPrice()) + " each", UI.FONT_SMALL, UI.TEXT_DIM);
+        name.setToolTipText(item.name());
+        name.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+        each.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
 
         copy.add(name);
         copy.add(Box.createVerticalStrut(2));
         copy.add(each);
 
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        JPanel controls = new JPanel();
+        controls.setLayout(new BoxLayout(controls, BoxLayout.X_AXIS));
         controls.setOpaque(false);
-        controls.add(qtyStepper(item));
+        controls.setAlignmentY(Component.CENTER_ALIGNMENT);
+        controls.setPreferredSize(new Dimension(CART_CONTROLS_WIDTH, 34));
+        controls.setMinimumSize(new Dimension(CART_CONTROLS_WIDTH, 34));
+        controls.setMaximumSize(new Dimension(CART_CONTROLS_WIDTH, 34));
+        controls.add(qtyStepper(item, availableQuantity(item.productId())));
+        controls.add(Box.createHorizontalStrut(10));
 
-        JLabel total = UI.monoLabelBold("£" + String.format("%.2f", item.lineTotal()), 13f, UI.TEXT);
-        total.setHorizontalAlignment(SwingConstants.LEFT);
-        total.setPreferredSize(new Dimension(74, 28));
-        total.setMinimumSize(new Dimension(74, 28));
+        JLabel total = UI.label("£" + String.format("%.2f", item.lineTotal()), UI.FONT_BOLD, UI.TEXT);
+        total.setHorizontalAlignment(SwingConstants.RIGHT);
+        total.setPreferredSize(new Dimension(64, 28));
+        total.setMinimumSize(new Dimension(64, 28));
         controls.add(total);
+        controls.add(Box.createHorizontalStrut(8));
 
-        JButton remove = UI.squareButton("\u00D7");
+        JButton remove = UI.iconActionButton("icons/trash-2.svg", "Remove item", true);
+        remove.setAlignmentY(Component.CENTER_ALIGNMENT);
         remove.addActionListener(e -> removeItem(item.productId()));
         controls.add(remove);
-
-        GridBagConstraints left = new GridBagConstraints();
-        left.gridx = 0;
-        left.gridy = 0;
-        left.weightx = 1;
-        left.fill = GridBagConstraints.HORIZONTAL;
-        left.anchor = GridBagConstraints.WEST;
-        left.insets = new Insets(0, 0, 0, 10);
-        row.add(copy, left);
-
-        GridBagConstraints right = new GridBagConstraints();
-        right.gridx = 1;
-        right.gridy = 0;
-        right.anchor = GridBagConstraints.WEST;
-        right.fill = GridBagConstraints.NONE;
-        row.add(controls, right);
+        row.add(copy, BorderLayout.CENTER);
+        row.add(controls, BorderLayout.EAST);
+        if (Integer.valueOf(item.productId()).equals(highlightedProductId)) {
+            row.pulse();
+        }
         return row;
     }
 
-    private JComponent qtyStepper(SaleCart.Item item) {
-        JPanel stepper = new JPanel(new GridLayout(1, 3, 0, 0));
-        stepper.setBackground(UI.BG_CARD);
-        stepper.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(UI.BORDER, 1, true),
-            new EmptyBorder(0, 0, 0, 0)
-        ));
-        stepper.setPreferredSize(new Dimension(98, 30));
-        stepper.setMaximumSize(new Dimension(98, 30));
+    private JComponent qtyStepper(SaleCart.Item item, int available) {
+        JPanel stepper = new JPanel();
+        stepper.setLayout(new BoxLayout(stepper, BoxLayout.X_AXIS));
+        stepper.setOpaque(false);
+        stepper.setAlignmentY(Component.CENTER_ALIGNMENT);
+        stepper.setPreferredSize(new Dimension(CART_STEPPER_WIDTH, 32));
+        stepper.setMinimumSize(new Dimension(CART_STEPPER_WIDTH, 32));
+        stepper.setMaximumSize(new Dimension(CART_STEPPER_WIDTH, 32));
 
         JButton minus = UI.stepperButton("-");
+        minus.setAlignmentY(Component.CENTER_ALIGNMENT);
         minus.addActionListener(e -> updateQty(item.productId(), -1));
         JButton plus = UI.stepperButton("+");
+        plus.setAlignmentY(Component.CENTER_ALIGNMENT);
+        plus.setEnabled(available > 0 && item.quantity() < available);
+        plus.setToolTipText(plus.isEnabled() ? "Increase quantity" : "No more stock available");
         plus.addActionListener(e -> updateQty(item.productId(), 1));
 
-        JLabel qty = UI.monoLabelBold(String.valueOf(item.quantity()), 12f, UI.TEXT);
+        JLabel qty = UI.label(String.valueOf(item.quantity()), UI.FONT_BOLD, UI.TEXT);
         qty.setHorizontalAlignment(SwingConstants.CENTER);
+        qty.setPreferredSize(new Dimension(18, 28));
+        qty.setMinimumSize(new Dimension(18, 28));
+        qty.setMaximumSize(new Dimension(18, 28));
+        qty.setAlignmentY(Component.CENTER_ALIGNMENT);
 
         stepper.add(minus);
+        stepper.add(Box.createHorizontalStrut(5));
         stepper.add(qty);
+        stepper.add(Box.createHorizontalStrut(5));
         stepper.add(plus);
         return stepper;
+    }
+
+    private int availableQuantity(int productId) {
+        StockItem stockItem = productById.get(productId);
+        return stockItem == null ? 0 : stockItem.getQuantity();
+    }
+
+    private static final class CartRowPanel extends JPanel {
+        private float pulse = 0f;
+
+        private void pulse() {
+            pulse = 1f;
+            Timer timer = new Timer(16, null);
+            timer.addActionListener(e -> {
+                pulse = Math.max(0f, pulse - 0.08f);
+                repaint();
+                if (pulse <= 0f) {
+                    timer.stop();
+                }
+            });
+            timer.start();
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            super.paintComponent(graphics);
+            if (pulse <= 0f) {
+                return;
+            }
+
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(UI.ACCENT.getRed(), UI.ACCENT.getGreen(), UI.ACCENT.getBlue(), Math.round(30 * pulse)));
+            g2.fillRoundRect(8, 5, getWidth() - 16, getHeight() - 10, UI.FIELD_ARC, UI.FIELD_ARC);
+            g2.dispose();
+        }
     }
 
     private void updateTotals() {
@@ -505,12 +585,12 @@ public class POSPanel extends JPanel {
 
         ValidationResult result = saleService.processSale(sale, payment);
         if (!result.isValid()) {
-            JOptionPane.showMessageDialog(this, result.getMessage(), "Sale Failed", JOptionPane.ERROR_MESSAGE);
+            UI.notifyError(this, result.getMessage());
             return;
         }
 
         cart.clear();
-        JOptionPane.showMessageDialog(this, "Sale completed.");
+        UI.notifySuccess(this, "Sale completed.");
         reloadData();
     }
 

@@ -32,7 +32,7 @@ final class UIThemeSupport {
     }
 
     static boolean isDarkTheme() {
-        return currentTheme == UI.Theme.DARK;
+        return currentTheme.isDark();
     }
 
     static void toggleTheme() {
@@ -44,6 +44,7 @@ final class UIThemeSupport {
         installLookAndFeel(theme);
         applyPalette(theme);
         badges = buildBadges();
+        boolean dark = theme.isDark();
 
         Color neutralOutline = outlineColor();
 
@@ -98,7 +99,7 @@ final class UIThemeSupport {
         UIManager.put("TextField.focusedBackground", UI.BG_INPUT);
         UIManager.put("TextField.borderColor", UI.BORDER);
         UIManager.put("TextField.focusedBorderColor", neutralOutline);
-        UIManager.put("TextField.focusWidth", theme == UI.Theme.DARK ? 0 : 1);
+        UIManager.put("TextField.focusWidth", dark ? 0 : 1);
         UIManager.put("TextField.innerFocusWidth", 0);
         UIManager.put("TextField.margin", new Insets(0, 14, 0, 14));
         UIManager.put("TextField.foreground", UI.TEXT);
@@ -109,7 +110,7 @@ final class UIThemeSupport {
         UIManager.put("PasswordField.focusedBackground", UI.BG_INPUT);
         UIManager.put("PasswordField.borderColor", UI.BORDER);
         UIManager.put("PasswordField.focusedBorderColor", neutralOutline);
-        UIManager.put("PasswordField.focusWidth", theme == UI.Theme.DARK ? 0 : 1);
+        UIManager.put("PasswordField.focusWidth", dark ? 0 : 1);
         UIManager.put("PasswordField.innerFocusWidth", 0);
         UIManager.put("PasswordField.margin", new Insets(0, 14, 0, 14));
         UIManager.put("PasswordField.foreground", UI.TEXT);
@@ -118,7 +119,7 @@ final class UIThemeSupport {
         UIManager.put("ComboBox.background", UI.BG_INPUT);
         UIManager.put("ComboBox.borderColor", UI.BORDER);
         UIManager.put("ComboBox.focusedBorderColor", neutralOutline);
-        UIManager.put("ComboBox.focusWidth", theme == UI.Theme.DARK ? 0 : 1);
+        UIManager.put("ComboBox.focusWidth", dark ? 0 : 1);
         UIManager.put("ComboBox.innerFocusWidth", 0);
         UIManager.put("ComboBox.padding", new Insets(0, 14, 0, 10));
 
@@ -151,30 +152,30 @@ final class UIThemeSupport {
         UIManager.put("[style]Button.secondary",
             "arc:" + UI.BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
             "margin:8,14,8,14; " +
-            "background:" + hex(theme == UI.Theme.DARK ? new Color(0x222735) : Color.WHITE) +
-            "; foreground:" + hex(UI.TEXT) + "; borderColor:" + hex(theme == UI.Theme.DARK ? new Color(0x394055) : UI.BORDER) +
+            "background:" + hex(dark ? new Color(0x222735) : Color.WHITE) +
+            "; foreground:" + hex(UI.TEXT) + "; borderColor:" + hex(dark ? new Color(0x394055) : UI.BORDER) +
             "; hoverBorderColor:" + hex(UI.BORDER) + "; focusedBorderColor:" + hex(neutralOutline) +
-            "; hoverBackground:" + hex(theme == UI.Theme.DARK ? new Color(0x2b3142) : UI.BG_HOVER) +
-            "; pressedBackground:" + hex(theme == UI.Theme.DARK ? new Color(0x30384a) : UI.BG_HOVER.darker()));
+            "; hoverBackground:" + hex(dark ? new Color(0x2b3142) : UI.BG_HOVER) +
+            "; pressedBackground:" + hex(dark ? new Color(0x30384a) : UI.BG_HOVER.darker()));
 
         UIManager.put("[style]Button.primary",
             "arc:" + UI.BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
             "margin:8,14,8,14; " +
-            "background:" + hex(UI.ACCENT) + "; foreground:" + hex(theme == UI.Theme.DARK ? Color.WHITE : UI.BG_CARD) +
-            "; borderColor:" + hex(UI.ACCENT) + "; hoverBorderColor:" + hex(theme == UI.Theme.DARK ? UI.ACCENT : UI.BORDER) +
+            "background:" + hex(UI.ACCENT) + "; foreground:" + hex(dark ? Color.WHITE : UI.BG_CARD) +
+            "; borderColor:" + hex(UI.ACCENT) + "; hoverBorderColor:" + hex(dark ? UI.ACCENT : UI.BORDER) +
             "; focusedBorderColor:" + hex(neutralOutline) +
-            "; hoverBackground:" + hex(theme == UI.Theme.DARK ? new Color(0x6399ff) : UI.BORDER) +
-            "; pressedBackground:" + hex(theme == UI.Theme.DARK ? new Color(0x3d7ef6) : UI.BORDER.darker()));
+            "; hoverBackground:" + hex(dark ? new Color(0x6399ff) : UI.BORDER) +
+            "; pressedBackground:" + hex(dark ? new Color(0x3d7ef6) : UI.BORDER.darker()));
 
         UIManager.put("[style]Button.danger",
             "arc:" + UI.BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
             "margin:8,14,8,14; " +
-            "background:" + hex(theme == UI.Theme.DARK ? new Color(0x2a1d1f) : new Color(0xfff1d8)) +
-            "; foreground:" + hex(theme == UI.Theme.DARK ? new Color(0xf6b3b3) : new Color(0x8b4b2b)) +
-            "; borderColor:" + hex(theme == UI.Theme.DARK ? new Color(0x5c363b) : new Color(0xf0dec0)) +
+            "background:" + hex(dark ? new Color(0x2a1d1f) : new Color(0xfff1d8)) +
+            "; foreground:" + hex(dark ? new Color(0xf6b3b3) : new Color(0x8b4b2b)) +
+            "; borderColor:" + hex(dark ? new Color(0x5c363b) : new Color(0xf0dec0)) +
             "; hoverBorderColor:" + hex(UI.BORDER) + "; focusedBorderColor:" + hex(neutralOutline) + "; " +
-            "hoverBackground:" + hex(theme == UI.Theme.DARK ? new Color(0x332326) : new Color(0xffecd0)) +
-            "; pressedBackground:" + hex(theme == UI.Theme.DARK ? new Color(0x3b282c) : new Color(0xfbe3bc)));
+            "hoverBackground:" + hex(dark ? new Color(0x332326) : new Color(0xffecd0)) +
+            "; pressedBackground:" + hex(dark ? new Color(0x3b282c) : new Color(0xfbe3bc)));
     }
 
     static Color[] badgeStyle(String raw) {
@@ -234,45 +235,79 @@ final class UIThemeSupport {
 
     private static void installLookAndFeel(UI.Theme theme) {
         try {
-            UIManager.setLookAndFeel(theme == UI.Theme.DARK ? new FlatDarkLaf() : new FlatLightLaf());
+            UIManager.setLookAndFeel(theme.isDark() ? new FlatDarkLaf() : new FlatLightLaf());
         } catch (UnsupportedLookAndFeelException e) {
             throw new IllegalStateException("Unable to switch theme", e);
         }
     }
 
     private static void applyPalette(UI.Theme theme) {
-        if (theme == UI.Theme.DARK) {
-            UI.BG = new Color(0x0f1117);
-            UI.BG_CARD = new Color(0x181a20);
-            UI.BG_HOVER = new Color(0x1e2028);
-            UI.BG_INPUT = new Color(0x13151b);
-            UI.BORDER = new Color(0x2a2d37);
-            UI.TEXT = new Color(0xe4e6eb);
-            UI.TEXT_DIM = new Color(0x8b8fa3);
-            UI.TEXT_MUTED = new Color(0x5c5f6e);
-            UI.ACCENT = new Color(0x4f8cff);
-            UI.GREEN = new Color(0x34d399);
-            UI.YELLOW = new Color(0xfbbf24);
-            UI.RED = new Color(0xf87171);
-            UI.ORANGE = new Color(0xfb923c);
-            UI.PURPLE = new Color(0xa78bfa);
-            return;
+        switch (theme) {
+            case DARK -> {
+                UI.BG = new Color(0x0f1117);
+                UI.BG_CARD = new Color(0x181a20);
+                UI.BG_HOVER = new Color(0x1e2028);
+                UI.BG_INPUT = new Color(0x13151b);
+                UI.BORDER = new Color(0x2a2d37);
+                UI.TEXT = new Color(0xe4e6eb);
+                UI.TEXT_DIM = new Color(0x8b8fa3);
+                UI.TEXT_MUTED = new Color(0x5c5f6e);
+                UI.ACCENT = new Color(0x4f8cff);
+                UI.GREEN = new Color(0x34d399);
+                UI.YELLOW = new Color(0xfbbf24);
+                UI.RED = new Color(0xf87171);
+                UI.ORANGE = new Color(0xfb923c);
+                UI.PURPLE = new Color(0xa78bfa);
+            }
+            case LIGHT -> {
+                UI.BG = new Color(0xf5f6f7);
+                UI.BG_CARD = Color.WHITE;
+                UI.BG_HOVER = new Color(0xeff1f2);
+                UI.BG_INPUT = Color.WHITE;
+                UI.BORDER = new Color(0xd7dbdf);
+                UI.TEXT = new Color(0x323130);
+                UI.TEXT_DIM = new Color(0x6f7378);
+                UI.TEXT_MUTED = new Color(0xa1a6ad);
+                UI.ACCENT = new Color(0x323130);
+                UI.GREEN = new Color(0x8fbe6f);
+                UI.YELLOW = new Color(0xe3b96b);
+                UI.RED = new Color(0xe29595);
+                UI.ORANGE = new Color(0xd8a96f);
+                UI.PURPLE = new Color(0xb4bdd2);
+            }
+            case GREEN -> {
+                UI.BG = new Color(0xf3f7f3);
+                UI.BG_CARD = Color.WHITE;
+                UI.BG_HOVER = new Color(0xe7efe6);
+                UI.BG_INPUT = Color.WHITE;
+                UI.BORDER = new Color(0xccd8cc);
+                UI.TEXT = new Color(0x223126);
+                UI.TEXT_DIM = new Color(0x5f7465);
+                UI.TEXT_MUTED = new Color(0x90a095);
+                UI.ACCENT = new Color(0x2f7d4a);
+                UI.GREEN = new Color(0x2f7d4a);
+                UI.YELLOW = new Color(0xb48b30);
+                UI.RED = new Color(0xc46262);
+                UI.ORANGE = new Color(0xc9823b);
+                UI.PURPLE = new Color(0x7692b7);
+            }
+            case BLUE -> {
+                UI.BG = new Color(0xf2f6fb);
+                UI.BG_CARD = Color.WHITE;
+                UI.BG_HOVER = new Color(0xe6edf7);
+                UI.BG_INPUT = Color.WHITE;
+                UI.BORDER = new Color(0xc8d5e6);
+                UI.TEXT = new Color(0x1e2d3d);
+                UI.TEXT_DIM = new Color(0x5c7086);
+                UI.TEXT_MUTED = new Color(0x8ea0b2);
+                UI.ACCENT = new Color(0x2d6fb7);
+                UI.GREEN = new Color(0x3d9b7a);
+                UI.YELLOW = new Color(0xb4883b);
+                UI.RED = new Color(0xc9686a);
+                UI.ORANGE = new Color(0xc97945);
+                UI.PURPLE = new Color(0x6f89c8);
+            }
         }
-
-        UI.BG = new Color(0xf5f6f7);
-        UI.BG_CARD = Color.WHITE;
-        UI.BG_HOVER = new Color(0xeff1f2);
-        UI.BG_INPUT = Color.WHITE;
-        UI.BORDER = new Color(0xd7dbdf);
-        UI.TEXT = new Color(0x323130);
-        UI.TEXT_DIM = new Color(0x6f7378);
-        UI.TEXT_MUTED = new Color(0xa1a6ad);
-        UI.ACCENT = new Color(0x323130);
-        UI.GREEN = new Color(0x8fbe6f);
-        UI.YELLOW = new Color(0xe3b96b);
-        UI.RED = new Color(0xe29595);
-        UI.ORANGE = new Color(0xd8a96f);
-        UI.PURPLE = new Color(0xb4bdd2);
     }
 
     private static Map<String, Color[]> buildBadges() {

@@ -41,16 +41,9 @@ public class UserManagementPanel extends JPanel {
             UI.badgeCol("Status", UserRow::status)
         );
         table.rows(rows);
-        JTextField search = UI.searchField("Search Users", table.table());
-        JButton createButton = UI.primaryButton("+ Create User");
-        JButton editButton = UI.button("Edit User");
-        JPanel toolbar = new JPanel(new BorderLayout(8, 0));
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-
-        actions.add(createButton);
-        actions.add(editButton);
-        toolbar.add(search, BorderLayout.CENTER);
-        toolbar.add(actions, BorderLayout.EAST);
+        JButton createButton = UI.iconButton("Create User", "icons/users.svg", true);
+        JButton editButton = UI.iconButton("Edit User", "icons/user-cog.svg", false);
+        JPanel toolbar = UI.toolbar("Search Users", table.table(), createButton, editButton);
         createButton.addActionListener(e -> createUser());
         editButton.addActionListener(e -> editUser());
 
@@ -60,38 +53,105 @@ public class UserManagementPanel extends JPanel {
     }
 
     private void createUser() {
-        JDialog createUserDialogue = new JDialog((Frame) null, "Create User Account", true);
-        createUserDialogue.setSize(360, 240);
-        createUserDialogue.setLocationRelativeTo(this);
-        createUserDialogue.setLayout(new BorderLayout(10, 10));
-        JPanel bottomPanel = new JPanel(new BorderLayout(5, 5));
-        JTextField username = new JTextField();
-        JTextField fullName = new JTextField();
-        JPasswordField password = new JPasswordField();
-        JComboBox<String> role = new JComboBox<>(new String[]{"MANAGER", "PHARMACIST"});
-        JLabel errorLabel = new JLabel(" ", SwingConstants.CENTER);
-        errorLabel.setForeground(Color.RED);
-        JPanel fields = new JPanel(new GridLayout(4, 2, -50, 10));
-        fields.add(new JLabel("Username", SwingConstants.CENTER));
-        fields.add(username);
-        fields.add(new JLabel("Full Name", SwingConstants.CENTER));
-        fields.add(fullName);
-        fields.add(new JLabel("Password", SwingConstants.CENTER));
-        fields.add(password);
-        fields.add(new JLabel("Role", SwingConstants.CENTER));
-        fields.add(role);
-        JButton createButton = new JButton("Create User");
-        createUserDialogue.add(fields, BorderLayout.CENTER);
-        createButton.addActionListener(e -> {
-            String trimmedUsername = username.getText().trim();
-            String trimmedFullName = fullName.getText().trim();
-            String rawPassword = new String(password.getPassword()).trim();
+        showUserDialog(null);
+    }
 
-            if (trimmedUsername.isEmpty() || trimmedFullName.isEmpty() || rawPassword.isEmpty()) {
-                errorLabel.setText("Please enter username, full name, and password.");
-                return;
-            }
-            try {
+    private void editUser() {
+        User user = selectedUser();
+        if (user == null) {
+            UI.notifyInfo(this, "Select a user first.");
+            return;
+        }
+        showUserDialog(user);
+    }
+
+    private void showUserDialog(User existing) {
+        boolean editing = existing != null;
+        JTextField username = UI.inputField("Username");
+        username.setText(editing ? existing.getUsername() : "");
+        username.setEnabled(!editing);
+
+        JTextField fullName = UI.inputField("Full Name");
+        fullName.setText(editing ? text(existing.getFullName()) : "");
+
+        JPasswordField password = UI.passwordField("Password");
+        JComboBox<String> role = new JComboBox<>(editing
+            ? new String[]{"ADMIN", "MANAGER", "PHARMACIST"}
+            : new String[]{"MANAGER", "PHARMACIST"});
+        JComboBox<String> status = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE"});
+        JLabel errorLabel = UI.errorLabel();
+
+        if (editing) {
+            role.setSelectedItem(existing.getRole().name());
+            status.setSelectedItem(existing.isActive() ? "ACTIVE" : "INACTIVE");
+        }
+
+        JPanel form = UI.formCard();
+        form.add(UI.fullWidth(UI.sectionLabel(editing ? "EDIT USER" : "CREATE USER")));
+        form.add(UI.gap(12));
+        form.add(UI.formRow(
+            UI.field("Username", username),
+            UI.field("Role", role)
+        ));
+        form.add(UI.formRow(
+            UI.field("Full Name", fullName),
+            editing ? UI.field("Status", status) : UI.field("Password", password)
+        ));
+        form.add(UI.gap(4));
+        form.add(UI.fullWidth(errorLabel));
+        form.add(UI.gap(12));
+
+        JButton saveButton = UI.primaryButton(editing ? "Save Changes" : "Create User");
+        JButton cancelButton = UI.button("Cancel");
+        form.add(UI.fullWidth(UI.buttonRow(saveButton, cancelButton)));
+
+        JDialog dialog = buildDialog(editing ? "Edit User Account" : "Create User Account", form);
+        dialog.getRootPane().setDefaultButton(saveButton);
+        cancelButton.addActionListener(e -> dialog.dispose());
+        saveButton.addActionListener(e -> submitUserForm(existing, username, fullName, password, role, status, errorLabel, dialog));
+        dialog.setVisible(true);
+    }
+
+    private JDialog buildDialog(String title, JPanel form) {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JDialog dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        dialog.setResizable(false);
+
+        JPanel page = UI.panel();
+        page.add(form, BorderLayout.CENTER);
+        dialog.setContentPane(page);
+        dialog.pack();
+        dialog.setMinimumSize(new Dimension(480, dialog.getPreferredSize().height));
+        dialog.setLocationRelativeTo(this);
+        return dialog;
+    }
+
+    private void submitUserForm(
+        User existing,
+        JTextField username,
+        JTextField fullName,
+        JPasswordField password,
+        JComboBox<String> role,
+        JComboBox<String> status,
+        JLabel errorLabel,
+        JDialog dialog
+    ) {
+        String trimmedUsername = username.getText().trim();
+        String trimmedFullName = fullName.getText().trim();
+        String rawPassword = new String(password.getPassword()).trim();
+
+        if (trimmedUsername.isEmpty() || trimmedFullName.isEmpty()) {
+            errorLabel.setText("Please enter username and full name.");
+            return;
+        }
+        if (existing == null && rawPassword.isEmpty()) {
+            errorLabel.setText("Please enter a password.");
+            return;
+        }
+
+        try {
+            if (existing == null) {
                 User user = new User(
                     trimmedUsername,
                     AuthService.hashPassword(rawPassword),
@@ -99,54 +159,18 @@ public class UserManagementPanel extends JPanel {
                     UserRole.valueOf(role.getSelectedItem().toString())
                 );
                 userDAO.save(user);
-                createUserDialogue.dispose();
-                reload();
-            } catch (Exception error) {
-                errorLabel.setText(error.getMessage());
+                UI.notifySuccess(this, "User created.");
+            } else {
+                existing.setFullName(trimmedFullName);
+                existing.setRole(UserRole.valueOf(role.getSelectedItem().toString()));
+                existing.setActive("ACTIVE".equals(status.getSelectedItem()));
+                userDAO.update(existing);
+                UI.notifySuccess(this, "User updated.");
             }
-        });
-        bottomPanel.add(errorLabel, BorderLayout.NORTH);
-        bottomPanel.add(createButton, BorderLayout.CENTER);
-        createUserDialogue.add(bottomPanel, BorderLayout.SOUTH);
-        createUserDialogue.setVisible(true);
-    }
-
-    private void editUser() {
-        User user = selectedUser();
-        if (user == null) {
-            JOptionPane.showMessageDialog(this, "Select a user first.");
-            return;
-        }
-
-        JTextField fullName = new JTextField(user.getFullName());
-        JComboBox<String> role = new JComboBox<>(new String[]{"ADMIN", "MANAGER", "PHARMACIST"});
-        role.setSelectedItem(user.getRole().name());
-        JCheckBox active = new JCheckBox("Active", user.isActive());
-
-        JPanel fields = new JPanel(new GridLayout(3, 2, 8, 8));
-        fields.add(new JLabel("Username"));
-        fields.add(new JLabel(user.getUsername()));
-        fields.add(new JLabel("Full Name"));
-        fields.add(fullName);
-        fields.add(new JLabel("Role"));
-        fields.add(role);
-
-        JPanel wrapper = new JPanel(new BorderLayout(8, 8));
-        wrapper.add(fields, BorderLayout.CENTER);
-        wrapper.add(active, BorderLayout.SOUTH);
-
-        if (JOptionPane.showConfirmDialog(this, wrapper, "Edit User", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) {
-            return;
-        }
-
-        try {
-            user.setFullName(fullName.getText().trim());
-            user.setRole(UserRole.valueOf(role.getSelectedItem().toString()));
-            user.setActive(active.isSelected());
-            userDAO.update(user);
+            dialog.dispose();
             reload();
         } catch (Exception error) {
-            JOptionPane.showMessageDialog(this, error.getMessage(), "Update Failed", JOptionPane.ERROR_MESSAGE);
+            errorLabel.setText(error.getMessage());
         }
     }
 
@@ -195,5 +219,9 @@ public class UserManagementPanel extends JPanel {
             JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
             return null;
         }
+    }
+
+    private String text(String value) {
+        return value != null ? value : "";
     }
 }

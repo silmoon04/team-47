@@ -99,7 +99,7 @@ public class CustomerListPanel extends JPanel implements RefreshablePage {
         identity.setOpaque(false);
         identity.setBorder(new EmptyBorder(4, 0, 0, 0));
 
-        JLabel name = UI.monoLabelBold(row.name(), 14f, UI.TEXT);
+        JLabel name = UI.label(row.name(), UI.FONT_BOLD.deriveFont(14f), UI.TEXT);
 
         JPanel chips = UI.flowRow(8);
         chips.add(UI.badge(row.status()));
@@ -136,9 +136,6 @@ public class CustomerListPanel extends JPanel implements RefreshablePage {
         edit.addActionListener(e -> editCustomer(row.customerId()));
         receivePayment.addActionListener(e -> receivePayment(row.customerId()));
         delete.addActionListener(e -> deleteCustomer(row.customerId()));
-        edit.setFont(UI.FONT_MONO_BOLD);
-        receivePayment.setFont(UI.FONT_MONO_BOLD);
-        delete.setFont(UI.FONT_MONO_BOLD);
         card.add(UI.fullWidth(UI.buttonRow(edit, receivePayment, delete)));
         return card;
     }

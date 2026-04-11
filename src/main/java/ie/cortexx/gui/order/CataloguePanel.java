@@ -62,22 +62,22 @@ public class CataloguePanel extends JPanel implements RefreshablePage {
         try {
             orderService.syncCatalogue();
             reload();
-            JOptionPane.showMessageDialog(this, "Catalogue synced from SA.");
+            UI.notifySuccess(this, "Catalogue synced from SA.");
         } catch (Exception error) {
-            JOptionPane.showMessageDialog(this, error.getMessage(), "Sync Failed", JOptionPane.ERROR_MESSAGE);
+            UI.notifyError(this, error.getMessage());
         }
     }
 
     private void placeOrder(UI.DataTable<Product> table) {
         int viewRow = table.table().getSelectedRow();
         if (viewRow < 0) {
-            JOptionPane.showMessageDialog(this, "Select a product first.");
+            UI.notifyInfo(this, "Select a product first.");
             return;
         }
 
         Product product = table.rowAtView(viewRow);
         if (product == null || product.getAvailability() <= 0) {
-            JOptionPane.showMessageDialog(this, "No stock is currently available in SA for this item.");
+            UI.notifyInfo(this, "No stock is currently available in SA for this item.");
             return;
         }
 
@@ -93,9 +93,9 @@ public class CataloguePanel extends JPanel implements RefreshablePage {
         try {
             OrderConfirmation confirmation = orderService.placeSaOrder(product.getSaProductId(), ((Number) quantity.getValue()).intValue());
             reload();
-            JOptionPane.showMessageDialog(this, "Order placed: " + confirmation.getSaOrderId());
+            UI.notifySuccess(this, "Order placed: " + confirmation.getSaOrderId());
         } catch (Exception error) {
-            JOptionPane.showMessageDialog(this, error.getMessage(), "Order Failed", JOptionPane.ERROR_MESSAGE);
+            UI.notifyError(this, error.getMessage());
         }
     }
 

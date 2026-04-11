@@ -15,6 +15,9 @@ public class LoginPanel extends JPanel {
     private final JTextField usernameField = UI.inputField("Username");
     private final JPasswordField passwordField = UI.passwordField("Password");
     private final JLabel errorLabel = UI.errorLabel();
+    private final JButton signInButton = UI.primaryButtonWide("SIGN IN");
+    private final JProgressBar loginProgress = new JProgressBar();
+    private boolean loggingIn;
 
     public LoginPanel(MainFrame mainFrame, AuthService authService) {
         this.mainFrame = mainFrame;
@@ -42,35 +45,79 @@ public class LoginPanel extends JPanel {
         card.add(passwordField);
         card.add(UI.gap(12));
 
-        JButton btn = UI.primaryButtonWide("SIGN IN");
-        card.add(btn);
+        configureLoginProgress();
+        card.add(signInButton);
+        card.add(UI.gap(8));
+        card.add(loginProgress);
         card.add(UI.gap(12));
         card.add(errorLabel);
 
-        btn.addActionListener(e -> attemptLogin());
+        signInButton.addActionListener(e -> attemptLogin());
         passwordField.addActionListener(e -> attemptLogin());
         outer.add(card);
         return outer;
     }
 
     private void attemptLogin() {
+        if (loggingIn) {
+            return;
+        }
+
         String user = usernameField.getText().trim();
-        if (user.isEmpty() || passwordField.getPassword().length == 0) {
+        String password = new String(passwordField.getPassword());
+        if (user.isEmpty() || password.isEmpty()) {
             errorLabel.setText("Please enter both username and password.");
             return;
         }
 
-        if (!authService.authenticate(user, new String(passwordField.getPassword()))) {
-            errorLabel.setText("Invalid username or password.");
-            return;
-        }
+        setLoggingIn(true);
+        new SwingWorker<User, Void>() {
+            @Override
+            protected User doInBackground() {
+                if (!authService.authenticate(user, password)) {
+                    return null;
+                }
+                return SessionManager.getInstance().getCurrentUser();
+            }
 
-        User currentUser = SessionManager.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            errorLabel.setText("Unable to load session.");
-            return;
-        }
+            @Override
+            protected void done() {
+                try {
+                    User currentUser = get();
+                    if (currentUser == null) {
+                        errorLabel.setText("Invalid username or password.");
+                        setLoggingIn(false);
+                        return;
+                    }
+                    mainFrame.login(currentUser.getUsername(), currentUser.getRole().name().toLowerCase());
+                } catch (InterruptedException error) {
+                    Thread.currentThread().interrupt();
+                    errorLabel.setText("Login interrupted.");
+                    setLoggingIn(false);
+                } catch (Exception error) {
+                    errorLabel.setText("Unable to load session.");
+                    setLoggingIn(false);
+                }
+            }
+        }.execute();
+    }
 
-        mainFrame.login(currentUser.getUsername(), currentUser.getRole().name().toLowerCase());
+    private void configureLoginProgress() {
+        loginProgress.setIndeterminate(true);
+        loginProgress.setString("Signing in...");
+        loginProgress.setStringPainted(true);
+        loginProgress.setVisible(false);
+        loginProgress.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
+        loginProgress.setAlignmentX(Component.LEFT_ALIGNMENT);
+    }
+
+    private void setLoggingIn(boolean active) {
+        loggingIn = active;
+        usernameField.setEnabled(!active);
+        passwordField.setEnabled(!active);
+        signInButton.setEnabled(!active);
+        signInButton.setText(active ? "SIGNING IN..." : "SIGN IN");
+        loginProgress.setVisible(active);
+        errorLabel.setText(active ? " " : errorLabel.getText());
     }
 }
