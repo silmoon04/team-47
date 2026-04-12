@@ -24,10 +24,12 @@ public final class AppearanceDialog {
     }
 
     private static void showDialog(MainFrame frame) {
+        JDialog dialog = new JDialog(frame, "Appearance", false);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(new EmptyBorder(8, 4, 8, 4));
-        panel.setPreferredSize(new Dimension(320, 0));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
 
         panel.add(section("THEME"));
         panel.add(Box.createVerticalStrut(6));
@@ -38,10 +40,13 @@ public final class AppearanceDialog {
         for (UI.Theme theme : UI.Theme.values()) {
             JToggleButton btn = pill(theme.label(), UI.theme() == theme);
             themeGroup.add(btn);
-            btn.addActionListener(e -> { UI.applyTheme(theme); frame.refreshTheme(); });
+            btn.addActionListener(e -> {
+                UI.applyTheme(theme);
+                frame.refreshTheme();
+                SwingUtilities.updateComponentTreeUI(dialog);
+            });
             themeGrid.add(btn);
         }
-        themeGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
         panel.add(themeGrid);
 
         panel.add(Box.createVerticalStrut(16));
@@ -55,10 +60,13 @@ public final class AppearanceDialog {
             JToggleButton btn = pill(family.label(), UI.fontFamily() == family);
             btn.setFont(new Font(family.sansName(), Font.PLAIN, 12));
             familyGroup.add(btn);
-            btn.addActionListener(e -> { UI.applyFontFamily(family); frame.refreshTheme(); });
+            btn.addActionListener(e -> {
+                UI.applyFontFamily(family);
+                frame.refreshTheme();
+                SwingUtilities.updateComponentTreeUI(dialog);
+            });
             familyGrid.add(btn);
         }
-        familyGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
         panel.add(familyGrid);
 
         panel.add(Box.createVerticalStrut(16));
@@ -71,15 +79,27 @@ public final class AppearanceDialog {
         for (UI.FontSize size : UI.FontSize.values()) {
             JToggleButton btn = pill(size.label(), UI.fontSize() == size);
             sizeGroup.add(btn);
-            btn.addActionListener(e -> { UI.applyFontSize(size); frame.refreshTheme(); });
+            btn.addActionListener(e -> {
+                UI.applyFontSize(size);
+                frame.refreshTheme();
+                SwingUtilities.updateComponentTreeUI(dialog);
+            });
             sizeRow.add(btn);
         }
-        sizeRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
         panel.add(sizeRow);
 
-        JOptionPane pane = new JOptionPane(panel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{"Done"});
-        JDialog dialog = pane.createDialog(frame, "Appearance");
-        dialog.setModal(false);
+        panel.add(Box.createVerticalStrut(16));
+        JButton done = new JButton("Done");
+        done.putClientProperty("FlatLaf.styleClass", "primary");
+        done.setAlignmentX(Component.LEFT_ALIGNMENT);
+        done.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        done.addActionListener(e -> dialog.dispose());
+        panel.add(done);
+
+        dialog.setContentPane(panel);
+        dialog.pack();
+        dialog.setMinimumSize(new Dimension(300, dialog.getHeight()));
+        dialog.setLocationRelativeTo(frame);
         dialog.setVisible(true);
     }
 
