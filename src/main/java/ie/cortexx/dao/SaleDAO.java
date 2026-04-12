@@ -118,6 +118,23 @@ public class SaleDAO {
         return sales;
     }
 
+    public List<Sale> findByCustomerAndMonth(int customerId, java.time.YearMonth month) throws SQLException {
+        String sql = "SELECT * FROM sales WHERE customer_id = ? AND sale_date >= ? AND sale_date < ?";
+        List<Sale> sales = new ArrayList<>();
+        var start = month.atDay(1).atStartOfDay();
+        var end = month.plusMonths(1).atDay(1).atStartOfDay();
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement(sql)) {
+            ps.setInt(1, customerId);
+            ps.setObject(2, start);
+            ps.setObject(3, end);
+            try (var rs = ps.executeQuery()) {
+                while (rs.next()) sales.add(mapSale(rs));
+            }
+        }
+        return sales;
+    }
+
     public int countItems(int saleId) throws SQLException {
         String sql = "SELECT COALESCE(SUM(quantity), 0) FROM sale_items WHERE sale_id = ?";
 

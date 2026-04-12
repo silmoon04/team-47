@@ -58,9 +58,7 @@ public class DiscountService {
 
     public BigDecimal currentMonthSpend(int customerId, LocalDate saleDate) throws SQLException {
         YearMonth targetMonth = YearMonth.from(saleDate != null ? saleDate : LocalDate.now());
-        return saleDAO.findByCustomer(customerId).stream()
-            .filter(sale -> sale.getSaleDate() != null)
-            .filter(sale -> YearMonth.from(sale.getSaleDate().toLocalDate()).equals(targetMonth))
+        return saleDAO.findByCustomerAndMonth(customerId, targetMonth).stream()
             .map(sale -> safeMoney(sale.getSubtotal() != null ? sale.getSubtotal() : sale.getTotalAmount()))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
