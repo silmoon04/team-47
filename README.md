@@ -1,20 +1,20 @@
-# ipos-ca
+# IPOS-CA (Team 47)
 
-pharmacy counter assistant for cosymed ltd, built by cortexx (team b).
+Pharmacy counter assistant for cosymed ltd, built by cortexx (team b).
 
-swing desktop app with mysql backend. handles sales, stock, customers, orders, reports, and user management.
+ Java swing desktop app with mysql backend. handles sales, stock, customers, orders, reports, and user management.
 
-## what you need
+## What you need
 
 - java 17+ (we use adoptium temurin)
 - mysql 8.0+
 - maven 3.9+ (intellij bundles one, or install separately)
 
-## setup
+## Setup
 
-### 1. database
+### 1. Database
 
-run the sql scripts in order against your mysql server:
+run the sql scripts in order against your mysql server (or select the data source in IntelliJ after the sql server is running, right click and and run):
 
 ```
 mysql -u root -p < db/01_schema.sql
@@ -22,7 +22,7 @@ mysql -u root -p iposca_database < db/02_reference_data.sql
 mysql -u root -p iposca_database < db/03_demo_data.sql
 ```
 
-this creates the `iposca_database` schema with all tables and seed data.
+This creates the `iposca_database` schema with all tables and seed data.
 
 ### 2. config
 
@@ -30,9 +30,9 @@ this creates the `iposca_database` schema with all tables and seed data.
 cp src/main/resources/db.properties.example src/main/resources/db.properties
 ```
 
-open `db.properties` and set your mysql password. the file is gitignored so your credentials stay local.
+open `db.properties` and set your mysql password. the file is gitignored so credentials stay local.
 
-### 3. build and run
+### 3. Build and run
 
 ```
 mvn clean compile exec:java -Dexec.mainClass="ie.cortexx.Main"
@@ -40,11 +40,11 @@ mvn clean compile exec:java -Dexec.mainClass="ie.cortexx.Main"
 
 or just run `ie.cortexx.Main` from intellij (right-click > run).
 
-### 4. login
+### 4. Login
 
 the seed data creates one admin account: `sysdba`. you can create additional users (pharmacist, cashier, manager) from the user management panel after logging in.
 
-## tests
+## Tests
 
 unit tests:
 ```
