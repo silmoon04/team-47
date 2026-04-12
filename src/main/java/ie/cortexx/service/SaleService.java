@@ -6,6 +6,7 @@ import ie.cortexx.dao.SaleDAO;
 import ie.cortexx.dao.StockDAO;
 import ie.cortexx.dao.PaymentDAO;
 import ie.cortexx.dao.CustomerDAO;
+import ie.cortexx.dao.DiscountTierDAO;
 import ie.cortexx.enums.AccountStatus;
 import ie.cortexx.util.DBConnection;
 
@@ -28,6 +29,7 @@ public class SaleService {
     private final StockDAO stockDAO;
     private final PaymentDAO paymentDAO;
     private final CustomerDAO customerDAO;
+    private final DiscountService discountService;
     private final TransactionRunner transactionRunner;
 
     public SaleService() {
@@ -43,6 +45,7 @@ public class SaleService {
         this.stockDAO = stockDAO;
         this.paymentDAO = paymentDAO;
         this.customerDAO = customerDAO;
+        this.discountService = new DiscountService(saleDAO, new DiscountTierDAO());
         this.transactionRunner = transactionRunner;
     }
 
@@ -94,8 +97,7 @@ public class SaleService {
         if (payment.getPaymentType() == PaymentType.ACCOUNT_PAYMENT) {
             return ValidationResult.fail("Account payment is not valid for checkout");
         }
-        if (payment.getPaymentType() != PaymentType.ON_CREDIT
-            && (payment.getAmount() == null || payment.getAmount().compareTo(BigDecimal.ZERO) <= 0)) {
+        if (payment.getAmount() == null || payment.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             return ValidationResult.fail("Payment amount must be greater than 0");
         }
         return ValidationResult.ok();
@@ -172,6 +174,16 @@ public class SaleService {
         }
 
         if (customer != null) {
+            try {
+                BigDecimal discount = discountService.resolveDiscount(customer, sale.getSubtotal(),
+                    sale.getSaleDate() != null ? sale.getSaleDate().toLocalDate() : java.time.LocalDate.now());
+                if (discount.compareTo(BigDecimal.ZERO) > 0) {
+                    sale.setDiscountAmount(discount);
+                    grandTotal = sale.getSubtotal().subtract(discount).add(sale.getVatAmount() != null ? sale.getVatAmount() : BigDecimal.ZERO);
+                    sale.setTotalAmount(grandTotal);
+                }
+            } catch (SQLException ignored) { }
+
             ValidationResult creditCheck = validateCreditLimit(customer, paymentType, grandTotal);
             if (!creditCheck.isValid()) {
                 return creditCheck;

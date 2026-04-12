@@ -100,7 +100,7 @@ public class CustomerService {
 
             customer.setOutstandingBalance(newBalance);
             customer.setLastPaymentDate(LocalDate.now());
-            if (newBalance.compareTo(BigDecimal.ZERO) == 0 && customer.getAccountStatus() != AccountStatus.IN_DEFAULT) {
+            if (newBalance.compareTo(BigDecimal.ZERO) == 0) {
                 customer.setAccountStatus(AccountStatus.NORMAL);
             }
             customerDAO.update(connection, customer);

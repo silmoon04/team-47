@@ -107,9 +107,10 @@ public class OrderService {
             throw new IllegalArgumentException("Unknown product id: " + productId);
         }
 
-        int orderedBy = SessionManager.getInstance().getCurrentUser() != null
-            ? SessionManager.getInstance().getCurrentUser().getUserId()
-            : 1;
+        if (SessionManager.getInstance().getCurrentUser() == null) {
+            throw new IllegalStateException("User must be logged in to place an order");
+        }
+        int orderedBy = SessionManager.getInstance().getCurrentUser().getUserId();
         BigDecimal unitPrice = item.getCostPrice();
 
         Order order = new Order(unitPrice.multiply(BigDecimal.valueOf(quantity)), orderedBy);
