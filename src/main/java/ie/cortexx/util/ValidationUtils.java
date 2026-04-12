@@ -5,7 +5,17 @@ package ie.cortexx.util;
 public class ValidationUtils {
     private ValidationUtils() {}
 
-    // TODO: isNullOrBlank(String) -> boolean
-    // TODO: requireNonBlank(String value, String fieldName) -> throws IllegalArgumentException
-    // TODO: requirePositive(int value, String fieldName) -> throws IllegalArgumentException
+    public static boolean isNullOrBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    public static String requireNonBlank(String value, String fieldName) {
+        if (isNullOrBlank(value)) throw new IllegalArgumentException(fieldName + " is required");
+        return value.trim();
+    }
+
+    public static int requirePositive(int value, String fieldName) {
+        if (value <= 0) throw new IllegalArgumentException(fieldName + " must be greater than 0");
+        return value;
+    }
 }

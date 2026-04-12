@@ -61,6 +61,7 @@ public class PriceCalculator {
 
     // convenience: sum all line totals from a list of sale items
     public static BigDecimal calculateSubtotal(List<SaleItem> items) {
+        if (items == null) throw new IllegalArgumentException("items cannot be null");
         BigDecimal subtotal = BigDecimal.ZERO;
         for (SaleItem item : items) {
             subtotal = subtotal.add(calculateLineTotal(item.getQuantity(), item.getUnitPrice()));

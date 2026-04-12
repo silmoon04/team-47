@@ -23,7 +23,7 @@ public class DBConnection {
     private static String user;
     private static String password;
     private static String testUrl;
-    private static boolean useTestDatabase = Boolean.getBoolean("db.use.test");
+    private static volatile boolean useTestDatabase = Boolean.getBoolean("db.use.test");
 
     static {
         try (InputStream in = DBConnection.class.getClassLoader()

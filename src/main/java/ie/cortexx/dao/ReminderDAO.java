@@ -40,7 +40,7 @@ public class ReminderDAO {
              var ps = c.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, reminder.getCustomerId());
-            ps.setString(2, reminder.getReminderType().toString());
+            ps.setString(2, reminder.getReminderType().name());
 
             ps.setBigDecimal(3, reminder.getAmountOwed());
 

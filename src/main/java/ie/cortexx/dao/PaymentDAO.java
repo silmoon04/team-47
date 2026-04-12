@@ -109,7 +109,8 @@ public class PaymentDAO {
         payment.setCardLast4(rs.getString("card_last4"));
         payment.setCardExpiry(rs.getString("card_expiry"));
         payment.setChangeGiven(rs.getBigDecimal("change_given"));
-        payment.setPaymentDate(rs.getTimestamp("payment_date").toLocalDateTime());
+        var paymentDate = rs.getTimestamp("payment_date");
+        if (paymentDate != null) payment.setPaymentDate(paymentDate.toLocalDateTime());
         return payment;
     }
 }
