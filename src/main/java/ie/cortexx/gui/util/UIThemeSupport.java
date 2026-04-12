@@ -92,14 +92,14 @@ final class UIThemeSupport {
         UIManager.put("Button.default.hoverBorderColor", neutralOutline);
         UIManager.put("Button.default.focusedBorderColor", neutralOutline);
         UIManager.put("Component.focusColor", neutralOutline);
-        UIManager.put("Component.focusWidth", 0);
+        UIManager.put("Component.focusWidth", 1);
         UIManager.put("Component.focusedBorderColor", neutralOutline);
 
         UIManager.put("TextField.background", UI.BG_INPUT);
         UIManager.put("TextField.focusedBackground", UI.BG_INPUT);
         UIManager.put("TextField.borderColor", UI.BORDER);
         UIManager.put("TextField.focusedBorderColor", neutralOutline);
-        UIManager.put("TextField.focusWidth", dark ? 0 : 1);
+        UIManager.put("TextField.focusWidth", 1);
         UIManager.put("TextField.innerFocusWidth", 0);
         UIManager.put("TextField.margin", new Insets(0, 14, 0, 14));
         UIManager.put("TextField.foreground", UI.TEXT);
@@ -110,7 +110,7 @@ final class UIThemeSupport {
         UIManager.put("PasswordField.focusedBackground", UI.BG_INPUT);
         UIManager.put("PasswordField.borderColor", UI.BORDER);
         UIManager.put("PasswordField.focusedBorderColor", neutralOutline);
-        UIManager.put("PasswordField.focusWidth", dark ? 0 : 1);
+        UIManager.put("PasswordField.focusWidth", 1);
         UIManager.put("PasswordField.innerFocusWidth", 0);
         UIManager.put("PasswordField.margin", new Insets(0, 14, 0, 14));
         UIManager.put("PasswordField.foreground", UI.TEXT);
@@ -119,7 +119,7 @@ final class UIThemeSupport {
         UIManager.put("ComboBox.background", UI.BG_INPUT);
         UIManager.put("ComboBox.borderColor", UI.BORDER);
         UIManager.put("ComboBox.focusedBorderColor", neutralOutline);
-        UIManager.put("ComboBox.focusWidth", dark ? 0 : 1);
+        UIManager.put("ComboBox.focusWidth", 1);
         UIManager.put("ComboBox.innerFocusWidth", 0);
         UIManager.put("ComboBox.padding", new Insets(0, 14, 0, 10));
 
@@ -176,6 +176,11 @@ final class UIThemeSupport {
             "; hoverBorderColor:" + hex(UI.BORDER) + "; focusedBorderColor:" + hex(neutralOutline) + "; " +
             "hoverBackground:" + hex(dark ? new Color(0x332326) : new Color(0xffecd0)) +
             "; pressedBackground:" + hex(dark ? new Color(0x3b282c) : new Color(0xfbe3bc)));
+
+        UIManager.put("OptionPane.background", UI.BG_CARD);
+        UIManager.put("OptionPane.messageForeground", UI.TEXT);
+        UIManager.put("OptionPane.buttonFont", UI.FONT_BOLD);
+        UIManager.put("Panel.background", UI.BG);
     }
 
     static Color[] badgeStyle(String raw) {

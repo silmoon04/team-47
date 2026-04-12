@@ -56,7 +56,7 @@ public class SidePanel extends JPanel {
 		text.add(UI.gap(2));
 		text.add(UI.subtitle("COSYMED LTD"));
 		brand.add(text, BorderLayout.CENTER);
-		brand.add(ThemeSwitchButton.create(mainFrame), BorderLayout.EAST);
+		brand.add(AppearanceDialog.createButton(mainFrame), BorderLayout.EAST);
 		return brand;
 	}
 

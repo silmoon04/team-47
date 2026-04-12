@@ -1,52 +1,83 @@
-# IPOS-CA — Pharmacy Counter Assistant
+# ipos-ca
 
-> CortexX (Team B) | Software Engineering | Demo: 16 April 2026
+pharmacy counter assistant for cosymed ltd, built by cortexx (team b).
 
-## Quick Start
+swing desktop app with mysql backend. handles sales, stock, customers, orders, reports, and user management.
 
-### Prerequisites
-- JDK 17+ (Adoptium Temurin)
-- MySQL 8.0+
-- Maven 3.9+ (bundled with IntelliJ)
+## what you need
 
-### Database Setup
-```bash
+- java 17+ (we use adoptium temurin)
+- mysql 8.0+
+- maven 3.9+ (intellij bundles one, or install separately)
+
+## setup
+
+### 1. database
+
+run the sql scripts in order against your mysql server:
+
+```
 mysql -u root -p < db/01_schema.sql
-mysql -u ipos_app -p ipos_ca < db/02_reference_data.sql
-mysql -u ipos_app -p ipos_ca < db/03_demo_data.sql
+mysql -u root -p iposca_database < db/02_reference_data.sql
+mysql -u root -p iposca_database < db/03_demo_data.sql
 ```
 
-### Configure
-```bash
+this creates the `iposca_database` schema with all tables and seed data.
+
+### 2. config
+
+```
 cp src/main/resources/db.properties.example src/main/resources/db.properties
-# Edit db.properties with your MySQL credentials
 ```
 
-### Build & Run
-```bash
+open `db.properties` and set your mysql password. the file is gitignored so your credentials stay local.
+
+### 3. build and run
+
+```
 mvn clean compile exec:java -Dexec.mainClass="ie.cortexx.Main"
 ```
 
-Report PDF export works after cloning with the normal Maven build. No separate Typst installation is required.
+or just run `ie.cortexx.Main` from intellij (right-click > run).
 
-### Run Tests
-```bash
+### 4. login
+
+the seed data creates one admin account: `sysdba`. you can create additional users (pharmacist, cashier, manager) from the user management panel after logging in.
+
+## tests
+
+unit tests:
+```
 mvn test
-# Coverage report: target/site/jacoco/index.html
 ```
 
-## Project Structure
+integration tests (needs a running mysql with the test schema):
+```
+mvn verify
+```
+
+coverage report ends up at `target/site/jacoco/index.html`.
+
+## project layout
+
 ```
 src/main/java/ie/cortexx/
- - model/         Entity classes + enums
- -  dao/           Data access objects
- -  service/       Business logic
- -  impl/          Interface implementations (CAtoPU)
- -  interfaces/    I_SAtoCA, I_CAtoPU contracts
- -  exception/     Custom exceptions
- -  gui/           Swing panels (sub-packaged by feature)
-- util/          DBConnection, SessionManager
+  model/       entities and enums
+  dao/         database access
+  service/     business logic
+  gui/         swing ui (sub-packaged by feature)
+  util/        db connection, session manager, helpers
+  interfaces/  sa and pu integration contracts
+  impl/        contract implementations
+db/            sql schema + seed data
 ```
+
+## notes
+
+- the app uses flatlaf for theming. dark, light, green, and blue themes are available from the palette icon in the sidebar.
+- font family and size can also be changed from the appearance dialog.
+- pdf report export works out of the box with the maven build, no extra tools needed.
+- sa integration expects team 46's database on `db.sa.url` (see db.properties).
 
 
 ## Test Workflow Setup (H1)

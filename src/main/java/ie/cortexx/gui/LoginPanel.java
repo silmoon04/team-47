@@ -16,7 +16,8 @@ public class LoginPanel extends JPanel {
     private final JPasswordField passwordField = UI.passwordField("Password");
     private final JLabel errorLabel = UI.errorLabel();
     private final JButton signInButton = UI.primaryButtonWide("SIGN IN");
-    private final JProgressBar loginProgress = new JProgressBar();
+    private final JLabel statusLabel = UI.label(" ", UI.FONT_SMALL, UI.TEXT_DIM);
+    private Timer dotTimer;
     private boolean loggingIn;
 
     public LoginPanel(MainFrame mainFrame, AuthService authService) {
@@ -29,7 +30,7 @@ public class LoginPanel extends JPanel {
 
     private JComponent buildTopBar() {
         JPanel bar = UI.paddedPanel(16, 16, 0, 16);
-        bar.add(ThemeSwitchButton.create(mainFrame), BorderLayout.EAST);
+        bar.add(AppearanceDialog.createButton(mainFrame), BorderLayout.EAST);
         return bar;
     }
 
@@ -45,10 +46,10 @@ public class LoginPanel extends JPanel {
         card.add(passwordField);
         card.add(UI.gap(12));
 
-        configureLoginProgress();
+        configureStatusLabel();
         card.add(signInButton);
         card.add(UI.gap(8));
-        card.add(loginProgress);
+        card.add(statusLabel);
         card.add(UI.gap(12));
         card.add(errorLabel);
 
@@ -102,13 +103,9 @@ public class LoginPanel extends JPanel {
         }.execute();
     }
 
-    private void configureLoginProgress() {
-        loginProgress.setIndeterminate(true);
-        loginProgress.setString("Signing in...");
-        loginProgress.setStringPainted(true);
-        loginProgress.setVisible(false);
-        loginProgress.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
-        loginProgress.setAlignmentX(Component.LEFT_ALIGNMENT);
+    private void configureStatusLabel() {
+        statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        statusLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
     }
 
     private void setLoggingIn(boolean active) {
@@ -117,7 +114,20 @@ public class LoginPanel extends JPanel {
         passwordField.setEnabled(!active);
         signInButton.setEnabled(!active);
         signInButton.setText(active ? "SIGNING IN..." : "SIGN IN");
-        loginProgress.setVisible(active);
+        if (active) {
+            final String base = "Signing in";
+            dotTimer = new Timer(400, null);
+            final int[] tick = {0};
+            dotTimer.addActionListener(e -> {
+                tick[0] = (tick[0] + 1) % 4;
+                statusLabel.setText(base + ".".repeat(tick[0]));
+            });
+            statusLabel.setText(base);
+            dotTimer.start();
+        } else {
+            if (dotTimer != null) { dotTimer.stop(); dotTimer = null; }
+            statusLabel.setText(" ");
+        }
         errorLabel.setText(active ? " " : errorLabel.getText());
     }
 }

@@ -48,6 +48,28 @@ public final class UI {
     private static final String DISPLAY = "Outfit Regular";
     private static final String MONO = Font.MONOSPACED;
 
+    public enum FontFamily {
+        OUTFIT("Outfit", "Outfit Medium", "Outfit Bold", "Outfit Regular"),
+        INTER("Inter", "Inter Medium", "Inter Bold", "Inter"),
+        SYSTEM("System", Font.SANS_SERIF, Font.SANS_SERIF, Font.SANS_SERIF),
+        JETBRAINS("JetBrains Mono", "JetBrains Mono", "JetBrains Mono", "JetBrains Mono");
+
+        private final String label;
+        final String sans, sansBold, display;
+
+        FontFamily(String label, String sans, String sansBold, String display) {
+            this.label = label;
+            this.sans = sans;
+            this.sansBold = sansBold;
+            this.display = display;
+        }
+
+        public String label() { return label; }
+        public String sansName() { return sans; }
+    }
+
+    private static FontFamily currentFontFamily = FontFamily.OUTFIT;
+
     public static Color BG = new Color(0x0f1117);
     public static Color BG_CARD = new Color(0x181a20);
     public static Color BG_HOVER = new Color(0x1e2028);
@@ -68,16 +90,35 @@ public final class UI {
     public static final int FIELD_ARC = 14;
     public static final int TAB_ARC = 12;
 
-    public static final Font FONT = new Font(SANS, Font.PLAIN, 13);
-    public static final Font FONT_SMALL = new Font(SANS, Font.PLAIN, 12);
-    public static final Font FONT_BOLD = new Font(SANS, Font.BOLD, 13);
-    public static final Font FONT_STAT = new Font(SANS_BOLD, Font.BOLD, 18);
-    public static final Font FONT_TITLE = new Font(DISPLAY, Font.BOLD, 18);
-    public static final Font FONT_HEADING = new Font(DISPLAY, Font.BOLD, 16);
-    public static final Font FONT_MONO = new Font(MONO, Font.PLAIN, 12);
-    public static final Font FONT_MONO_SMALL = new Font(MONO, Font.PLAIN, 11);
-    public static final Font FONT_MONO_BOLD = new Font(MONO, Font.BOLD, 12);
-    public static final Font FONT_MONO_BIG = new Font(MONO, Font.BOLD, 20);
+    public enum FontSize {
+        SMALL(11, "Small"),
+        MEDIUM(13, "Medium"),
+        LARGE(15, "Large");
+
+        private final int base;
+        private final String label;
+
+        FontSize(int base, String label) {
+            this.base = base;
+            this.label = label;
+        }
+
+        public int base() { return base; }
+        public String label() { return label; }
+    }
+
+    private static FontSize currentFontSize = FontSize.MEDIUM;
+
+    public static Font FONT = new Font(SANS, Font.PLAIN, 13);
+    public static Font FONT_SMALL = new Font(SANS, Font.PLAIN, 12);
+    public static Font FONT_BOLD = new Font(SANS, Font.BOLD, 13);
+    public static Font FONT_STAT = new Font(SANS_BOLD, Font.BOLD, 18);
+    public static Font FONT_TITLE = new Font(DISPLAY, Font.BOLD, 18);
+    public static Font FONT_HEADING = new Font(DISPLAY, Font.BOLD, 16);
+    public static Font FONT_MONO = new Font(MONO, Font.PLAIN, 12);
+    public static Font FONT_MONO_SMALL = new Font(MONO, Font.PLAIN, 11);
+    public static Font FONT_MONO_BOLD = new Font(MONO, Font.BOLD, 12);
+    public static Font FONT_MONO_BIG = new Font(MONO, Font.BOLD, 20);
 
     private UI() {}
 
@@ -240,6 +281,42 @@ public final class UI {
 
     public static void applyTheme(Theme theme) {
         UIThemeSupport.applyTheme(theme);
+    }
+
+    public static FontSize fontSize() {
+        return currentFontSize;
+    }
+
+    public static FontFamily fontFamily() {
+        return currentFontFamily;
+    }
+
+    public static void applyFontSize(FontSize size) {
+        currentFontSize = size;
+        rebuildFonts();
+    }
+
+    public static void applyFontFamily(FontFamily family) {
+        currentFontFamily = family;
+        rebuildFonts();
+    }
+
+    private static void rebuildFonts() {
+        int b = currentFontSize.base();
+        String s = currentFontFamily.sans;
+        String sb = currentFontFamily.sansBold;
+        String d = currentFontFamily.display;
+        FONT = new Font(s, Font.PLAIN, b);
+        FONT_SMALL = new Font(s, Font.PLAIN, b - 1);
+        FONT_BOLD = new Font(sb, Font.BOLD, b);
+        FONT_STAT = new Font(sb, Font.BOLD, b + 5);
+        FONT_TITLE = new Font(d, Font.BOLD, b + 5);
+        FONT_HEADING = new Font(d, Font.BOLD, b + 3);
+        FONT_MONO = new Font(MONO, Font.PLAIN, b - 1);
+        FONT_MONO_SMALL = new Font(MONO, Font.PLAIN, b - 2);
+        FONT_MONO_BOLD = new Font(MONO, Font.BOLD, b - 1);
+        FONT_MONO_BIG = new Font(MONO, Font.BOLD, b + 7);
+        UIThemeSupport.applyTheme(UIThemeSupport.theme());
     }
 
     public static JComponent badge(String raw) {
