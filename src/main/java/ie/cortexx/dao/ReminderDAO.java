@@ -6,7 +6,6 @@ import ie.cortexx.util.DBConnection;
 import java.sql.*;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Objects;
 
 // handles SQL for `reminders` table
 // always scoped to a customer (WHERE customer_id = ?)
@@ -82,8 +81,7 @@ public class ReminderDAO {
         Reminder r = new Reminder();
         r.setReminderId(rs.getInt("reminder_id"));
         r.setCustomerId(rs.getInt("customer_id"));
-        var reminder = Objects.equals(rs.getString("reminder_type"), "FIRST") ? ReminderType.FIRST : ReminderType.SECOND;
-        r.setReminderType(reminder);
+        r.setReminderType(ReminderType.valueOf(rs.getString("reminder_type")));
         r.setAmountOwed(rs.getBigDecimal("amount_owed"));
 
         Date dueDate = rs.getDate("due_date");

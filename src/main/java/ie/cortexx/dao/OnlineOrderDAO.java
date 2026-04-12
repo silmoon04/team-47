@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 

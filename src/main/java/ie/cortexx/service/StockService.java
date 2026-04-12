@@ -27,6 +27,9 @@ public class StockService {
     }
 
     public void addStock(int productId, int quantity) throws SQLException {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than 0");
+        }
         stockDAO.updateQuantity(productId, quantity);
     }
 }

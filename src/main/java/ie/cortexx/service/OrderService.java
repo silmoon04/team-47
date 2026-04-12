@@ -94,11 +94,7 @@ public class OrderService {
     }
 
     public List<Order> findOrders() throws SQLException {
-        List<Order> orders = new ArrayList<>();
-        for (Order order : orderDAO.findAll()) {
-            orders.add(orderDAO.findById(order.getOrderId()));
-        }
-        return orders;
+        return orderDAO.findAllWithItems();
     }
 
     public Order placeOrder(int productId, int quantity) throws SQLException {

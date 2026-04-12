@@ -14,6 +14,11 @@ public class DBConnection {
         T run(Connection connection) throws SQLException;
     }
 
+    @FunctionalInterface
+    public interface TransactionRunner {
+        <T> T execute(TransactionWork<T> work) throws SQLException;
+    }
+
     private static String url;
     private static String user;
     private static String password;

@@ -13,11 +13,16 @@ import java.util.List;
 public class OrderDAO {
 
     public Order findById(int orderId) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            return findById(c, orderId);
+        }
+    }
+
+    public Order findById(Connection c, int orderId) throws SQLException {
         Order order = null;
         String sql = "SELECT * FROM orders WHERE order_id = ?";
 
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql)) {
+        try (var ps = c.prepareStatement(sql)) {
             ps.setInt(1, orderId);
 
             try (var rs = ps.executeQuery()) {
@@ -32,8 +37,7 @@ public class OrderDAO {
         String sqlItems = "SELECT * FROM order_items WHERE order_id = ?";
         List<OrderItem> items = new ArrayList<>();
 
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sqlItems)) {
+        try (var ps = c.prepareStatement(sqlItems)) {
             ps.setInt(1, orderId);
             try (var rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -60,6 +64,36 @@ public class OrderDAO {
              var rs = ps.executeQuery()) {
             while (rs.next()) {
                 orders.add(mapOrder(rs));
+            }
+        }
+        return orders;
+    }
+
+    public List<Order> findAllWithItems() throws SQLException {
+        List<Order> orders = new ArrayList<>();
+        try (var c = DBConnection.getConnection()) {
+            try (var ps = c.prepareStatement("SELECT * FROM orders ORDER BY ordered_at DESC");
+                 var rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    orders.add(mapOrder(rs));
+                }
+            }
+            try (var ps = c.prepareStatement("SELECT * FROM order_items WHERE order_id = ?")) {
+                for (Order order : orders) {
+                    ps.setInt(1, order.getOrderId());
+                    List<OrderItem> items = new ArrayList<>();
+                    try (var rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            OrderItem item = new OrderItem();
+                            item.setOrderId(rs.getInt("order_id"));
+                            item.setProductId(rs.getInt("product_id"));
+                            item.setQuantity(rs.getInt("quantity"));
+                            item.setUnitPrice(rs.getBigDecimal("unit_price"));
+                            items.add(item);
+                        }
+                    }
+                    order.setItems(items);
+                }
             }
         }
         return orders;

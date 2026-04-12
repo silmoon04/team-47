@@ -37,9 +37,8 @@ public class AuthService {
             SessionManager.getInstance().login(user);
             return true;
         } catch (SQLException error) {
-            System.out.println(error.getMessage());
             SessionManager.getInstance().logout();
-            return false;
+            throw new RuntimeException("Database error during authentication", error);
         }
     }
 

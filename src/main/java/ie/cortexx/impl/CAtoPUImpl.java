@@ -60,22 +60,14 @@ public class CAtoPUImpl implements I_CAtoPU {
                 throw new ProductNotFoundException("Product not found: " + productId);
             }
 
-            StockItem stockItem = stockDAO.findByProductId(product.getProductId());
-            int currentQty = stockItem == null ? 0 : stockItem.getQuantity();
-
-            if (currentQty < quantity) {
-                return false;
-            }
-
-            stockDAO.updateQuantity(product.getProductId(), -quantity);
-            return true;
+            return stockDAO.tryDeductQuantity(product.getProductId(), quantity);
         } catch (SQLException e) {
             throw new ServiceUnavailableException("Unable to deduct stock");
         }
     }
 
     @Override
-    public List<StockItem> getAllStock() throws ServiceUnavailableException {
+    public List < StockItem > getAllStock() throws ServiceUnavailableException {
         try {
             return stockDAO.findAll();
         } catch (SQLException e) {

@@ -3,6 +3,7 @@ package ie.cortexx.gui.sales;
 import ie.cortexx.enums.AccountStatus;
 import ie.cortexx.enums.DiscountType;
 import ie.cortexx.enums.PaymentType;
+import ie.cortexx.gui.RefreshablePage;
 import ie.cortexx.gui.util.UI;
 import ie.cortexx.model.Customer;
 import ie.cortexx.model.Payment;
@@ -27,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 // pos screen with a product list on the left and a custom current-sale cart on the right.
-public class POSPanel extends JPanel {
+public class POSPanel extends JPanel implements RefreshablePage {
     private static final int CART_WIDTH = 470;
     private static final int CART_CONTROLS_WIDTH = 224;
     private static final int CART_STEPPER_WIDTH = 104;
@@ -65,6 +66,11 @@ public class POSPanel extends JPanel {
 
     public POSPanel() {
         UI.applyPanelNoPad(this);
+        reloadData();
+    }
+
+    @Override
+    public void refreshPage() {
         reloadData();
     }
 
@@ -191,7 +197,7 @@ public class POSPanel extends JPanel {
             return;
         }
 
-        cart.addItem(row.productId(), row.name(), row.price().doubleValue());
+        cart.addItem(row.productId(), row.name(), row.price());
         highlightedProductId = row.productId();
         refreshCart();
     }
@@ -397,7 +403,7 @@ public class POSPanel extends JPanel {
 
     private SalePricing currentPricing() {
         BigDecimal discountRate = resolveDiscountRate((CustomerChoice) customerBox.getSelectedItem());
-        return new SalePricing(discountRate, cart.totals(discountRate.doubleValue()));
+        return new SalePricing(discountRate, cart.totals(discountRate));
     }
 
     private BigDecimal resolveDiscountRate(CustomerChoice choice) {
@@ -411,7 +417,7 @@ public class POSPanel extends JPanel {
         }
 
         try {
-            return discountService.resolveRate(customer, BigDecimal.valueOf(cart.totals(0.0).subtotal()), LocalDate.now());
+            return discountService.resolveRate(customer, cart.totals(BigDecimal.ZERO).subtotal(), LocalDate.now());
         } catch (Exception error) {
             return BigDecimal.ZERO;
         }
@@ -420,7 +426,8 @@ public class POSPanel extends JPanel {
     private void updatePaymentState() {
         boolean hasItems = !cart.isEmpty();
         CustomerChoice customer = (CustomerChoice) customerBox.getSelectedItem();
-        cashButton.setEnabled(hasItems);
+        boolean isAccountCustomer = customer != null && customer.customerId() != null;
+        cashButton.setEnabled(hasItems && !isAccountCustomer);
         cardButton.setEnabled(hasItems);
         creditButton.setEnabled(hasItems && customer != null && customer.creditEnabled());
     }
@@ -540,6 +547,13 @@ public class POSPanel extends JPanel {
             return;
         }
 
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "Complete this sale?", "Confirm Checkout",
+            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
         SalePricing pricing = currentPricing();
         applyPricing(pricing);
 
@@ -550,10 +564,10 @@ public class POSPanel extends JPanel {
         Sale sale = new Sale();
         sale.setCustomerId(customer != null ? customer.customerId() : null);
         sale.setSoldBy(currentUserId());
-        sale.setSubtotal(BigDecimal.valueOf(totals.subtotal()));
-        sale.setDiscountAmount(BigDecimal.valueOf(totals.discount()));
+        sale.setSubtotal(totals.subtotal());
+        sale.setDiscountAmount(totals.discount());
         sale.setVatAmount(BigDecimal.ZERO);
-        sale.setTotalAmount(BigDecimal.valueOf(totals.total()));
+        sale.setTotalAmount(totals.total());
         sale.setPaymentMethod(paymentType.name());
         sale.setWalkIn(customer == null || customer.customerId() == null);
 
@@ -562,7 +576,7 @@ public class POSPanel extends JPanel {
             if (stockItem == null) {
                 continue;
             }
-            BigDecimal unitPrice = BigDecimal.valueOf(item.unitPrice());
+            BigDecimal unitPrice = item.unitPrice();
             BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(item.quantity())).multiply(BigDecimal.ONE.subtract(discountRate));
             SaleItem saleItem = new SaleItem(stockItem.getProductId(), stockItem.getProductName(), item.quantity(), unitPrice, lineTotal);
             saleItem.setDiscountRate(discountRate);
@@ -574,7 +588,7 @@ public class POSPanel extends JPanel {
             payment.setCustomerId(customer.customerId());
         }
         payment.setPaymentType(paymentType);
-        payment.setAmount(BigDecimal.valueOf(totals.total()));
+        payment.setAmount(totals.total());
         payment.setChangeGiven(BigDecimal.ZERO);
         if (paymentType == PaymentType.CREDIT_CARD || paymentType == PaymentType.DEBIT_CARD) {
             payment.setCardType("VISA");

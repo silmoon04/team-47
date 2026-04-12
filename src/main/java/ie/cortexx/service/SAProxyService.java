@@ -372,7 +372,7 @@ public class SAProxyService implements I_SAtoCA {
 
     private String nextOrderId(Connection c) throws SQLException {
         int year = LocalDate.now().getYear();
-        String sql = "SELECT COUNT(*) FROM Orders WHERE YEAR(OrderDate) = ?";
+        String sql = "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(OrderID, '-', -1) AS UNSIGNED)), 0) FROM Orders WHERE YEAR(OrderDate) = ?";
         try (var ps = c.prepareStatement(sql)) {
             ps.setInt(1, year);
             try (var rs = ps.executeQuery()) {

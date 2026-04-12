@@ -1,5 +1,7 @@
 package ie.cortexx.gui.sales;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,7 +9,7 @@ import java.util.List;
 final class SaleCart {
     private final List<Item> items = new ArrayList<>();
 
-    void addItem(int productId, String name, double unitPrice) {
+    void addItem(int productId, String name, BigDecimal unitPrice) {
         for (int i = 0; i < items.size(); i++) {
             Item item = items.get(i);
             if (item.productId() == productId) {
@@ -63,23 +65,25 @@ final class SaleCart {
         return items.isEmpty();
     }
 
-    Totals totals(double discountRate) {
-        double subtotal = items.stream().mapToDouble(Item::lineTotal).sum();
-        double discount = subtotal * discountRate;
-        double total = subtotal - discount;
+    Totals totals(BigDecimal discountRate) {
+        BigDecimal subtotal = items.stream()
+            .map(Item::lineTotal)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal discount = subtotal.multiply(discountRate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = subtotal.subtract(discount);
         return new Totals(subtotal, discount, total);
     }
 
-    record Item(int productId, String name, double unitPrice, int quantity) {
+    record Item(int productId, String name, BigDecimal unitPrice, int quantity) {
         Item withQuantity(int nextQuantity) {
             return new Item(productId, name, unitPrice, nextQuantity);
         }
 
-        double lineTotal() {
-            return unitPrice * quantity;
+        BigDecimal lineTotal() {
+            return unitPrice.multiply(BigDecimal.valueOf(quantity));
         }
     }
 
-    record Totals(double subtotal, double discount, double total) {
+    record Totals(BigDecimal subtotal, BigDecimal discount, BigDecimal total) {
     }
 }

@@ -21,8 +21,7 @@ import java.util.Map;
 public class SaleService {
 
     @FunctionalInterface
-    public interface TransactionRunner {
-        <T> T execute(DBConnection.TransactionWork<T> work) throws SQLException;
+    public interface TransactionRunner extends DBConnection.TransactionRunner {
     }
 
     private final SaleDAO saleDAO;
@@ -108,8 +107,12 @@ public class SaleService {
             return paymentValidation;
         }
 
+        if (sale.getTotalAmount() == null) {
+            return ValidationResult.fail("Sale total amount is required");
+        }
+
         // use the sale total for credit
-        BigDecimal grandTotal = sale.getTotalAmount() != null ? sale.getTotalAmount() : payment.getAmount();
+        BigDecimal grandTotal = sale.getTotalAmount();
         PaymentType paymentType = payment.getPaymentType();
 
         if (paymentType != PaymentType.ON_CREDIT
@@ -122,11 +125,11 @@ public class SaleService {
         try{
             for (SaleItem item : sale.getItems()) {
                 StockItem stock = stockDAO.findByProductId(item.getProductId());
-                int quanity = 0;
+                int quantity = 0;
                 if (stock != null) {
-                    quanity = stock.getQuantity();
+                    quantity = stock.getQuantity();
                 }
-                stockLevels.put(item.getProductId(), quanity);
+                stockLevels.put(item.getProductId(), quantity);
             }
         } catch(SQLException error) {
             return ValidationResult.fail(error.getMessage());

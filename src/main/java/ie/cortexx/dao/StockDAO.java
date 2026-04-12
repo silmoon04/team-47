@@ -19,7 +19,8 @@ public class StockDAO {
 
         List<StockItem> items = new ArrayList<>();
         try (var c = DBConnection.getConnection();
-            var rs = c.createStatement().executeQuery(sql)){
+            var stmt = c.createStatement();
+            var rs = stmt.executeQuery(sql)){
             while (rs.next()){
                 items.add(mapStockItem(rs));
             }
@@ -96,7 +97,8 @@ public class StockDAO {
                    + "WHERE s.quantity <= s.reorder_level";
         List<StockItem> items = new ArrayList<>();
         try (var c = DBConnection.getConnection();
-             var rs = c.createStatement().executeQuery(sql)) {
+             var stmt = c.createStatement();
+             var rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 items.add(mapStockItem(rs));
             }

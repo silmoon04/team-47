@@ -19,8 +19,7 @@ import java.util.List;
 public class CustomerService {
 
     @FunctionalInterface
-    public interface TransactionRunner {
-        <T> T execute(DBConnection.TransactionWork<T> work) throws SQLException;
+    public interface TransactionRunner extends DBConnection.TransactionRunner {
     }
 
     private final CustomerDAO customerDAO;
