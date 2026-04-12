@@ -84,9 +84,11 @@ public class MainFrame extends JFrame {
     }
 
     public void refreshTheme() {
-        SwingUtilities.updateComponentTreeUI(this);
-        revalidate();
-        repaint();
+        if (showingLogin) {
+            showLoginPanel();
+        } else {
+            showMainFrame();
+        }
     }
 
     private void setAppIcon() {

@@ -166,7 +166,7 @@ final class UIControls {
             UIStyleSupport.sizeField(comboBox, 42);
         }
         if (input instanceof JScrollPane scrollPane) {
-            scrollPane.putClientProperty("FlatLaf.style", "arc:" + UI.CARD_ARC);
+            scrollPane.putClientProperty("JComponent.roundRect", true);
         }
         panel.add(input);
         return panel;

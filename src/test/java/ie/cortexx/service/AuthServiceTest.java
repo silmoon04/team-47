@@ -77,4 +77,14 @@ class AuthServiceTest {
     void hash_password_is_stable() {
         assertEquals("2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea", AuthService.hashPassword("demo"));
     }
+
+    @Test
+    void hash_password_100_iterations_under_50ms() {
+        long start = System.nanoTime();
+        for (int i = 0; i < 100; i++) {
+            AuthService.hashPassword("benchmark-" + i);
+        }
+        long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+        assertTrue(elapsedMs < 50, "100 hashes took " + elapsedMs + "ms, expected < 50ms");
+    }
 }

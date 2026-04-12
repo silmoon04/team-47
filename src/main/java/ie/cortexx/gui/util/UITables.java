@@ -58,7 +58,6 @@ final class UITables {
     static JScrollPane wrap(JTable table) {
         JScrollPane scroll = new JScrollPane(table);
         scroll.putClientProperty("JComponent.roundRect", true);
-        scroll.putClientProperty("FlatLaf.style", "arc:" + UI.CARD_ARC);
         scroll.setBorder(UIStyleSupport.roundedBorder(UI.CARD_ARC));
         scroll.getViewport().setBackground(UI.BG_CARD);
         return scroll;

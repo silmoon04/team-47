@@ -31,6 +31,12 @@ public final class AppearanceDialog {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(16, 16, 16, 16));
 
+        Runnable applyAndReopen = () -> {
+            dialog.dispose();
+            frame.refreshTheme();
+            SwingUtilities.invokeLater(() -> showDialog(frame));
+        };
+
         panel.add(section("THEME"));
         panel.add(Box.createVerticalStrut(6));
         ButtonGroup themeGroup = new ButtonGroup();
@@ -40,11 +46,7 @@ public final class AppearanceDialog {
         for (UI.Theme theme : UI.Theme.values()) {
             JToggleButton btn = pill(theme.label(), UI.theme() == theme);
             themeGroup.add(btn);
-            btn.addActionListener(e -> {
-                UI.applyTheme(theme);
-                frame.refreshTheme();
-                SwingUtilities.updateComponentTreeUI(dialog);
-            });
+            btn.addActionListener(e -> { UI.applyTheme(theme); applyAndReopen.run(); });
             themeGrid.add(btn);
         }
         panel.add(themeGrid);
@@ -60,11 +62,7 @@ public final class AppearanceDialog {
             JToggleButton btn = pill(family.label(), UI.fontFamily() == family);
             btn.setFont(new Font(family.sansName(), Font.PLAIN, 12));
             familyGroup.add(btn);
-            btn.addActionListener(e -> {
-                UI.applyFontFamily(family);
-                frame.refreshTheme();
-                SwingUtilities.updateComponentTreeUI(dialog);
-            });
+            btn.addActionListener(e -> { UI.applyFontFamily(family); applyAndReopen.run(); });
             familyGrid.add(btn);
         }
         panel.add(familyGrid);
@@ -79,11 +77,7 @@ public final class AppearanceDialog {
         for (UI.FontSize size : UI.FontSize.values()) {
             JToggleButton btn = pill(size.label(), UI.fontSize() == size);
             sizeGroup.add(btn);
-            btn.addActionListener(e -> {
-                UI.applyFontSize(size);
-                frame.refreshTheme();
-                SwingUtilities.updateComponentTreeUI(dialog);
-            });
+            btn.addActionListener(e -> { UI.applyFontSize(size); applyAndReopen.run(); });
             sizeRow.add(btn);
         }
         panel.add(sizeRow);
