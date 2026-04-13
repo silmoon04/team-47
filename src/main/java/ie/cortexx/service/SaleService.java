@@ -97,8 +97,11 @@ public class SaleService {
         if (payment.getPaymentType() == PaymentType.ACCOUNT_PAYMENT) {
             return ValidationResult.fail("Account payment is not valid for checkout");
         }
-        if (payment.getAmount() == null || payment.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            return ValidationResult.fail("Payment amount must be greater than 0");
+        // ON_CREDIT amount is set from grandTotal in processSale — skip check here
+        if (payment.getPaymentType() != PaymentType.ON_CREDIT) {
+            if (payment.getAmount() == null || payment.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                return ValidationResult.fail("Payment amount must be greater than 0");
+            }
         }
         return ValidationResult.ok();
     }

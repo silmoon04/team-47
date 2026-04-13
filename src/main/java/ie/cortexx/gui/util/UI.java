@@ -327,9 +327,10 @@ public final class UI {
         JPanel chip = new JPanel(new FlowLayout(FlowLayout.CENTER, UIThemeSupport.badgeDot(key) ? 6 : 0, 0));
         chip.setOpaque(true);
         chip.setBackground(style[0]);
+        chip.putClientProperty("FlatLaf.style", "arc:12");
         chip.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(style[1], 1, true),
-            new EmptyBorder(5, 10, 5, 10)
+            new EmptyBorder(4, 10, 4, 10)
         ));
         chip.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -721,6 +722,19 @@ public final class UI {
 
     public static void notifyError(Component owner, String message) {
         UINotifier.notifyError(owner, message);
+    }
+
+    public static boolean confirm(Component owner, String message, String title) {
+        JButton yes = primaryButton("Yes");
+        JButton no = button("No");
+        Object[] options = {yes, no};
+        JOptionPane pane = new JOptionPane(message, JOptionPane.QUESTION_MESSAGE,
+            JOptionPane.YES_NO_OPTION, null, options, yes);
+        JDialog dialog = pane.createDialog(owner, title);
+        yes.addActionListener(e -> { pane.setValue(yes); dialog.dispose(); });
+        no.addActionListener(e -> { pane.setValue(no); dialog.dispose(); });
+        dialog.setVisible(true);
+        return pane.getValue() == yes;
     }
 
     public static JComponent statusBanner(String labelText, String message, Color tone) {

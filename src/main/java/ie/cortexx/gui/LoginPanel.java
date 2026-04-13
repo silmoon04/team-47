@@ -16,7 +16,6 @@ public class LoginPanel extends JPanel {
     private final JPasswordField passwordField = UI.passwordField("Password");
     private final JLabel errorLabel = UI.errorLabel();
     private final JButton signInButton = UI.primaryButtonWide("SIGN IN");
-    private final JLabel statusLabel = UI.label(" ", UI.FONT_SMALL, UI.TEXT_DIM);
     private Timer dotTimer;
     private boolean loggingIn;
 
@@ -26,6 +25,7 @@ public class LoginPanel extends JPanel {
         setLayout(new BorderLayout());
         add(buildTopBar(), BorderLayout.NORTH);
         add(buildContent(), BorderLayout.CENTER);
+        SwingUtilities.invokeLater(() -> usernameField.requestFocusInWindow());
     }
 
     private JComponent buildTopBar() {
@@ -36,7 +36,7 @@ public class LoginPanel extends JPanel {
 
     private JComponent buildContent() {
         JPanel outer = UI.centeredPanel();
-        JPanel card = UI.vcard(48, 48, 420, 350);
+        JPanel card = UI.vcard(48, 40, 420, 310);
         card.add(UI.title("IPOS-CA"));
         card.add(UI.gap(4));
         card.add(UI.subtitle("Cosymed Ltd - Pharmacy Management System"));
@@ -46,11 +46,8 @@ public class LoginPanel extends JPanel {
         card.add(passwordField);
         card.add(UI.gap(12));
 
-        configureStatusLabel();
         card.add(signInButton);
-        card.add(UI.gap(8));
-        card.add(statusLabel);
-        card.add(UI.gap(12));
+        card.add(UI.gap(6));
         card.add(errorLabel);
 
         signInButton.addActionListener(e -> attemptLogin());
@@ -103,30 +100,25 @@ public class LoginPanel extends JPanel {
         }.execute();
     }
 
-    private void configureStatusLabel() {
-        statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        statusLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
-    }
-
     private void setLoggingIn(boolean active) {
         loggingIn = active;
         usernameField.setEnabled(!active);
         passwordField.setEnabled(!active);
         signInButton.setEnabled(!active);
-        signInButton.setText(active ? "SIGNING IN..." : "SIGN IN");
         if (active) {
-            final String base = "Signing in";
             dotTimer = new Timer(400, null);
             final int[] tick = {0};
             dotTimer.addActionListener(e -> {
                 tick[0] = (tick[0] + 1) % 4;
-                statusLabel.setText(base + ".".repeat(tick[0]));
+                String dots = ".".repeat(tick[0]);
+                String pad = " ".repeat(3 - tick[0]);
+                signInButton.setText(pad + "SIGNING IN" + dots + pad);
             });
-            statusLabel.setText(base);
+            signInButton.setText("   SIGNING IN   ");
             dotTimer.start();
         } else {
             if (dotTimer != null) { dotTimer.stop(); dotTimer = null; }
-            statusLabel.setText(" ");
+            signInButton.setText("SIGN IN");
         }
         errorLabel.setText(active ? " " : errorLabel.getText());
     }

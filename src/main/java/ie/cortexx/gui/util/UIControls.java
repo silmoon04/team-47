@@ -43,7 +43,7 @@ final class UIControls {
         JButton button = primary ? primaryButton(text) : button(text);
         button.setIcon(icon(iconPath, 16, primary ? Color.WHITE : UI.TEXT));
         button.setIconTextGap(8);
-        button.setFont(UI.FONT_MONO_BOLD);
+        button.setFont(UI.FONT_BOLD);
         return button;
     }
 
@@ -131,9 +131,10 @@ final class UIControls {
         label.setForeground(UI.TEXT);
         label.setOpaque(true);
         label.setBackground(UI.BG_CARD);
+        label.putClientProperty("FlatLaf.style", "arc:12");
         label.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(UI.BORDER, 1, true),
-            new EmptyBorder(5, 12, 5, 12)
+            new EmptyBorder(4, 12, 4, 12)
         ));
         return label;
     }

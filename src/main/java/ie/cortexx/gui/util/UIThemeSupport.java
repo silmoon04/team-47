@@ -126,6 +126,12 @@ final class UIThemeSupport {
         UIManager.put("List.background", UI.BG_CARD);
         UIManager.put("List.selectionBackground", UI.ACCENT);
 
+        UIManager.put("OptionPane.background", UI.BG_CARD);
+        UIManager.put("OptionPane.messageForeground", UI.TEXT);
+        UIManager.put("OptionPane.buttonFont", UI.FONT_BOLD);
+        UIManager.put("OptionPane.yesButtonText", "Yes");
+        UIManager.put("OptionPane.noButtonText", "No");
+
         UIManager.put("[style]ToggleButton.sidebarNav",
             "arc:" + UI.BUTTON_ARC + "; focusWidth:0; innerFocusWidth:0; borderWidth:1; " +
             "margin:11,12,11,12; iconTextGap:10; " +

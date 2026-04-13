@@ -190,10 +190,10 @@ public class UserManagementPanel extends JPanel {
         long pharmacists = users.stream().filter(user -> user.getRole() == UserRole.PHARMACIST && user.isActive()).count();
 
         return UI.stats(
-            UI.stat("Active Users", String.valueOf(activeUsers), UI.ACCENT),
-            UI.stat("Admins", String.valueOf(admins), UI.GREEN),
-            UI.stat("Managers", String.valueOf(managers), UI.PURPLE),
-            UI.stat("Pharmacists", String.valueOf(pharmacists), UI.ORANGE)
+            UI.stat("Active Users", String.valueOf(activeUsers), UI.ACCENT, "icons/users.svg"),
+            UI.stat("Admins", String.valueOf(admins), UI.GREEN, "icons/user-cog.svg"),
+            UI.stat("Managers", String.valueOf(managers), UI.PURPLE, "icons/user-cog.svg"),
+            UI.stat("Pharmacists", String.valueOf(pharmacists), UI.ORANGE, "icons/user-cog.svg")
         );
     }
 

@@ -304,7 +304,7 @@ public class CustomerListPanel extends JPanel implements RefreshablePage {
     }
 
     private void deleteCustomer(int customerId) {
-        if (JOptionPane.showConfirmDialog(this, "Delete this customer?", "Confirm Delete", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) {
+        if (!UI.confirm(this, "Delete this customer?", "Confirm Delete")) {
             return;
         }
 

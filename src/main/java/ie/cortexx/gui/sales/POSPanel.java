@@ -547,10 +547,7 @@ public class POSPanel extends JPanel implements RefreshablePage {
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this,
-            "Complete this sale?", "Confirm Checkout",
-            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-        if (confirm != JOptionPane.YES_OPTION) {
+        if (!UI.confirm(this, "Complete this sale?", "Confirm Checkout")) {
             return;
         }
 

@@ -9,6 +9,7 @@ import ie.cortexx.gui.sales.POSPanel;
 import ie.cortexx.gui.settings.SettingsPanel;
 import ie.cortexx.gui.stock.StockPanel;
 import ie.cortexx.gui.user.UserManagementPanel;
+import ie.cortexx.gui.util.UI;
 import ie.cortexx.service.AuthService;
 
 import javax.swing.*;
@@ -138,8 +139,8 @@ public class MainFrame extends JFrame {
     }
 
     private void logout() {
+        if (! UI.confirm(this, "Are you sure you want to log out?", "Confirm Logout")) return;
         authService.logout();
-        JOptionPane.showMessageDialog(this, "Successfully logged out of IPOS-CA.");
         session = UserSession.anonymous();
         activePageTitle = null;
         showLoginPanel();

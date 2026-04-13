@@ -50,9 +50,26 @@ public class DBConnection {
         useTestDatabase = false;
     }
 
+    private static volatile Connection preWarmedConnection;
+
     public static Connection getConnection() throws SQLException {
+        Connection cached = preWarmedConnection;
+        if (cached != null) {
+            preWarmedConnection = null;
+            if (!cached.isClosed()) {
+                return cached;
+            }
+        }
         String activeUrl = isUsingTestDatabase() ? testUrl : url;
         return DriverManager.getConnection(activeUrl, user, password);
+    }
+
+    public static void warmUp() {
+        new Thread(() -> {
+            try {
+                preWarmedConnection = DriverManager.getConnection(url, user, password);
+            } catch (SQLException ignored) { }
+        }, "db-warmup").start();
     }
 
     public static Connection getTestConnection() throws SQLException {
