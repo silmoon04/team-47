@@ -5,6 +5,7 @@ import ie.cortexx.enums.UserRole;
 import ie.cortexx.gui.util.UI;
 import ie.cortexx.model.User;
 import ie.cortexx.service.AuthService;
+import ie.cortexx.service.UserService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,6 +17,7 @@ public class UserManagementPanel extends JPanel {
     private record UserRow(int id, String username, String fullName, String role, String status) {}
     private final List<UserRow> rows = new ArrayList<>();
     private final UserDAO userDAO = new UserDAO();
+    private final UserService userService = new UserService(userDAO);
     private UI.DataTable<UserRow> table;
 
     public UserManagementPanel() {
@@ -43,9 +45,11 @@ public class UserManagementPanel extends JPanel {
         table.rows(rows);
         JButton createButton = UI.iconButton("Create User", "icons/users.svg", true);
         JButton editButton = UI.iconButton("Edit User", "icons/user-cog.svg", false);
-        JPanel toolbar = UI.toolbar("Search Users", table.table(), createButton, editButton);
+        JButton deleteButton = UI.dangerButton("Delete User");
+        JPanel toolbar = UI.toolbar("Search Users", table.table(), createButton, editButton, deleteButton);
         createButton.addActionListener(e -> createUser());
         editButton.addActionListener(e -> editUser());
+        deleteButton.addActionListener(e -> deleteUser());
 
         add(UI.pageWithStats(stats, toolbar, table.scroll()), BorderLayout.CENTER);
         revalidate();
@@ -63,6 +67,25 @@ public class UserManagementPanel extends JPanel {
             return;
         }
         showUserDialog(user);
+    }
+
+    private void deleteUser() {
+        User user = selectedUser();
+        if (user == null) {
+            UI.notifyInfo(this, "Select a user first.");
+            return;
+        }
+        if (!UI.confirm(this, "Delete this user account?", "Confirm Delete")) {
+            return;
+        }
+
+        try {
+            userService.delete(user.getUserId());
+            UI.notifySuccess(this, "User deleted.");
+            reload();
+        } catch (Exception error) {
+            JOptionPane.showMessageDialog(this, error.getMessage(), "Delete Failed", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void showUserDialog(User existing) {
@@ -176,7 +199,7 @@ public class UserManagementPanel extends JPanel {
 
     private List<User> loadUsers() {
         try {
-            return userDAO.findAll();
+            return userDAO.findAll().stream().filter(User::isActive).toList();
         } catch (Exception error) {
             JOptionPane.showMessageDialog(this, error.getMessage(), "Load Failed", JOptionPane.ERROR_MESSAGE);
             return List.of();

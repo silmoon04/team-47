@@ -21,7 +21,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.io.OutputStream;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -52,6 +55,7 @@ public class POSPanel extends JPanel implements RefreshablePage {
     private final JButton cashButton = UI.iconButton("Cash", "icons/banknote.svg", false);
     private final JButton cardButton = UI.iconButton("Card", "icons/credit-card.svg", true);
     private final JButton creditButton = UI.iconButton("Credit", "icons/coins.svg", false);
+    private final JLabel clearanceStatusLabel = UI.label("Card clearance: ready", UI.FONT_SMALL, UI.TEXT_DIM);
     private final Map<Integer, StockItem> productById = new HashMap<>();
     private final Map<Integer, Customer> customersById = new HashMap<>();
     private final Map<Integer, String> customerNames = new HashMap<>();
@@ -63,6 +67,8 @@ public class POSPanel extends JPanel implements RefreshablePage {
         @Override public String toString() { return label; }
     }
     private record SalePricing(BigDecimal discountRate, SaleCart.Totals totals) {}
+    private record CardPaymentDetails(PaymentType paymentType, String cardType, String cardHolderName,
+                                      String cardNumber, String cardExpiry, String cvv) {}
 
     public POSPanel() {
         UI.applyPanelNoPad(this);
@@ -179,6 +185,8 @@ public class POSPanel extends JPanel implements RefreshablePage {
         totalRow.add(totalLabel, BorderLayout.WEST);
         totalRow.add(totalValue, BorderLayout.EAST);
         summary.add(totalRow);
+        summary.add(Box.createVerticalStrut(8));
+        summary.add(clearanceStatusLabel);
 
         JPanel actions = new JPanel(new GridLayout(1, 3, 10, 0));
         actions.setOpaque(false);
@@ -257,6 +265,7 @@ public class POSPanel extends JPanel implements RefreshablePage {
         itemCountLabel.setText(cart.itemCount() + " ITEMS");
         updateTotals();
         updatePaymentState();
+        clearanceStatusLabel.setText("Card clearance: ready");
         cartItemsPanel.revalidate();
         cartItemsPanel.repaint();
     }
@@ -412,7 +421,7 @@ public class POSPanel extends JPanel implements RefreshablePage {
         }
 
         Customer customer = customersById.get(choice.customerId());
-        if (customer == null || customer.getDiscountType() != DiscountType.FIXED) {
+        if (customer == null || customer.getDiscountType() == null) {
             return BigDecimal.ZERO;
         }
 
@@ -427,7 +436,7 @@ public class POSPanel extends JPanel implements RefreshablePage {
         boolean hasItems = !cart.isEmpty();
         CustomerChoice customer = (CustomerChoice) customerBox.getSelectedItem();
         boolean isAccountCustomer = customer != null && customer.customerId() != null;
-        cashButton.setEnabled(hasItems && !isAccountCustomer);
+        cashButton.setEnabled(hasItems);
         cardButton.setEnabled(hasItems);
         creditButton.setEnabled(hasItems && customer != null && customer.creditEnabled());
     }
@@ -553,10 +562,21 @@ public class POSPanel extends JPanel implements RefreshablePage {
 
         SalePricing pricing = currentPricing();
         applyPricing(pricing);
+        clearanceStatusLabel.setText("Card clearance: pending");
 
         CustomerChoice customer = (CustomerChoice) customerBox.getSelectedItem();
         SaleCart.Totals totals = pricing.totals();
         BigDecimal discountRate = pricing.discountRate();
+
+        CardPaymentDetails cardDetails = null;
+        if (paymentType == PaymentType.CREDIT_CARD || paymentType == PaymentType.DEBIT_CARD) {
+            cardDetails = promptCardPaymentDetails(paymentType);
+            if (cardDetails == null) {
+                clearanceStatusLabel.setText("Card clearance: cancelled");
+                return;
+            }
+            paymentType = cardDetails.paymentType();
+        }
 
         Sale sale = new Sale();
         sale.setCustomerId(customer != null ? customer.customerId() : null);
@@ -588,14 +608,27 @@ public class POSPanel extends JPanel implements RefreshablePage {
         payment.setAmount(totals.total());
         payment.setChangeGiven(BigDecimal.ZERO);
         if (paymentType == PaymentType.CREDIT_CARD || paymentType == PaymentType.DEBIT_CARD) {
-            payment.setCardType("VISA");
-            payment.setCardFirst4("4000");
-            payment.setCardLast4("0000");
-            payment.setCardExpiry("12/30");
+            payment.setCardType(cardDetails.cardType());
+            payment.setCardFirst4(cardDetails.cardNumber().substring(0, 4));
+            payment.setCardLast4(cardDetails.cardNumber().substring(12));
+            payment.setCardExpiry(cardDetails.cardExpiry());
+            // clearance via PU subsystem (Team C)
+            String puResult = clearCardViaPU(totals.total(), cardDetails);
+            if (puResult != null && puResult.startsWith("FAIL")) {
+                clearanceStatusLabel.setText("Card clearance: declined");
+                UI.notifyError(this, "Card declined by PU: " + puResult);
+                return;
+            }
+            clearanceStatusLabel.setText(puResult == null
+                ? "Card clearance: recorded locally"
+                : "Card clearance: " + puResult);
         }
 
         ValidationResult result = saleService.processSale(sale, payment);
         if (!result.isValid()) {
+            if (paymentType == PaymentType.CREDIT_CARD || paymentType == PaymentType.DEBIT_CARD) {
+                clearanceStatusLabel.setText("Card clearance: failed");
+            }
             UI.notifyError(this, result.getMessage());
             return;
         }
@@ -603,6 +636,71 @@ public class POSPanel extends JPanel implements RefreshablePage {
         cart.clear();
         UI.notifySuccess(this, "Sale completed.");
         reloadData();
+    }
+
+    private CardPaymentDetails promptCardPaymentDetails(PaymentType requestedType) {
+        JTextField cardHolderName = new JTextField();
+        JTextField cardNumber = new JTextField();
+        JTextField cardExpiry = new JTextField("12/2028");
+        JTextField cardType = new JTextField("VISA");
+        JPasswordField cvv = new JPasswordField();
+        JComboBox<PaymentType> typeBox = new JComboBox<>(new PaymentType[]{PaymentType.CREDIT_CARD, PaymentType.DEBIT_CARD});
+        typeBox.setSelectedItem(requestedType == PaymentType.DEBIT_CARD ? PaymentType.DEBIT_CARD : PaymentType.CREDIT_CARD);
+
+        JPanel form = new JPanel(new GridLayout(6, 2, 8, 8));
+        form.add(new JLabel("Cardholder"));
+        form.add(cardHolderName);
+        form.add(new JLabel("Card number"));
+        form.add(cardNumber);
+        form.add(new JLabel("Card expiry"));
+        form.add(cardExpiry);
+        form.add(new JLabel("Card type"));
+        form.add(cardType);
+        form.add(new JLabel("Security code"));
+        form.add(cvv);
+        form.add(new JLabel("Payment type"));
+        form.add(typeBox);
+
+        int choice = JOptionPane.showConfirmDialog(this, form, "Card Payment", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (choice != JOptionPane.OK_OPTION) {
+            return null;
+        }
+
+        String holder = cardHolderName.getText() == null ? "" : cardHolderName.getText().trim();
+        String number = cardNumber.getText() == null ? "" : cardNumber.getText().replaceAll("\\s+", "");
+        String expiry = cardExpiry.getText() == null ? "" : cardExpiry.getText().trim();
+        String type = cardType.getText() == null ? "" : cardType.getText().trim();
+        String securityCode = new String(cvv.getPassword()).trim();
+
+        if (holder.isEmpty()) {
+            UI.notifyError(this, "Cardholder name is required");
+            return null;
+        }
+        if (!number.matches("\\d{16}")) {
+            UI.notifyError(this, "Card number must contain exactly 16 digits");
+            return null;
+        }
+        if (type.isEmpty()) {
+            UI.notifyError(this, "Card type is required");
+            return null;
+        }
+        if (!expiry.matches("(0[1-9]|1[0-2])/(\\d{2}|\\d{4})")) {
+            UI.notifyError(this, "Card expiry must be MM/YY or MM/YYYY");
+            return null;
+        }
+        if (!securityCode.matches("\\d{3,4}")) {
+            UI.notifyError(this, "Security code must contain 3 or 4 digits");
+            return null;
+        }
+
+        return new CardPaymentDetails(
+            (PaymentType) typeBox.getSelectedItem(),
+            type,
+            holder,
+            number,
+            expiry,
+            securityCode
+        );
     }
 
     private List<SaleRow> loadHistory() {
@@ -645,5 +743,46 @@ public class POSPanel extends JPanel implements RefreshablePage {
 
     private String text(String value) {
         return value != null ? value : "";
+    }
+
+    /** Call PU subsystem to clear card payment. Returns txn ID on success, null if PU unreachable. */
+    private String clearCardViaPU(BigDecimal amount, CardPaymentDetails details) {
+        try {
+            java.net.URL url = new java.net.URI("http://localhost:8080/process-card-payment").toURL();
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(3000);
+            conn.setReadTimeout(5000);
+            String body = "amount=" + encode(amount.toPlainString())
+                + "&paymentType=" + encode(details.paymentType().name())
+                + "&cardType=" + encode(details.cardType())
+                + "&cardHolderName=" + encode(details.cardHolderName())
+                + "&cardNumber=" + encode(details.cardNumber())
+                + "&cardExpiry=" + encode(details.cardExpiry())
+                + "&cardSecurityCode=" + encode(details.cvv());
+            try (OutputStream out = conn.getOutputStream()) {
+                out.write(body.getBytes(StandardCharsets.UTF_8));
+                out.flush();
+            }
+            int code = conn.getResponseCode();
+            java.io.InputStream responseStream = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+            String response = responseStream != null
+                ? new String(responseStream.readAllBytes(), StandardCharsets.UTF_8)
+                : "";
+            conn.disconnect();
+            if (code == 200) {
+                return response.trim().isEmpty() ? "APPROVED" : response.trim();
+            }
+            return "FAIL: HTTP " + code + (response.isBlank() ? "" : " - " + response.trim());
+        } catch (Exception e) {
+            // PU not running — fall through and record locally
+            return null;
+        }
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
     }
 }

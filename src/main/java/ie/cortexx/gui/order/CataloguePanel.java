@@ -14,6 +14,8 @@ import java.util.List;
 public class CataloguePanel extends JPanel implements RefreshablePage {
     private final OrderService orderService = new OrderService();
     private OrderService.RemoteView<Product> currentView = new OrderService.RemoteView<>(List.of(), OrderService.RemoteSource.NONE, OrderService.RemoteIssue.NONE, "");
+    private BigDecimal saBalance = BigDecimal.ZERO;
+    private String balanceMessage = "";
 
     public CataloguePanel() {
         UI.applyPanel(this);
@@ -28,6 +30,7 @@ public class CataloguePanel extends JPanel implements RefreshablePage {
     private void reload() {
         removeAll();
         currentView = loadView();
+        loadBalance();
 
         var table = UI.table(
             UI.monoCol("Item ID", Product::getSaProductId),
@@ -38,14 +41,23 @@ public class CataloguePanel extends JPanel implements RefreshablePage {
 
         JButton syncButton = UI.button("Sync Catalogue");
         syncButton.addActionListener(e -> syncCatalogue());
+        JButton balanceButton = UI.button("Refresh Balance");
+        balanceButton.addActionListener(e -> reload());
         JButton placeOrder = UI.primaryButton("Place Order");
         placeOrder.addActionListener(e -> placeOrder(table));
         placeOrder.setEnabled(currentView.isLive() && !currentView.rows().isEmpty());
 
-        var toolbar = UI.toolbar("Search catalogue...", table.table(), syncButton, placeOrder);
+        var toolbar = UI.toolbar("Search catalogue...", table.table(), syncButton, balanceButton, placeOrder);
 
         JComponent body = currentView.rows().isEmpty() ? UI.emptyState(emptyMessage()) : table.scroll();
-        add(UI.toolbarAndTable(toolbar, UI.withFooter(body, statusBanner())), BorderLayout.CENTER);
+        add(UI.pageWithStats(
+            UI.stats(
+                UI.stat("SA Balance", balanceMessage.isBlank() ? money(saBalance) : "Unavailable", balanceMessage.isBlank() ? UI.ACCENT : UI.ORANGE, "icons/coins.svg"),
+                UI.stat("Catalogue Rows", String.valueOf(currentView.rows().size()), UI.GREEN, "icons/book-open.svg")
+            ),
+            toolbar,
+            UI.withFooter(body, buildFooter())
+        ), BorderLayout.CENTER);
         revalidate();
         repaint();
     }
@@ -101,6 +113,33 @@ public class CataloguePanel extends JPanel implements RefreshablePage {
 
     private JComponent statusBanner() {
         return currentView.message().isBlank() ? null : buildStatusBanner(currentView);
+    }
+
+    private JComponent buildFooter() {
+        JPanel footer = new JPanel();
+        footer.setOpaque(false);
+        footer.setLayout(new BoxLayout(footer, BoxLayout.Y_AXIS));
+        footer.add(UI.detailLine("SA balance", balanceMessage.isBlank() ? money(saBalance) : "Unavailable"));
+        if (!balanceMessage.isBlank()) {
+            footer.add(Box.createVerticalStrut(6));
+            footer.add(UI.statusBanner("SA BALANCE", balanceMessage, UI.ORANGE));
+        }
+        JComponent banner = statusBanner();
+        if (banner != null) {
+            footer.add(Box.createVerticalStrut(6));
+            footer.add(banner);
+        }
+        return footer;
+    }
+
+    private void loadBalance() {
+        try {
+            saBalance = orderService.getSaOutstandingBalance();
+            balanceMessage = "";
+        } catch (Exception error) {
+            saBalance = BigDecimal.ZERO;
+            balanceMessage = error.getMessage();
+        }
     }
 
     private JComponent buildStatusBanner(OrderService.RemoteView<?> view) {

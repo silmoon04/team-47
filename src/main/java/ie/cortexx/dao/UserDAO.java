@@ -113,6 +113,36 @@ public class UserDAO {
         }
     }
 
+    // hard delete for user-account removal — nullifies soft references first
+    public void delete(int userId) throws SQLException {
+        try (var c = DBConnection.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                // nullify soft FK references
+                try (var ps = c.prepareStatement("UPDATE customers SET created_by = NULL WHERE created_by = ?")) {
+                    ps.setInt(1, userId); ps.executeUpdate();
+                }
+                try (var ps = c.prepareStatement("UPDATE templates SET updated_by = NULL WHERE updated_by = ?")) {
+                    ps.setInt(1, userId); ps.executeUpdate();
+                }
+                try (var ps = c.prepareStatement("UPDATE statements SET generated_by = NULL WHERE generated_by = ?")) {
+                    ps.setInt(1, userId); ps.executeUpdate();
+                }
+                // try hard delete — falls back to deactivate if NOT NULL FKs block it
+                try (var ps = c.prepareStatement("DELETE FROM users WHERE user_id = ?")) {
+                    ps.setInt(1, userId); ps.executeUpdate();
+                }
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                // if hard delete fails (user has sales/orders), deactivate instead
+                deactivate(userId);
+            } finally {
+                c.setAutoCommit(true);
+            }
+        }
+    }
+
     // converts a ResultSet row to a User object
     // delegates to User.fromRS() so the mapping lives on the model
     private User mapUser(ResultSet rs) throws SQLException {

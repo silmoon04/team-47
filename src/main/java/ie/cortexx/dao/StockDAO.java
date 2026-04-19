@@ -70,6 +70,22 @@ public class StockDAO {
         }
     }
 
+    public void save(StockItem item) throws SQLException {
+        String sql = "INSERT INTO stock (product_id, quantity, reorder_level) VALUES (?, ?, ?)";
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, item.getProductId());
+            ps.setInt(2, item.getQuantity());
+            ps.setInt(3, item.getReorderLevel());
+            ps.executeUpdate();
+            try (var rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    item.setStockId(rs.getInt(1));
+                }
+            }
+        }
+    }
+
     public boolean tryDeductQuantity(int productId, int quantity) throws SQLException {
         try (var c = DBConnection.getConnection()) {
             return tryDeductQuantity(c, productId, quantity);

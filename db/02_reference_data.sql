@@ -20,7 +20,7 @@ INSERT INTO system_config (config_key, config_value) VALUES
 
 -- data from marking criteria IPOS-CA section
 INSERT INTO merchant_details (merchant_id, business_name, address, phone, email, sa_merchant_id, sa_username, sa_password) VALUES
-    (1, 'Cosymed Ltd', '25, Bond Street, London WC1V 8LS', '0207 321 8001', 'info@cosymed.co.uk', 'ACC-0001', 'cosymed', 'merchant123');
+    (1, 'Cosymed Ltd', '25, Bond Street, London WC1V 8LS', '0207 321 8001', 'info@cosymed.co.uk', 'ACC0002', 'cosymed', 'bondstreet');
 
 -- fixed columns aligning to schema
 -- kept the placeholder names ({customer_name}, {balance} etc) and fixed few typos

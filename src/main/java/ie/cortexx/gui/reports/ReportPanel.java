@@ -26,6 +26,7 @@ public class ReportPanel extends JPanel {
     private JComboBox<String> reportType;
     private JTextField fromField;
     private JTextField toField;
+    private JCheckBox lowStockOnly;
     private ReportDocument currentReport;
 
     private record TurnoverRow(String saleId, String customer, String date, String payment, String total) {}
@@ -44,6 +45,10 @@ public class ReportPanel extends JPanel {
         toField = new JTextField(LocalDate.now().toString(), 10);
         left.add(UI.field("From", fromField));
         left.add(UI.field("To", toField));
+        lowStockOnly = new JCheckBox("Low Stock Only");
+        lowStockOnly.setOpaque(false);
+        lowStockOnly.addActionListener(e -> refreshReport());
+        left.add(lowStockOnly);
         toolbar.add(left, BorderLayout.WEST);
         JButton generate = UI.primaryButton("Generate");
         generate.addActionListener(e -> refreshReport());
@@ -123,6 +128,10 @@ public class ReportPanel extends JPanel {
                 item.isLowStock() ? "LOW_STOCK" : "IN_STOCK"
             );
         }).toList();
+
+        if (lowStockOnly.isSelected()) {
+            rows = rows.stream().filter(r -> "LOW_STOCK".equals(r.status())).toList();
+        }
 
         var table = UI.table(
             UI.col("Product", StockRow::product),

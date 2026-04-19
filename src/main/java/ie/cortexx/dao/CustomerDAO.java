@@ -169,12 +169,30 @@ public class CustomerDAO {
     }
 
     public void delete(int customerId) throws SQLException {
-        String sql = "DELETE FROM customers WHERE customer_id = ?";
-
-        try (var c = DBConnection.getConnection();
-             var ps = c.prepareStatement(sql)) {
-            ps.setInt(1, customerId);
-            ps.executeUpdate();
+        try (var c = DBConnection.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                // clear FK references so cascade delete works cleanly
+                try (var ps = c.prepareStatement("UPDATE payments SET customer_id = NULL WHERE customer_id = ?")) {
+                    ps.setInt(1, customerId); ps.executeUpdate();
+                }
+                try (var ps = c.prepareStatement("UPDATE sales SET customer_id = NULL WHERE customer_id = ?")) {
+                    ps.setInt(1, customerId); ps.executeUpdate();
+                }
+                try (var ps = c.prepareStatement("DELETE FROM statements WHERE customer_id = ?")) {
+                    ps.setInt(1, customerId); ps.executeUpdate();
+                }
+                // discount_tiers and reminders already CASCADE
+                try (var ps = c.prepareStatement("DELETE FROM customers WHERE customer_id = ?")) {
+                    ps.setInt(1, customerId); ps.executeUpdate();
+                }
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            } finally {
+                c.setAutoCommit(true);
+            }
         }
     }
 

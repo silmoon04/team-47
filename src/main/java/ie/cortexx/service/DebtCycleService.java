@@ -52,4 +52,8 @@ public class DebtCycleService {
             throw new RuntimeException(e);
         }
     }
+
+    public void confirmPaymentAndRestore(int customerId) {
+        restoreAccount(customerId);
+    }
 }

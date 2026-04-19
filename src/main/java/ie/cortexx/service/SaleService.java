@@ -67,9 +67,6 @@ public class SaleService {
     }
 
     public ValidationResult validatePaymentType(Customer customer, PaymentType paymentType, boolean isWalkIn) {
-        if (!isWalkIn && customer != null && paymentType == PaymentType.CASH) {
-            return ValidationResult.fail("You cannot pay cash for an account sale.");
-        }
         return ValidationResult.ok();
     }
 
@@ -102,6 +99,9 @@ public class SaleService {
             if (payment.getAmount() == null || payment.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
                 return ValidationResult.fail("Payment amount must be greater than 0");
             }
+        }
+        if (isCardPayment(payment.getPaymentType()) && !hasCardDetails(payment)) {
+            return ValidationResult.fail("Card payments require card type, 16-digit card number, and expiry");
         }
         return ValidationResult.ok();
     }
@@ -221,6 +221,10 @@ public class SaleService {
                 if (resolvedPaymentType == PaymentType.ON_CREDIT && resolvedCustomer != null) {
                     BigDecimal newBalance = resolvedCustomer.getOutstandingBalance().add(resolvedGrandTotal);
                     customerDAO.updateBalance(connection, resolvedCustomer.getCustomerId(), newBalance);
+                    // start debt clock if this is the first credit purchase
+                    if (resolvedCustomer.getDebtPeriodStart() == null && newBalance.compareTo(BigDecimal.ZERO) > 0) {
+                        connection.prepareStatement("UPDATE customers SET debt_period_start = CURDATE() WHERE customer_id = " + resolvedCustomer.getCustomerId() + " AND debt_period_start IS NULL").executeUpdate();
+                    }
                 }
 
                 return null;
@@ -232,5 +236,24 @@ public class SaleService {
             return ValidationResult.fail(error.getMessage());
         }
         return ValidationResult.ok();
+    }
+
+    private boolean isCardPayment(PaymentType paymentType) {
+        return paymentType == PaymentType.CREDIT_CARD || paymentType == PaymentType.DEBIT_CARD;
+    }
+
+    private boolean hasCardDetails(Payment payment) {
+        return hasText(payment.getCardType())
+            && isFourDigits(payment.getCardFirst4())
+            && isFourDigits(payment.getCardLast4())
+            && hasText(payment.getCardExpiry());
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private boolean isFourDigits(String value) {
+        return value != null && value.matches("\\d{4}");
     }
 }

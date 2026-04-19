@@ -142,4 +142,13 @@ public class ProductDAO {
         p.setActive(rs.getBoolean("is_active"));
         return p;
     }
+
+    public void deactivate(int productId) throws SQLException {
+        String sql = "UPDATE products SET is_active = FALSE WHERE product_id = ?";
+        try (var c = DBConnection.getConnection();
+             var ps = c.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            ps.executeUpdate();
+        }
+    }
 }

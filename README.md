@@ -12,6 +12,32 @@ Pharmacy counter assistant for cosymed ltd, built by cortexx (team b).
 
 ## Setup
 
+### Fast fresh-clone run
+
+If Docker is installed, this starts MySQL, creates both local schemas (`iposca_database`
+and `ipos_sa_db`), generates the runtime JDBC config from `db.properties.example`,
+builds the app, and launches the GUI:
+
+```bash
+mvn -Pdev compile exec:java
+```
+
+The Maven `dev` profile runs `docker compose up -d --wait ipos-mysql` before the
+app starts. The bundled Docker database uses:
+
+```properties
+db.url=jdbc:mysql://localhost:3306/iposca_database
+db.sa.url=jdbc:mysql://localhost:3306/ipos_sa_db
+db.user=root
+db.password=2004
+```
+
+Stop the database with:
+
+```bash
+docker compose down
+```
+
 ### 1. Database
 
 run the sql scripts in order against your mysql server (or select the data source in IntelliJ after the sql server is running, right click and and run):
@@ -185,4 +211,3 @@ Example:
   * User: `demo_user`
   * Password: `demo_pass`
 * Ensure MySQL is running before executing tests
-

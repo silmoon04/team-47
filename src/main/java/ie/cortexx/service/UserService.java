@@ -34,7 +34,15 @@ public class UserService {
     }
 
     public void delete(int userId) {
-        try { userDAO.deactivate(userId); }
-        catch (SQLException e) { throw new RuntimeException(e); }
+        try {
+            userDAO.delete(userId);
+        } catch (SQLException deleteError) {
+            try {
+                userDAO.deactivate(userId);
+            } catch (SQLException deactivateError) {
+                deleteError.addSuppressed(deactivateError);
+                throw new RuntimeException(deleteError);
+            }
+        }
     }
 }

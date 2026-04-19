@@ -7,6 +7,7 @@ import ie.cortexx.dao.ProductDAO;
 import ie.cortexx.dao.StockDAO;
 import ie.cortexx.exception.AuthenticationRequiredException;
 import ie.cortexx.exception.ServiceUnavailableException;
+import ie.cortexx.enums.OrderStatus;
 import ie.cortexx.model.OnlineOrder;
 import ie.cortexx.model.Order;
 import ie.cortexx.model.OrderConfirmation;
@@ -170,6 +171,16 @@ public class OrderService {
     public RemoteView<Order> loadSaOrdersView() throws SQLException {
         return loadRemoteView(this::findSaOrders, this::findOrders,
             "Showing live SA order history.", "Showing local order history only");
+    }
+
+    public BigDecimal getSaOutstandingBalance() throws SQLException {
+        authenticateSa();
+        return saProxyService.getOutstandingBalance();
+    }
+
+    public OrderStatus getSaOrderStatus(String orderId) throws SQLException {
+        authenticateSa();
+        return saProxyService.getOrderStatus(orderId);
     }
 
     private void authenticateSa() throws SQLException {

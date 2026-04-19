@@ -3,6 +3,7 @@ package ie.cortexx.service;
 import ie.cortexx.dao.CustomerDAO;
 import ie.cortexx.dao.ReminderDAO;
 import ie.cortexx.enums.ReminderType;
+import ie.cortexx.model.Customer;
 import ie.cortexx.model.Reminder;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -12,6 +13,10 @@ public class ReminderService {
 
     private final CustomerDAO customerDAO;
     private final ReminderDAO reminderDAO;
+
+    public ReminderService() {
+        this(new CustomerDAO(), new ReminderDAO());
+    }
 
     public ReminderService(CustomerDAO customerDAO, ReminderDAO reminderDAO) {
         this.customerDAO = customerDAO;
@@ -30,6 +35,18 @@ public class ReminderService {
             throw new RuntimeException(e);
         }
         return created;
+    }
+
+    public List<Reminder> findDebtorReminders() {
+        try {
+            var reminders = new ArrayList<Reminder>();
+            for (Customer debtor : customerDAO.findDebtors()) {
+                reminders.addAll(reminderDAO.findByCustomer(debtor.getCustomerId()));
+            }
+            return reminders;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void markSent(int reminderId) {
